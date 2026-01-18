@@ -178,16 +178,12 @@ def _store_downloaded_tracks(infos: list[dict]) -> list[Track]:
     for info in infos:
         track = _parse_track_from_info(info)
         file_path = MEDIA_DIR / f"{info.get('id', track.id)}.mp3"
+        track.file_url = f"/media/{file_path.name}"
         if track.id not in track_map:
             track_entry = {**asdict(track), "file_path": str(file_path)}
             tracks.append(track_entry)
             track_map[track.id] = track_entry
-        stored_tracks.append(
-            Track(
-                **asdict(track),
-                file_url=f"/media/{file_path.name}",
-            )
-        )
+        stored_tracks.append(track)
     _save_library(data)
     return stored_tracks
 
