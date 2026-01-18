@@ -1,4 +1,4 @@
-const tabs = document.querySelectorAll(".tab");
+const tabs = document.querySelectorAll(".nav-button");
 const panels = document.querySelectorAll(".panel");
 
 const nowPlaying = document.getElementById("now-playing");
