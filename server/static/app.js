@@ -6,6 +6,12 @@ const mediaGrid = document.getElementById("media-grid");
 const playlistList = document.getElementById("playlist-list");
 const favorites = document.getElementById("favorites");
 const tagSelect = document.getElementById("tag-track-select");
+const importForm = document.getElementById("import-form");
+const importUrl = document.getElementById("import-url");
+const importPlaylist = document.getElementById("import-playlist");
+const importAutoTag = document.getElementById("import-auto-tag");
+const importSubmit = document.getElementById("import-submit");
+const importLog = document.getElementById("import-log");
 
 const statusVersion = document.getElementById("status-version");
 const statusDevice = document.getElementById("status-device");
@@ -104,12 +110,87 @@ const renderTagOptions = () => {
     .join("");
 };
 
+const renderImportPlaylists = () => {
+  if (!importPlaylist) {
+    return;
+  }
+  const options = state.playlists.map(
+    (playlist) =>
+      `<option value="${playlist.id}">${playlist.name}</option>`
+  );
+  options.push('<option value="__new__">未分類</option>');
+  importPlaylist.innerHTML = options.join("");
+};
+
 const fetchJson = async (path) => {
   const response = await fetch(path);
   if (!response.ok) {
     throw new Error(`Failed to load ${path}`);
   }
   return response.json();
+};
+
+const postJson = async (path, payload) => {
+  const response = await fetch(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(message || `Failed to post ${path}`);
+  }
+  return response.json();
+};
+
+const refreshLibrary = async () => {
+  const [tracks, playlists, favoritesData] = await Promise.all([
+    fetchJson("/api/library"),
+    fetchJson("/api/playlists"),
+    fetchJson("/api/favorites"),
+  ]);
+  state.tracks = tracks;
+  state.playlists = playlists;
+  state.favorites = favoritesData;
+  renderMedia();
+  renderPlaylists();
+  renderFavorites();
+  renderTagOptions();
+  renderImportPlaylists();
+};
+
+const appendImportLog = (message) => {
+  if (!importLog) {
+    return;
+  }
+  importLog.textContent = message;
+};
+
+const handleImportSubmit = async () => {
+  const url = importUrl?.value?.trim();
+  if (!url) {
+    appendImportLog("URL を入力してください。");
+    return;
+  }
+  const selected = importPlaylist?.value;
+  const payload = {
+    url,
+  };
+  if (selected && selected !== "__new__") {
+    payload.playlist_id = selected;
+  } else if (selected === "__new__") {
+    payload.playlist_name = "未分類";
+  }
+  payload.auto_tag = Boolean(importAutoTag?.checked);
+  appendImportLog("yt-dlp を実行中...");
+  try {
+    const response = await postJson("/api/library/import", payload);
+    appendImportLog(response.log || "取り込み完了。");
+    await refreshLibrary();
+    importUrl.value = "";
+  } catch (error) {
+    appendImportLog(`エラー: ${error.message}`);
+  }
 };
 
 const init = async () => {
@@ -129,6 +210,7 @@ const init = async () => {
     renderPlaylists();
     renderFavorites();
     renderTagOptions();
+    renderImportPlaylists();
     renderNowPlaying(tracks[0]);
 
     statusVersion.textContent = status.version;
@@ -138,5 +220,18 @@ const init = async () => {
     console.error(error);
   }
 };
+
+if (importSubmit) {
+  importSubmit.addEventListener("click", () => {
+    handleImportSubmit();
+  });
+}
+
+if (importForm) {
+  importForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    handleImportSubmit();
+  });
+}
 
 init();

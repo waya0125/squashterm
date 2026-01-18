@@ -330,6 +330,32 @@ select {
   font-size: 12px;
 }
 
+.terminal {
+  display: grid;
+  gap: 8px;
+}
+
+.terminal-title {
+  margin: 0;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+}
+
+.terminal-output {
+  background: #0b1022;
+  border: 1px solid #1e293b;
+  border-radius: 12px;
+  padding: 12px;
+  color: #e2e8f0;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  min-height: 140px;
+  white-space: pre-wrap;
+}
+
 .progress {
   background: #334155;
   border-radius: 999px;

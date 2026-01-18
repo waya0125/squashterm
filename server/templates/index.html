@@ -98,25 +98,30 @@
               <div class="chip">yt-dlp連携</div>
             </div>
             <div class="manage-grid">
-              <form class="card">
+              <form class="card" id="import-form">
                 <h4>新規楽曲追加</h4>
                 <label>
                   <span>動画/プレイリスト URL</span>
-                  <input type="url" placeholder="https://www.youtube.com/watch?v=..." />
+                  <input
+                    type="url"
+                    id="import-url"
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    required
+                  />
                 </label>
                 <label>
                   <span>保存先プレイリスト</span>
-                  <select>
-                    <option>朝のルーティン</option>
-                    <option>クールダウン</option>
-                    <option>未分類</option>
-                  </select>
+                  <select id="import-playlist"></select>
                 </label>
                 <label class="checkbox">
-                  <input type="checkbox" checked />
+                  <input type="checkbox" id="import-auto-tag" checked />
                   <span>ダウンロード後に自動でID3タグを解析</span>
                 </label>
-                <button type="button" class="primary">追加ジョブをキュー</button>
+                <button type="button" class="primary" id="import-submit">ライブラリに追加</button>
+                <div class="terminal">
+                  <p class="terminal-title">yt-dlp 実行ログ</p>
+                  <pre class="terminal-output" id="import-log">待機中...</pre>
+                </div>
               </form>
 
               <form class="card">

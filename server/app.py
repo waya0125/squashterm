@@ -207,7 +207,7 @@ def _ensure_playlist(data: dict, playlist_id: str | None, playlist_name: str | N
     return None
 
 
-def _download_with_ytdlp(url: str) -> list[dict]:
+def _download_with_ytdlp(url: str) -> tuple[list[dict], str]:
     command = [
         "yt-dlp",
         "--no-playlist",
@@ -227,8 +227,11 @@ def _download_with_ytdlp(url: str) -> list[dict]:
         capture_output=True,
         text=True,
     )
+    log_output = "\n".join(
+        line for line in [result.stdout.strip(), result.stderr.strip()] if line
+    )
     if result.returncode != 0:
-        raise RuntimeError(result.stderr.strip() or "yt-dlp failed")
+        raise RuntimeError(log_output or "yt-dlp failed")
     infos = []
     for line in result.stdout.splitlines():
         line = line.strip()
@@ -240,7 +243,7 @@ def _download_with_ytdlp(url: str) -> list[dict]:
             continue
     if not infos:
         raise RuntimeError("yt-dlp did not return metadata")
-    return infos
+    return infos, log_output
 
 
 def _store_downloaded_tracks(
@@ -274,16 +277,17 @@ def _store_downloaded_tracks(
     return stored_tracks
 
 
-def _ingest_from_url(payload: dict) -> list[Track]:
+def _ingest_from_url(payload: dict) -> tuple[list[Track], str]:
     url = payload.get("url")
     if not url:
         raise ValueError("url is required")
-    infos = _download_with_ytdlp(url)
-    return _store_downloaded_tracks(
+    infos, log_output = _download_with_ytdlp(url)
+    tracks = _store_downloaded_tracks(
         infos,
         payload.get("playlist_id"),
         payload.get("playlist_name"),
     )
+    return tracks, log_output
 
 
 class SquashTermHandler(BaseHTTPRequestHandler):
@@ -358,7 +362,7 @@ class SquashTermHandler(BaseHTTPRequestHandler):
         if self.path == "/api/library/import":
             try:
                 payload = self._read_json()
-                tracks = _ingest_from_url(payload)
+                tracks, log_output = _ingest_from_url(payload)
             except (json.JSONDecodeError, ValueError) as exc:
                 self.send_error(HTTPStatus.BAD_REQUEST, str(exc))
                 return
@@ -369,7 +373,12 @@ class SquashTermHandler(BaseHTTPRequestHandler):
                 self.send_error(HTTPStatus.BAD_REQUEST, str(exc))
                 return
 
-            self._send_json([asdict(track) for track in tracks])
+            self._send_json(
+                {
+                    "tracks": [asdict(track) for track in tracks],
+                    "log": log_output,
+                }
+            )
             return
 
         self.send_error(HTTPStatus.NOT_FOUND, "Not Found")
