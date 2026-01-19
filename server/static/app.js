@@ -445,6 +445,7 @@ if (audioPlayer) {
 
   audioPlayer.addEventListener("timeupdate", () => {
     const { currentTime, duration } = audioPlayer;
+    console.log(currentTime, duration)
     const percent = duration ? Math.floor((currentTime / duration) * 100) : 0;
     if (playerSeek) {
       playerSeek.value = percent;
@@ -467,18 +468,23 @@ if (audioPlayer) {
 
 if (playerSeek && audioPlayer) {
   playerSeek.addEventListener("input", (event) => {
+    console.log("seek event")
     const value = Number(event.target.value);
     if (Number.isFinite(value) && audioPlayer.duration) {
       audioPlayer.currentTime = (value / 100) * audioPlayer.duration;
+      console.log("seek event")
     }
   });
 }
 
 if (miniSeek && audioPlayer) {
   miniSeek.addEventListener("input", (event) => {
+    console.log("miniseek event")
     const value = Number(event.target.value);
+    console.log(value)
     if (Number.isFinite(value) && audioPlayer.duration) {
-      audioPlayer.currentTime = (value / 100) * audioPlayer.duration;
+      console.log((value / 100) * audioPlayer.duration)
+      audioPlayer.currentTime = Math.round((value / 100) * audioPlayer.duration);
     }
   });
 }

@@ -1,15 +1,20 @@
 from __future__ import annotations
 
 import json
-import mimetypes
 import subprocess
 import uuid
 from dataclasses import asdict, dataclass
 from datetime import datetime
-from http import HTTPStatus
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+# --- 新しいライブラリのインポート ---
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
+import uvicorn
+
+# --- ディレクトリ設定 ---
 BASE_DIR = Path(__file__).resolve().parent
 TEMPLATE_PATH = BASE_DIR / "templates" / "index.html"
 STATIC_DIR = BASE_DIR / "static"
@@ -18,6 +23,7 @@ MEDIA_DIR = DATA_DIR / "media"
 LIBRARY_PATH = DATA_DIR / "library.json"
 DEFAULT_COVER = "/static/images/cover-rise-up.svg"
 
+# --- データモデル (Pydantic & Dataclass) ---
 
 @dataclass
 class Track:
@@ -32,18 +38,20 @@ class Track:
     year: int
     file_url: str | None = None
 
+class ImportRequest(BaseModel):
+    url: str
+
+# --- ヘルパー関数 (既存ロジックを流用) ---
 
 def _ensure_data_dirs() -> None:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     MEDIA_DIR.mkdir(parents=True, exist_ok=True)
-
 
 def _format_duration(seconds: int | None) -> str:
     if not seconds:
         return "--"
     minutes, remainder = divmod(int(seconds), 60)
     return f"{minutes}:{remainder:02d}"
-
 
 def _parse_year(info: dict) -> int:
     for key in ("release_year", "year"):
@@ -58,7 +66,6 @@ def _parse_year(info: dict) -> int:
             return 0
     return 0
 
-
 def _parse_track_from_info(info: dict) -> Track:
     return Track(
         id=f"yt_{info.get('id', uuid.uuid4().hex)}",
@@ -71,7 +78,6 @@ def _parse_track_from_info(info: dict) -> Track:
         genre=info.get("genre") or "Unknown",
         year=_parse_year(info),
     )
-
 
 def _resolve_thumbnail_path(info: dict) -> str | None:
     track_id = info.get("id")
@@ -111,7 +117,6 @@ def _resolve_thumbnail_path(info: dict) -> str | None:
         return f"/media/{candidate.name}"
     return None
 
-
 def _init_library() -> None:
     _ensure_data_dirs()
     if LIBRARY_PATH.exists():
@@ -123,7 +128,6 @@ def _init_library() -> None:
     }
     LIBRARY_PATH.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
-
 def _load_library() -> dict:
     _ensure_data_dirs()
     if not LIBRARY_PATH.exists():
@@ -131,10 +135,8 @@ def _load_library() -> dict:
     content = LIBRARY_PATH.read_text(encoding="utf-8")
     return json.loads(content)
 
-
 def _save_library(data: dict) -> None:
     LIBRARY_PATH.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
-
 
 def _fetch_tracks() -> list[Track]:
     data = _load_library()
@@ -159,16 +161,13 @@ def _fetch_tracks() -> list[Track]:
         )
     return tracks
 
-
 def _fetch_playlists() -> list[dict]:
     data = _load_library()
     return data.get("playlists", [])
 
-
 def _fetch_favorites() -> list[str]:
     data = _load_library()
     return data.get("favorites", [])
-
 
 def _download_with_ytdlp(url: str) -> tuple[list[dict], str]:
     command = [
@@ -184,6 +183,7 @@ def _download_with_ytdlp(url: str) -> tuple[list[dict], str]:
         str(MEDIA_DIR / "%(id)s.%(ext)s"),
         url,
     ]
+    # 同期的に実行（FastAPIはdef関数をスレッドプールで実行するのでブロックしない）
     result = subprocess.run(
         command,
         check=False,
@@ -207,7 +207,6 @@ def _download_with_ytdlp(url: str) -> tuple[list[dict], str]:
     if not infos:
         raise RuntimeError("yt-dlp did not return metadata")
     return infos, log_output
-
 
 def _store_downloaded_tracks(infos: list[dict]) -> list[Track]:
     stored_tracks: list[Track] = []
@@ -233,119 +232,76 @@ def _store_downloaded_tracks(infos: list[dict]) -> list[Track]:
     _save_library(data)
     return stored_tracks
 
-
-def _ingest_from_url(payload: dict) -> tuple[list[Track], str]:
-    url = payload.get("url")
-    if not url:
-        raise ValueError("url is required")
+def _ingest_from_url(url: str) -> tuple[list[Track], str]:
     infos, log_output = _download_with_ytdlp(url)
     tracks = _store_downloaded_tracks(infos)
     return tracks, log_output
 
+# --- FastAPI アプリケーション定義 ---
 
-class SquashTermHandler(BaseHTTPRequestHandler):
-    def _send_json(self, payload: object) -> None:
-        body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-        self.send_response(HTTPStatus.OK)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
+app = FastAPI(title="SquashTerm Server", version="0.1.0")
 
-    def _send_file(self, file_path: Path) -> None:
-        if not file_path.exists() or not file_path.is_file():
-            self.send_error(HTTPStatus.NOT_FOUND, "Not Found")
-            return
+# 初期化
+_init_library()
 
-        content_type, _ = mimetypes.guess_type(file_path.name)
-        content_type = content_type or "application/octet-stream"
-        data = file_path.read_bytes()
+# 静的ファイルの配信 (ここが重要: StaticFilesは自動的にRangeリクエストを処理します)
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+app.mount("/media", StaticFiles(directory=MEDIA_DIR), name="media")
 
-        self.send_response(HTTPStatus.OK)
-        self.send_header("Content-Type", f"{content_type}; charset=utf-8")
-        self.send_header("Content-Length", str(len(data)))
-        self.end_headers()
-        self.wfile.write(data)
+@app.get("/")
+@app.get("/index.html")
+async def read_index():
+    if not TEMPLATE_PATH.exists():
+        raise HTTPException(status_code=404, detail="Index template not found")
+    return FileResponse(TEMPLATE_PATH)
 
-    def _read_json(self) -> dict:
-        length = int(self.headers.get("Content-Length", 0))
-        if length <= 0:
-            return {}
-        payload = self.rfile.read(length).decode("utf-8")
-        if not payload:
-            return {}
-        return json.loads(payload)
+@app.get("/api/library")
+def get_library():
+    # データクラスを辞書化して返す
+    return [asdict(track) for track in _fetch_tracks()]
 
-    def do_GET(self) -> None:  # noqa: N802 - keeping stdlib signature
-        if self.path == "/" or self.path == "/index.html":
-            self._send_file(TEMPLATE_PATH)
-            return
+@app.get("/api/playlists")
+def get_playlists():
+    return _fetch_playlists()
 
-        if self.path == "/api/library":
-            self._send_json([asdict(track) for track in _fetch_tracks()])
-            return
+@app.get("/api/favorites")
+def get_favorites():
+    return _fetch_favorites()
 
-        if self.path == "/api/playlists":
-            self._send_json(_fetch_playlists())
-            return
+@app.get("/api/status")
+def get_status():
+    return {
+        "version": "0.1.0",
+        "service": "SquashTerm",
+        "time": datetime.utcnow().isoformat(timespec="seconds"),
+        "device": "Raspberry Pi (prototype)",
+    }
 
-        if self.path == "/api/favorites":
-            self._send_json(_fetch_favorites())
-            return
+@app.post("/api/library/import")
+def import_track(payload: ImportRequest):
+    """
+    URLからトラックをインポートする。
+    処理が重いため、FastAPIはこれをスレッドプールで実行し、
+    他のリクエスト(再生など)をブロックしません。
+    """
+    try:
+        tracks, log_output = _ingest_from_url(payload.url)
+        return {
+            "tracks": [asdict(track) for track in tracks],
+            "log": log_output,
+        }
+    except FileNotFoundError:
+        raise HTTPException(status_code=400, detail="yt-dlp is not installed")
+    except RuntimeError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
 
-        if self.path == "/api/status":
-            self._send_json(
-                {
-                    "version": "0.1.0",
-                    "service": "SquashTerm",
-                    "time": datetime.utcnow().isoformat(timespec="seconds"),
-                    "device": "Raspberry Pi (prototype)",
-                }
-            )
-            return
-
-        if self.path.startswith("/static/"):
-            static_path = STATIC_DIR / self.path.replace("/static/", "", 1)
-            self._send_file(static_path)
-            return
-        if self.path.startswith("/media/"):
-            media_path = MEDIA_DIR / self.path.replace("/media/", "", 1)
-            self._send_file(media_path)
-            return
-
-        self.send_error(HTTPStatus.NOT_FOUND, "Not Found")
-
-    def do_POST(self) -> None:  # noqa: N802 - keeping stdlib signature
-        if self.path == "/api/library/import":
-            try:
-                payload = self._read_json()
-                tracks, log_output = _ingest_from_url(payload)
-            except (json.JSONDecodeError, ValueError) as exc:
-                self.send_error(HTTPStatus.BAD_REQUEST, str(exc))
-                return
-            except FileNotFoundError:
-                self.send_error(HTTPStatus.BAD_REQUEST, "yt-dlp is not installed")
-                return
-            except RuntimeError as exc:
-                self.send_error(HTTPStatus.BAD_REQUEST, str(exc))
-                return
-
-            self._send_json(
-                {
-                    "tracks": [asdict(track) for track in tracks],
-                    "log": log_output,
-                }
-            )
-            return
-
-        self.send_error(HTTPStatus.NOT_FOUND, "Not Found")
+# --- 実行エントリポイント ---
 
 def run(host: str = "0.0.0.0", port: int = 8000) -> None:
-    _init_library()
-    server = ThreadingHTTPServer((host, port), SquashTermHandler)
     print(f"SquashTerm server running on http://{host}:{port}")
-    server.serve_forever()
-
+    uvicorn.run(app, host=host, port=port)
 
 if __name__ == "__main__":
     run()
