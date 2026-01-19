@@ -23,6 +23,8 @@ body {
   display: grid;
   grid-template-columns: 240px 1fr;
   gap: 24px;
+  align-items: stretch;
+  min-height: calc(100vh - 48px);
 }
 
 .sidebar {
@@ -34,7 +36,7 @@ body {
   gap: 24px;
   position: sticky;
   top: 24px;
-  height: fit-content;
+  height: 100%;
 }
 
 .brand h1 {
@@ -475,6 +477,8 @@ select {
   gap: 12px;
   justify-content: center;
   flex-wrap: wrap;
+  position: relative;
+  z-index: 2;
 }
 
 .player-progress {
@@ -484,6 +488,8 @@ select {
   gap: 12px;
   font-size: 12px;
   color: #94a3b8;
+  position: relative;
+  z-index: 2;
 }
 
 .player-progress input[type="range"] {
@@ -616,10 +622,19 @@ select {
 
 .mini-progress {
   grid-area: progress;
+  display: grid;
+  gap: 6px;
 }
 
 .mini-progress input[type="range"] {
   width: 100%;
+}
+
+.mini-time {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #94a3b8;
 }
 
 @media (max-width: 900px) {
