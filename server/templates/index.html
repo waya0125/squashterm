@@ -173,6 +173,11 @@
             <p id="player-artist">--</p>
             <p class="player-meta" id="player-album">--</p>
           </div>
+          <div class="player-progress">
+            <span id="player-current">0:00</span>
+            <input type="range" id="player-seek" min="0" max="100" value="0" />
+            <span id="player-duration">0:00</span>
+          </div>
           <div class="player-controls">
             <button class="icon-button" type="button" id="player-prev" aria-label="前へ">
               <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -209,11 +214,6 @@
               </svg>
               <span class="sr-only">停止</span>
             </button>
-          </div>
-          <div class="player-progress">
-            <span id="player-current">0:00</span>
-            <input type="range" id="player-seek" min="0" max="100" value="0" />
-            <span id="player-duration">0:00</span>
           </div>
         </div>
       </div>
