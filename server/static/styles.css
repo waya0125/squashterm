@@ -652,17 +652,17 @@ body {
 
 .settings-version-item {
   display: grid;
-  grid-template-columns: 32px 1fr;
+  grid-template-columns: 48px 1fr;
   align-items: center;
-  gap: 10px;
+  gap: 14px;
   font-size: 14px;
   color: #cbd5f5;
 }
 
 .settings-version-logo {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
   object-fit: contain;
 }
 
