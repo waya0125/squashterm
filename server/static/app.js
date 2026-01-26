@@ -17,6 +17,11 @@ const importLog = document.getElementById("import-log");
 const statusVersion = document.getElementById("status-version");
 const statusDevice = document.getElementById("status-device");
 const statusTime = document.getElementById("status-time");
+const settingsVersionList = document.getElementById("settings-version-list");
+const settingsStorageBar = document.getElementById("settings-storage-bar");
+const settingsStorageText = document.getElementById("settings-storage-text");
+const settingsPlaybackOptions = document.getElementById("settings-playback-options");
+const systemInfoList = document.getElementById("system-info-list");
 
 const audioPlayer = document.getElementById("audio-player");
 const playerOverlay = document.getElementById("player-overlay");
@@ -56,6 +61,8 @@ const playerState = {
   currentIndex: -1,
   isPlaying: false,
 };
+
+const supportsMediaSession = "mediaSession" in navigator;
 
 tabs.forEach((tab) => {
   tab.addEventListener("click", () => {
@@ -168,6 +175,10 @@ const updatePlayerUI = () => {
     if (miniDuration) {
       miniDuration.textContent = "0:00";
     }
+    if (supportsMediaSession) {
+      navigator.mediaSession.metadata = null;
+      navigator.mediaSession.playbackState = "none";
+    }
     return;
   }
   if (playerCover) {
@@ -198,6 +209,7 @@ const updatePlayerUI = () => {
     miniPlayer.setAttribute("aria-hidden", "false");
   }
   updatePlayerButtons();
+  updateMediaSessionMetadata(track);
 };
 
 const openPlayerOverlay = () => {
@@ -394,6 +406,104 @@ const renderTagOptions = () => {
   setTagFields(selectedTrack);
 };
 
+const renderSettings = (settings) => {
+  if (settingsVersionList) {
+    const version = settings?.version || {};
+    settingsVersionList.innerHTML = [
+      `<li>アプリ: <strong>${version.app || "--"}</strong></li>`,
+      `<li>API: <strong>${version.api || "--"}</strong></li>`,
+      `<li>ビルド: <strong>${version.build || "--"}</strong></li>`,
+    ].join("");
+  }
+  if (settingsPlaybackOptions) {
+    const options = settings?.playback_options || [];
+    settingsPlaybackOptions.innerHTML = "";
+    if (options.length === 0) {
+      settingsPlaybackOptions.innerHTML = '<p class="empty-state">項目が存在しません。</p>';
+    } else {
+      options.forEach((option) => {
+        const label = document.createElement("label");
+        label.className = "checkbox";
+        const input = document.createElement("input");
+        input.type = "checkbox";
+        input.checked = Boolean(option.enabled);
+        input.disabled = true;
+        const span = document.createElement("span");
+        span.textContent = option.label || option.id || "--";
+        label.appendChild(input);
+        label.appendChild(span);
+        settingsPlaybackOptions.appendChild(label);
+      });
+    }
+  }
+};
+
+const renderSystem = (system) => {
+  if (!system) {
+    return;
+  }
+  if (settingsStorageBar && settingsStorageText) {
+    const storage = system.storage || {};
+    const used = Number(storage.used_gb ?? 0);
+    const total = Number(storage.total_gb ?? 0);
+    const free = Number(storage.free_gb ?? 0);
+    const percent = Math.max(0, Math.min(100, Number(storage.percent ?? 0)));
+    settingsStorageBar.style.width = `${percent}%`;
+    settingsStorageText.textContent = `使用中: ${used.toFixed(
+      1
+    )}GB / ${total.toFixed(1)}GB（空き ${free.toFixed(1)}GB）`;
+  }
+  if (systemInfoList) {
+    const os = system.os || "--";
+    const hostname = system.hostname || "--";
+    systemInfoList.innerHTML = [
+      `<li>ホスト名: <strong>${hostname}</strong></li>`,
+      `<li>OS: <strong>${os}</strong></li>`,
+    ].join("");
+  }
+};
+
+const updateMediaSessionMetadata = (track) => {
+  if (!supportsMediaSession || !track) {
+    return;
+  }
+  const artwork = track.cover
+    ? [
+        {
+          src: track.cover,
+          sizes: "512x512",
+          type: "image/png",
+        },
+      ]
+    : [];
+  navigator.mediaSession.metadata = new MediaMetadata({
+    title: track.title || "",
+    artist: track.artist || "",
+    album: track.album || "",
+    artwork,
+  });
+};
+
+const updateMediaSessionPlaybackState = () => {
+  if (!supportsMediaSession || !audioPlayer) {
+    return;
+  }
+  navigator.mediaSession.playbackState = audioPlayer.paused ? "paused" : "playing";
+};
+
+const updateMediaSessionPosition = () => {
+  if (!supportsMediaSession || !audioPlayer || !audioPlayer.duration) {
+    return;
+  }
+  if (typeof navigator.mediaSession.setPositionState === "function") {
+    navigator.mediaSession.setPositionState({
+      duration: audioPlayer.duration,
+      playbackRate: audioPlayer.playbackRate,
+      position: audioPlayer.currentTime,
+    });
+  }
+};
+
 const fetchJson = async (path) => {
   const response = await fetch(path);
   if (!response.ok) {
@@ -470,12 +580,15 @@ const handleImportSubmit = async () => {
 
 const init = async () => {
   try {
-    const [tracks, playlists, favoritesData, status] = await Promise.all([
-      fetchJson("/api/library"),
-      fetchJson("/api/playlists"),
-      fetchJson("/api/favorites"),
-      fetchJson("/api/status"),
-    ]);
+    const [tracks, playlists, favoritesData, status, settings, system] =
+      await Promise.all([
+        fetchJson("/api/library"),
+        fetchJson("/api/playlists"),
+        fetchJson("/api/favorites"),
+        fetchJson("/api/status"),
+        fetchJson("/api/settings"),
+        fetchJson("/api/system"),
+      ]);
 
     state.tracks = tracks;
     state.playlists = playlists;
@@ -490,9 +603,17 @@ const init = async () => {
       updatePlayerUI();
     }
 
-    statusVersion.textContent = status.version;
-    statusDevice.textContent = status.device;
-    statusTime.textContent = status.time;
+    if (statusVersion) {
+      statusVersion.textContent = status.version;
+    }
+    if (statusDevice) {
+      statusDevice.textContent = status.device;
+    }
+    if (statusTime) {
+      statusTime.textContent = status.time;
+    }
+    renderSettings(settings);
+    renderSystem(system);
   } catch (error) {
     console.error(error);
   }
@@ -524,11 +645,13 @@ if (audioPlayer) {
   audioPlayer.addEventListener("play", () => {
     playerState.isPlaying = true;
     updatePlayerButtons();
+    updateMediaSessionPlaybackState();
   });
 
   audioPlayer.addEventListener("pause", () => {
     playerState.isPlaying = false;
     updatePlayerButtons();
+    updateMediaSessionPlaybackState();
   });
 
   audioPlayer.addEventListener("timeupdate", () => {
@@ -552,6 +675,7 @@ if (audioPlayer) {
     if (miniDuration) {
       miniDuration.textContent = formatTime(duration);
     }
+    updateMediaSessionPosition();
   });
 
   audioPlayer.addEventListener("ended", () => {
@@ -637,6 +761,35 @@ if (playerClose) {
       playerOverlay.classList.remove("is-active");
       playerOverlay.setAttribute("aria-hidden", "true");
     }
+  });
+}
+
+if (supportsMediaSession) {
+  navigator.mediaSession.setActionHandler("play", () => {
+    togglePlayback();
+  });
+  navigator.mediaSession.setActionHandler("pause", () => {
+    togglePlayback();
+  });
+  navigator.mediaSession.setActionHandler("previoustrack", () => {
+    playPrev();
+  });
+  navigator.mediaSession.setActionHandler("nexttrack", () => {
+    playNext();
+  });
+  navigator.mediaSession.setActionHandler("stop", () => {
+    stopPlayback();
+  });
+  navigator.mediaSession.setActionHandler("seekto", (event) => {
+    if (!audioPlayer || typeof event.seekTime !== "number") {
+      return;
+    }
+    if (event.fastSeek && typeof audioPlayer.fastSeek === "function") {
+      audioPlayer.fastSeek(event.seekTime);
+    } else {
+      audioPlayer.currentTime = event.seekTime;
+    }
+    updateMediaSessionPosition();
   });
 }
 

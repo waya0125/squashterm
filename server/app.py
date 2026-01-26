@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import platform
+import shutil
 import subprocess
 import uuid
 from dataclasses import asdict, dataclass
@@ -19,9 +21,37 @@ BASE_DIR = Path(__file__).resolve().parent
 TEMPLATE_PATH = BASE_DIR / "templates" / "index.html"
 STATIC_DIR = BASE_DIR / "static"
 DATA_DIR = BASE_DIR / "data"
+CONFIG_DIR = BASE_DIR / "config"
 MEDIA_DIR = DATA_DIR / "media"
 LIBRARY_PATH = DATA_DIR / "library.json"
+SETTINGS_PATH = CONFIG_DIR / "settings.json"
 DEFAULT_COVER = "/static/images/cover-rise-up.svg"
+
+DEFAULT_SETTINGS = {
+    "app": {
+        "name": "SquashTerm",
+        "version": "0.1.0",
+        "api": "FastAPI",
+        "build": "2024.11.18",
+    },
+    "device": "Raspberry Pi (prototype)",
+    "storage": {
+        "used_gb": 3.8,
+        "total_gb": 9.0,
+    },
+    "playback_options": [
+        {
+            "id": "allow_remote",
+            "label": "ネットワークからのアクセスを許可",
+            "enabled": True,
+        },
+        {
+            "id": "auto_scan",
+            "label": "自動ライブラリスキャン",
+            "enabled": False,
+        },
+    ],
+}
 
 # --- データモデル (Pydantic & Dataclass) ---
 
@@ -128,11 +158,27 @@ def _init_library() -> None:
     }
     LIBRARY_PATH.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
+def _init_settings() -> None:
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    if SETTINGS_PATH.exists():
+        return
+    SETTINGS_PATH.write_text(
+        json.dumps(DEFAULT_SETTINGS, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
 def _load_library() -> dict:
     _ensure_data_dirs()
     if not LIBRARY_PATH.exists():
         _init_library()
     content = LIBRARY_PATH.read_text(encoding="utf-8")
+    return json.loads(content)
+
+def _load_settings() -> dict:
+    _ensure_data_dirs()
+    if not SETTINGS_PATH.exists():
+        _init_settings()
+    content = SETTINGS_PATH.read_text(encoding="utf-8")
     return json.loads(content)
 
 def _save_library(data: dict) -> None:
@@ -168,6 +214,44 @@ def _fetch_playlists() -> list[dict]:
 def _fetch_favorites() -> list[str]:
     data = _load_library()
     return data.get("favorites", [])
+
+def _build_settings_payload() -> dict:
+    settings = _load_settings()
+    app_settings = settings.get("app", {})
+    storage = settings.get("storage", {})
+    used_gb = storage.get("used_gb", 0)
+    total_gb = storage.get("total_gb", 0)
+    percent = int((used_gb / total_gb) * 100) if total_gb else 0
+    return {
+        "version": {
+            "app": app_settings.get("version", ""),
+            "api": app_settings.get("api", ""),
+            "build": app_settings.get("build", ""),
+        },
+        "storage": {
+            "used_gb": used_gb,
+            "total_gb": total_gb,
+            "percent": percent,
+        },
+        "playback_options": settings.get("playback_options", []),
+    }
+
+def _build_system_payload() -> dict:
+    usage = shutil.disk_usage(DATA_DIR)
+    total_gb = usage.total / (1024**3)
+    free_gb = usage.free / (1024**3)
+    used_gb = usage.used / (1024**3)
+    percent = int((used_gb / total_gb) * 100) if total_gb else 0
+    return {
+        "storage": {
+            "total_gb": round(total_gb, 1),
+            "used_gb": round(used_gb, 1),
+            "free_gb": round(free_gb, 1),
+            "percent": percent,
+        },
+        "os": platform.platform(),
+        "hostname": platform.node(),
+    }
 
 def _download_with_ytdlp(url: str) -> tuple[list[dict], str]:
     command = [
@@ -243,6 +327,7 @@ app = FastAPI(title="SquashTerm Server", version="0.1.0")
 
 # 初期化
 _init_library()
+_init_settings()
 
 # 静的ファイルの配信 (ここが重要: StaticFilesは自動的にRangeリクエストを処理します)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
@@ -270,12 +355,22 @@ def get_favorites():
 
 @app.get("/api/status")
 def get_status():
+    settings = _load_settings()
+    app_settings = settings.get("app", {})
     return {
-        "version": "0.1.0",
+        "version": app_settings.get("version", ""),
         "service": "SquashTerm",
         "time": datetime.utcnow().isoformat(timespec="seconds"),
-        "device": "Raspberry Pi (prototype)",
+        "device": settings.get("device", ""),
     }
+
+@app.get("/api/settings")
+def get_settings():
+    return _build_settings_payload()
+
+@app.get("/api/system")
+def get_system():
+    return _build_system_payload()
 
 @app.post("/api/library/import")
 def import_track(payload: ImportRequest):

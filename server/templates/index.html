@@ -129,29 +129,22 @@
             <div class="settings-grid">
               <div class="card">
                 <h4>バージョン情報</h4>
-                <ul>
-                  <li>アプリ: <strong>0.1.0</strong></li>
-                  <li>API: <strong>Python HTTP Server</strong></li>
-                  <li>ビルド: <strong>2024.11.18</strong></li>
-                </ul>
+                <ul id="settings-version-list"></ul>
               </div>
               <div class="card">
                 <h4>ストレージ</h4>
                 <div class="progress">
-                  <div class="progress-bar" style="width: 42%"></div>
+                  <div class="progress-bar" id="settings-storage-bar"></div>
                 </div>
-                <p>楽曲: 3.8GB / 9.0GB (仮)</p>
+                <p id="settings-storage-text"></p>
+              </div>
+              <div class="card">
+                <h4>システム情報</h4>
+                <ul id="system-info-list"></ul>
               </div>
               <div class="card">
                 <h4>再生設定</h4>
-                <label class="checkbox">
-                  <input type="checkbox" checked />
-                  <span>ネットワークからのアクセスを許可</span>
-                </label>
-                <label class="checkbox">
-                  <input type="checkbox" />
-                  <span>自動ライブラリスキャン</span>
-                </label>
+                <div id="settings-playback-options"></div>
               </div>
             </div>
           </section>
