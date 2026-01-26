@@ -103,15 +103,15 @@
                 </label>
                 <label>
                   <span>タイトル</span>
-                  <input type="text" placeholder="楽曲タイトル" />
+                  <input type="text" id="tag-title" placeholder="楽曲タイトル" />
                 </label>
                 <label>
                   <span>アーティスト</span>
-                  <input type="text" placeholder="アーティスト名" />
+                  <input type="text" id="tag-artist" placeholder="アーティスト名" />
                 </label>
                 <label>
                   <span>アルバム</span>
-                  <input type="text" placeholder="アルバム名" />
+                  <input type="text" id="tag-album" placeholder="アルバム名" />
                 </label>
                 <button type="button" class="secondary">変更内容を保存</button>
               </form>
@@ -173,6 +173,11 @@
             <p id="player-artist">--</p>
             <p class="player-meta" id="player-album">--</p>
           </div>
+          <div class="player-progress">
+            <span id="player-current">0:00</span>
+            <input type="range" id="player-seek" min="0" max="100" value="0" />
+            <span id="player-duration">0:00</span>
+          </div>
           <div class="player-controls">
             <button class="icon-button" type="button" id="player-prev" aria-label="前へ">
               <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -209,11 +214,6 @@
               </svg>
               <span class="sr-only">停止</span>
             </button>
-          </div>
-          <div class="player-progress">
-            <span id="player-current">0:00</span>
-            <input type="range" id="player-seek" min="0" max="100" value="0" />
-            <span id="player-duration">0:00</span>
           </div>
         </div>
       </div>
@@ -277,6 +277,10 @@
         </button>
       </div>
       <div class="mini-progress">
+        <div class="mini-time">
+          <span id="mini-current">0:00</span>
+          <span id="mini-duration">0:00</span>
+        </div>
         <input type="range" id="mini-seek" min="0" max="100" value="0" />
       </div>
     </div>

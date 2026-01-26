@@ -5,6 +5,9 @@ const mediaGrid = document.getElementById("media-grid");
 const playlistList = document.getElementById("playlist-list");
 const favorites = document.getElementById("favorites");
 const tagSelect = document.getElementById("tag-track-select");
+const tagTitleInput = document.getElementById("tag-title");
+const tagArtistInput = document.getElementById("tag-artist");
+const tagAlbumInput = document.getElementById("tag-album");
 const importForm = document.getElementById("import-form");
 const importUrl = document.getElementById("import-url");
 const importAutoTag = document.getElementById("import-auto-tag");
@@ -40,6 +43,8 @@ const miniNext = document.getElementById("mini-next");
 const miniStop = document.getElementById("mini-stop");
 const miniExpand = document.getElementById("mini-expand");
 const miniSeek = document.getElementById("mini-seek");
+const miniCurrent = document.getElementById("mini-current");
+const miniDuration = document.getElementById("mini-duration");
 
 const state = {
   tracks: [],
@@ -88,6 +93,30 @@ const updatePlayerButtons = () => {
   });
 };
 
+const setTagFields = (track) => {
+  if (!track) {
+    if (tagTitleInput) {
+      tagTitleInput.value = "";
+    }
+    if (tagArtistInput) {
+      tagArtistInput.value = "";
+    }
+    if (tagAlbumInput) {
+      tagAlbumInput.value = "";
+    }
+    return;
+  }
+  if (tagTitleInput) {
+    tagTitleInput.value = track.title;
+  }
+  if (tagArtistInput) {
+    tagArtistInput.value = track.artist;
+  }
+  if (tagAlbumInput) {
+    tagAlbumInput.value = track.album;
+  }
+};
+
 const updatePlayerUI = () => {
   if (playerState.currentIndex >= state.tracks.length) {
     playerState.currentIndex = -1;
@@ -133,6 +162,12 @@ const updatePlayerUI = () => {
     if (playerDuration) {
       playerDuration.textContent = "0:00";
     }
+    if (miniCurrent) {
+      miniCurrent.textContent = "0:00";
+    }
+    if (miniDuration) {
+      miniDuration.textContent = "0:00";
+    }
     return;
   }
   if (playerCover) {
@@ -170,6 +205,8 @@ const openPlayerOverlay = () => {
     playerOverlay.classList.add("is-active");
     playerOverlay.setAttribute("aria-hidden", "false");
   }
+  updatePlayerUI();
+  updatePlayerButtons();
 };
 
 const setTrackByIndex = (index) => {
@@ -340,6 +377,7 @@ const renderTagOptions = () => {
   }
   if (state.tracks.length === 0) {
     tagSelect.innerHTML = '<option value="">項目が存在しません。</option>';
+    setTagFields(null);
     return;
   }
   tagSelect.innerHTML = state.tracks
@@ -347,6 +385,13 @@ const renderTagOptions = () => {
       (track) => `<option value="${track.id}">${track.title} / ${track.artist}</option>`
     )
     .join("");
+  if (!tagSelect.value) {
+    tagSelect.value = String(state.tracks[0].id);
+  }
+  const selectedTrack = state.tracks.find(
+    (track) => String(track.id) === String(tagSelect.value)
+  );
+  setTagFields(selectedTrack);
 };
 
 const fetchJson = async (path) => {
@@ -466,6 +511,15 @@ if (importForm) {
   });
 }
 
+if (tagSelect) {
+  tagSelect.addEventListener("change", () => {
+    const selectedTrack = state.tracks.find(
+      (track) => String(track.id) === String(tagSelect.value)
+    );
+    setTagFields(selectedTrack);
+  });
+}
+
 if (audioPlayer) {
   audioPlayer.addEventListener("play", () => {
     playerState.isPlaying = true;
@@ -479,7 +533,6 @@ if (audioPlayer) {
 
   audioPlayer.addEventListener("timeupdate", () => {
     const { currentTime, duration } = audioPlayer;
-    console.log(currentTime, duration)
     const percent = duration ? Math.floor((currentTime / duration) * 100) : 0;
     if (playerSeek) {
       playerSeek.value = percent;
@@ -492,6 +545,12 @@ if (audioPlayer) {
     }
     if (playerDuration) {
       playerDuration.textContent = formatTime(duration);
+    }
+    if (miniCurrent) {
+      miniCurrent.textContent = formatTime(currentTime);
+    }
+    if (miniDuration) {
+      miniDuration.textContent = formatTime(duration);
     }
   });
 
