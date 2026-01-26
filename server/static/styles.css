@@ -652,22 +652,29 @@ body {
 
 .settings-version-item {
   display: grid;
-  grid-template-columns: 20px 1fr auto;
+  grid-template-columns: 32px 1fr;
   align-items: center;
   gap: 10px;
   font-size: 14px;
   color: #cbd5f5;
 }
 
-.settings-version-logo,
-.settings-version-logo-placeholder {
-  width: 20px;
-  height: 20px;
+.settings-version-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  object-fit: contain;
 }
 
-.settings-version-logo {
-  border-radius: 6px;
-  object-fit: contain;
+.settings-version-values {
+  display: grid;
+  gap: 6px;
+}
+
+.settings-version-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .settings-version-label {

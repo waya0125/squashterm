@@ -1264,23 +1264,25 @@ const activateTab = (tabName) => {
 const renderSettings = (settings) => {
   if (settingsVersionList) {
     const version = settings?.version || {};
-    settingsVersionList.innerHTML = [
-      `<li class="settings-version-item">
+    settingsVersionList.innerHTML = `
+      <li class="settings-version-item">
         <img class="settings-version-logo" src="/static/images/logo.png" alt="SquashTerm logo" />
-        <span class="settings-version-label">アプリ</span>
-        <strong>${version.app || "--"}</strong>
-      </li>`,
-      `<li class="settings-version-item">
-        <span class="settings-version-logo-placeholder" aria-hidden="true"></span>
-        <span class="settings-version-label">API</span>
-        <strong>${version.api || "--"}</strong>
-      </li>`,
-      `<li class="settings-version-item">
-        <img class="settings-version-logo" src="/static/images/logo.png" alt="SquashTerm logo" />
-        <span class="settings-version-label">ビルド</span>
-        <strong>${version.build || "--"}</strong>
-      </li>`,
-    ].join("");
+        <div class="settings-version-values">
+          <div class="settings-version-row">
+            <span class="settings-version-label">アプリ</span>
+            <strong>${version.app || "--"}</strong>
+          </div>
+          <div class="settings-version-row">
+            <span class="settings-version-label">API</span>
+            <strong>${version.api || "--"}</strong>
+          </div>
+          <div class="settings-version-row">
+            <span class="settings-version-label">ビルド</span>
+            <strong>${version.build || "--"}</strong>
+          </div>
+        </div>
+      </li>
+    `;
   }
   if (settingsPlaybackOptions) {
     const options = settings?.playback_options || [];
