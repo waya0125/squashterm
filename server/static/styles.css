@@ -652,17 +652,19 @@ body {
 
 .settings-version-item {
   display: grid;
-  grid-template-columns: 48px 1fr;
-  align-items: center;
+  grid-template-columns: 320px 1fr;
+  align-items: start;
   gap: 14px;
   font-size: 14px;
   color: #cbd5f5;
 }
 
 .settings-version-logo {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
+  width: 100%;
+  max-width: 320px;
+  aspect-ratio: 1;
+  height: auto;
+  border-radius: 24px;
   object-fit: contain;
 }
 
@@ -1372,6 +1374,15 @@ select {
   .media-list-row {
     grid-template-columns: 20px 40px 1.4fr 1fr 60px;
     gap: 8px;
+  }
+
+  .settings-version-item {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-version-logo {
+    max-width: 220px;
+    margin: 0 auto;
   }
 
   .search-input {
