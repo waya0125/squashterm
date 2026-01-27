@@ -662,9 +662,7 @@ body {
 .settings-version-logo {
   width: 100%;
   max-width: 320px;
-  aspect-ratio: 1;
   height: auto;
-  border-radius: 24px;
   object-fit: contain;
 }
 
