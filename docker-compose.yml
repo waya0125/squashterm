@@ -14,7 +14,7 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       # Redis使用時は下記のコメントを外す
-      - REDIS_URL=redis://redis:6379/0
+      # - REDIS_URL=redis://redis:6379/0
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8081/"]
