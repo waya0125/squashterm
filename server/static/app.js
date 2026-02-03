@@ -1305,7 +1305,22 @@ const renderSettings = (settings) => {
         const input = document.createElement("input");
         input.type = "checkbox";
         input.checked = Boolean(option.enabled);
-        input.disabled = true;
+        input.dataset.optionId = option.id;
+        input.addEventListener("change", async (e) => {
+          try {
+            await fetch("/api/settings/playback-options", {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                option_id: option.id,
+                enabled: e.target.checked,
+              }),
+            });
+          } catch (err) {
+            console.error("設定保存エラー:", err);
+            e.target.checked = !e.target.checked;
+          }
+        });
         const span = document.createElement("span");
         span.textContent = option.label || option.id || "--";
         label.appendChild(input);
