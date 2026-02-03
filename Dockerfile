@@ -1,5 +1,15 @@
 FROM python:3.11-slim
 
+# ビルド時引数でGit情報を受け取る
+ARG GIT_COMMIT=unknown
+ARG GIT_BRANCH=unknown
+ARG BUILD_DATE=unknown
+
+# 環境変数として設定
+ENV GIT_COMMIT=${GIT_COMMIT}
+ENV GIT_BRANCH=${GIT_BRANCH}
+ENV BUILD_DATE=${BUILD_DATE}
+
 # システムの依存関係をインストール
 RUN apt-get update && apt-get install -y \
     ffmpeg \
