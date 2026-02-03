@@ -69,7 +69,16 @@ class ThreadPoolDownloadQueue(DownloadQueue):
         
         def process_entry(entry: dict, index: int):
             """単一エントリのダウンロード処理"""
-            url = entry.get("url") or f"https://www.youtube.com/watch?v={entry.get('id')}"
+            # URLを適切に抽出
+            url = entry.get("webpage_url") or entry.get("original_url") or entry.get("url")
+            if not url:
+                # IDからYouTube URLを生成
+                ie_key = str(entry.get("ie_key") or "").lower()
+                if ie_key in {"youtube", "youtubeweb"}:
+                    url = f"https://www.youtube.com/watch?v={entry.get('id')}"
+                else:
+                    url = entry.get("url", "")
+            
             task = DownloadTask(
                 task_id=task_id,
                 url=url,
@@ -152,7 +161,16 @@ class RedisDownloadQueue(DownloadQueue):
         
         # 各エントリをキューに追加
         for idx, entry in enumerate(entries):
-            url = entry.get("url") or f"https://www.youtube.com/watch?v={entry.get('id')}"
+            # URLを適切に抽出
+            url = entry.get("webpage_url") or entry.get("original_url") or entry.get("url")
+            if not url:
+                # IDからYouTube URLを生成
+                ie_key = str(entry.get("ie_key") or "").lower()
+                if ie_key in {"youtube", "youtubeweb"}:
+                    url = f"https://www.youtube.com/watch?v={entry.get('id')}"
+                else:
+                    url = entry.get("url", "")
+            
             task_data = {
                 "task_id": task_id,
                 "url": url,
