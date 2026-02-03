@@ -8,7 +8,7 @@ Redisが利用可能な場合はRedisベースのキューを、
 import os
 import json
 import uuid
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 from typing import Callable, Any
 from dataclasses import dataclass
 
@@ -48,6 +48,7 @@ class ThreadPoolDownloadQueue(DownloadQueue):
     def __init__(self, max_workers: int = 5):
         self.max_workers = max_workers
         self._active_tasks = {}
+        self._executor = ThreadPoolExecutor(max_workers=max_workers)
     
     def enqueue_playlist(
         self,
@@ -65,6 +66,7 @@ class ThreadPoolDownloadQueue(DownloadQueue):
             "completed": 0,
             "failed": 0,
             "results": [],
+            "futures": [],
         }
         
         def process_entry(entry: dict, index: int):
@@ -78,6 +80,8 @@ class ThreadPoolDownloadQueue(DownloadQueue):
                     url = f"https://www.youtube.com/watch?v={entry.get('id')}"
                 else:
                     url = entry.get("url", "")
+            
+            print(f"[DEBUG] Processing entry {index+1}/{total}: {url}")
             
             task = DownloadTask(
                 task_id=task_id,
@@ -98,30 +102,27 @@ class ThreadPoolDownloadQueue(DownloadQueue):
                 
                 return result
             except Exception as exc:
+                print(f"[DEBUG] Error processing {url}: {exc}")
                 self._active_tasks[task_id]["failed"] += 1
                 if progress_callback:
                     progress_callback(task, {"error": str(exc)})
-                raise
+                return {"error": str(exc)}
         
-        # 並列ダウンロード実行
-        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-            futures = {
-                executor.submit(process_entry, entry, idx): idx
-                for idx, entry in enumerate(entries)
-            }
-            
-            for future in as_completed(futures):
-                try:
-                    future.result()
-                except Exception:
-                    # エラーは記録済みなので続行
-                    pass
+        # 各エントリを非同期にサブミット
+        for idx, entry in enumerate(entries):
+            future = self._executor.submit(process_entry, entry, idx)
+            self._active_tasks[task_id]["futures"].append(future)
         
         return task_id
     
     def get_status(self, task_id: str) -> dict:
         """タスクの進捗状況を取得"""
-        return self._active_tasks.get(task_id, {})
+        task_data = self._active_tasks.get(task_id, {})
+        return {
+            "total": task_data.get("total", 0),
+            "completed": task_data.get("completed", 0),
+            "failed": task_data.get("failed", 0),
+        }
 
 
 class RedisDownloadQueue(DownloadQueue):
