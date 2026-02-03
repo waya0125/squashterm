@@ -554,23 +554,54 @@ def _fetch_favorites() -> list[str]:
 
 def _build_settings_payload() -> dict:
     settings = _load_settings()
-    app_settings = settings.get("app", {})
     storage = settings.get("storage", {})
     used_gb = storage.get("used_gb", 0)
     total_gb = storage.get("total_gb", 0)
     percent = int((used_gb / total_gb) * 100) if total_gb else 0
+    
+    # 動的バージョン情報を取得
+    version_info = _get_version_info()
+    
     return {
-        "version": {
-            "app": app_settings.get("version", ""),
-            "api": app_settings.get("api", ""),
-            "build": app_settings.get("build", ""),
-        },
+        "version": version_info,
         "storage": {
             "used_gb": used_gb,
             "total_gb": total_gb,
             "percent": percent,
         },
         "playback_options": settings.get("playback_options", []),
+    }
+
+def _get_version_info() -> dict:
+    """動的にバージョン情報を取得"""
+    import os
+    from datetime import timezone, timedelta
+    
+    # 環境変数からGit情報を取得（Dockerビルド時に設定）
+    git_commit = os.getenv("GIT_COMMIT", "unknown")
+    git_branch = os.getenv("GIT_BRANCH", "unknown")
+    build_date_env = os.getenv("BUILD_DATE", "")
+    
+    # ビルド日時をJSTに変換
+    if build_date_env and build_date_env != "unknown":
+        build_date = build_date_env
+    else:
+        # フォールバック：現在時刻をJSTで表示
+        jst = timezone(timedelta(hours=9))
+        build_date = datetime.now(jst).strftime("%Y.%m.%d %H:%M JST")
+    
+    # FastAPIバージョンを取得
+    fastapi_version = "unknown"
+    try:
+        import fastapi
+        fastapi_version = fastapi.__version__
+    except Exception:
+        pass
+    
+    return {
+        "app": f"{git_branch}@{git_commit}",
+        "api": f"FastAPI {fastapi_version}",
+        "build": build_date,
     }
 
 def _build_system_payload() -> dict:
