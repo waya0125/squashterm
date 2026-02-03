@@ -504,6 +504,51 @@ def _load_settings() -> dict:
 def _save_library(data: dict) -> None:
     LIBRARY_PATH.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
+def _scan_media_directory() -> int:
+    """メディアディレクトリをスキャンして未登録ファイルをlibrary.jsonに追加"""
+    data = _load_library()
+    tracks = data.setdefault("tracks", [])
+    track_map = {track["id"]: track for track in tracks}
+    
+    added_count = 0
+    for mp3_file in MEDIA_DIR.glob("*.mp3"):
+        file_id = f"yt_{mp3_file.stem}"
+        
+        if file_id in track_map:
+            continue
+        
+        # カバー画像を探す
+        cover_path = None
+        for ext in [".jpg", ".jpeg", ".png", ".webp"]:
+            potential_cover = MEDIA_DIR / f"{mp3_file.stem}{ext}"
+            if potential_cover.exists():
+                cover_path = f"/media/{potential_cover.name}"
+                break
+        
+        track_entry = {
+            "id": file_id,
+            "title": mp3_file.stem,
+            "artist": "Unknown Artist",
+            "album": "Unknown Album",
+            "cover": cover_path or DEFAULT_COVER,
+            "duration": "0:00",
+            "bpm": 0,
+            "genre": "Unknown",
+            "year": 0,
+            "file_url": f"/media/{mp3_file.name}",
+            "source_url": "",
+            "file_path": str(mp3_file),
+        }
+        tracks.append(track_entry)
+        track_map[file_id] = track_entry
+        added_count += 1
+    
+    if added_count > 0:
+        _save_library(data)
+        print(f"自動スキャン: {added_count}件の新しいメディアファイルをライブラリに追加しました")
+    
+    return added_count
+
 def _remove_media_asset(path_value: str | None) -> None:
     if not path_value:
         return
@@ -1265,6 +1310,21 @@ async def upload_track(
 # --- 実行エントリポイント ---
 
 def run(host: str = "0.0.0.0", port: int = 8000) -> None:
+    # 起動時に自動スキャンを実行
+    settings = _load_settings()
+    playback_options = settings.get("playback_options", [])
+    auto_scan_enabled = False
+    for option in playback_options:
+        if option.get("id") == "auto_scan" and option.get("enabled"):
+            auto_scan_enabled = True
+            break
+    
+    if auto_scan_enabled:
+        try:
+            _scan_media_directory()
+        except Exception as e:
+            print(f"自動スキャンエラー: {e}")
+    
     print(f"SquashTerm server running on http://{host}:{port}")
     uvicorn.run(app, host=host, port=port)
 
