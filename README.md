@@ -17,6 +17,14 @@ python server/app.py
 
 ブラウザで `http://localhost:8000` を開きます。
 
+## Docker環境
+
+```bash
+docker compose up -d
+```
+
+ブラウザで `http://localhost:8081` を開きます。
+
 ## 新機能: プレイリスト分割ダウンロード
 
 大規模なプレイリスト（YouTube、SoundCloud、Bandcamp等）を効率的にダウンロードできます。
@@ -30,10 +38,23 @@ python server/app.py
 
 ### 特徴
 
-- **並列処理**: 複数の動画を同時にダウンロード
+- **並列処理**: 複数の動画を同時にダウンロード（ThreadPoolExecutor使用）
 - **進捗表示**: リアルタイムで進捗状況を確認
 - **対応サイト**: YouTube、SoundCloud、Bandcamp等、yt-dlpが対応する全サイト
 - **柔軟な設定**: 並列度を調整可能
+
+### Redis版（オプショナル）
+
+より高度な分散処理が必要な場合、Redisを有効化できます：
+
+環境変数`REDIS_URL`を設定すると、自動的にRedisベースのキューが使用されます。
+
+```bash
+export REDIS_URL=redis://localhost:6379/0
+python server/app.py
+```
+
+Docker環境では、`docker-compose.yml`のRedisサービスのコメントを外してください。
 
 ## 補足
 
