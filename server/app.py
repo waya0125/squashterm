@@ -1132,6 +1132,34 @@ def get_status():
 def get_settings():
     return _build_settings_payload()
 
+class PlaybackOptionUpdate(BaseModel):
+    option_id: str
+    enabled: bool
+
+@app.put("/api/settings/playback-options")
+def update_playback_option(payload: PlaybackOptionUpdate):
+    """再生設定オプションを更新"""
+    settings = _load_settings()
+    playback_options = settings.get("playback_options", [])
+    
+    updated = False
+    for option in playback_options:
+        if option.get("id") == payload.option_id:
+            option["enabled"] = payload.enabled
+            updated = True
+            break
+    
+    if not updated:
+        raise HTTPException(status_code=404, detail="Option not found")
+    
+    settings["playback_options"] = playback_options
+    SETTINGS_PATH.write_text(
+        json.dumps(settings, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    
+    return {"success": True, "option_id": payload.option_id, "enabled": payload.enabled}
+
 @app.get("/api/system")
 def get_system():
     return _build_system_payload()
