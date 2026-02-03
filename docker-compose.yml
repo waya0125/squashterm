@@ -10,7 +10,7 @@ services:
       - /mnt/hdd4/squashterm-data:/app/server/data
       - ./config:/app/server/config
       # 開発時のコード変更を反映（オプション）
-      # - ./server:/app/server
+      - ./server:/app/server
     environment:
       - PYTHONUNBUFFERED=1
       # Redis使用時は下記のコメントを外す
