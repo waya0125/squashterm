@@ -632,7 +632,11 @@ body {
 }
 
 .manage-grid .card {
-  gap: 8px;
+  gap: 12px;
+}
+
+.manage-grid .card h4 {
+  margin-bottom: -4px;
 }
 
 .settings-grid {
