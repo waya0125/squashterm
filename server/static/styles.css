@@ -727,6 +727,22 @@ input[type="file"] {
   padding: 8px 12px;
 }
 
+.batch-size-input {
+  display: grid;
+  gap: 6px;
+}
+
+.batch-size-input input[type="number"] {
+  width: 120px;
+  max-width: 120px;
+}
+
+.form-grid input[type="number"] {
+  max-width: none;
+  width: 100%;
+}
+}
+
 .checkbox {
   display: flex;
   gap: 8px;
