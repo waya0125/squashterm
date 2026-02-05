@@ -77,6 +77,8 @@ const playerDeleteTrack = document.getElementById("player-delete-track");
 const playerSeek = document.getElementById("player-seek");
 const playerCurrent = document.getElementById("player-current");
 const playerDuration = document.getElementById("player-duration");
+const playerVolumeToggle = document.getElementById("player-volume-toggle");
+const playerVolumeSlider = document.getElementById("player-volume-slider");
 
 const miniPlayer = document.getElementById("mini-player");
 const miniCover = document.getElementById("mini-cover");
@@ -198,7 +200,6 @@ const updateLoopButtons = () => {
 
 const updateShuffleButtons = () => {
   const isOn = playerState.shuffleMode;
-  const label = isOn ? "ON" : "OFF";
   const ariaLabel = `シャッフル: ${isOn ? "オン" : "オフ"}`;
   
   [playerShuffle, miniShuffle].forEach((btn) => {
@@ -209,10 +210,6 @@ const updateShuffleButtons = () => {
       btn.classList.add("is-active");
     } else {
       btn.classList.remove("is-active");
-    }
-    const textEl = btn.querySelector("text");
-    if (textEl) {
-      textEl.textContent = label;
     }
   });
 };
