@@ -26,6 +26,14 @@ class ImportRequest(BaseModel):
     auto_tag: bool | None = None
 
 
+class PlaylistBatchImportRequest(BaseModel):
+    """プレイリスト一括インポートリクエスト"""
+    url: str
+    playlist_id: str | None = None
+    concurrency: int = 10
+    auto_tag: bool | None = None
+
+
 class PlaylistCreate(BaseModel):
     name: str
     track_ids: list[str] = []
