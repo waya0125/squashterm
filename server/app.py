@@ -44,9 +44,11 @@ from settings_service import (
     build_version_label,
     ensure_version_file,
     load_settings,
+    update_playback_option,
 )
 from sync_service import auto_sync_worker, sync_playlist_with_remote
 from ytdlp_service import ingest_from_url, iter_ytdlp_events, is_single_video_url
+from media_utils import scan_media_directory
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -64,6 +66,21 @@ app.mount("/media", StaticFiles(directory=MEDIA_DIR), name="media")
 def start_auto_sync_thread() -> None:
     thread = threading.Thread(target=auto_sync_worker, daemon=True)
     thread.start()
+    
+    # 自動スキャンが有効なら起動時に実行
+    settings = load_settings(DEFAULT_SETTINGS)
+    auto_scan_enabled = False
+    for option in settings.get("playback_options", []):
+        if option.get("id") == "auto_scan" and option.get("enabled"):
+            auto_scan_enabled = True
+            break
+    
+    if auto_scan_enabled:
+        try:
+            count = scan_media_directory()
+            print(f"Auto scan: {count} files processed")
+        except Exception as e:
+            print(f"Auto scan failed: {e}")
 
 
 @app.get("/")
@@ -236,6 +253,21 @@ def get_status():
 @app.get("/api/settings")
 def get_settings():
     return build_settings_payload(REPO_ROOT)
+
+
+@app.put("/api/settings/playback-options")
+def update_playback_options(payload: dict):
+    """再生設定を更新"""
+    try:
+        option_id = payload.get("option_id")
+        enabled = payload.get("enabled")
+        if option_id is None or enabled is None:
+            raise HTTPException(status_code=400, detail="option_id and enabled are required")
+        return update_playback_option(option_id, enabled)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/system")
