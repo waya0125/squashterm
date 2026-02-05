@@ -65,6 +65,7 @@ const playerNext = document.getElementById("player-next");
 const playerSkipForward = document.getElementById("player-skip-forward");
 const playerStop = document.getElementById("player-stop");
 const playerLoop = document.getElementById("player-loop");
+const playerShuffle = document.getElementById("player-shuffle");
 const playerFavorite = document.getElementById("player-favorite");
 const playerMenuToggle = document.getElementById("player-menu-toggle");
 const playerMenuPanel = document.getElementById("player-menu-panel");
@@ -88,6 +89,7 @@ const miniNext = document.getElementById("mini-next");
 const miniSkipForward = document.getElementById("mini-skip-forward");
 const miniStop = document.getElementById("mini-stop");
 const miniLoop = document.getElementById("mini-loop");
+const miniShuffle = document.getElementById("mini-shuffle");
 const miniFavorite = document.getElementById("mini-favorite");
 const miniExpand = document.getElementById("mini-expand");
 const miniSeek = document.getElementById("mini-seek");
@@ -117,6 +119,9 @@ const playerState = {
   currentIndex: -1,
   isPlaying: false,
   loopMode: "off",
+  shuffleMode: false,
+  shuffleIndices: [],
+  shufflePosition: 0,
 };
 
 const mediaViewState = {
@@ -187,6 +192,27 @@ const updateLoopButtons = () => {
     const labelSpan = button.querySelector(".loop-label");
     if (labelSpan) {
       labelSpan.textContent = loopLabel.short;
+    }
+  });
+};
+
+const updateShuffleButtons = () => {
+  const isOn = playerState.shuffleMode;
+  const label = isOn ? "ON" : "OFF";
+  const ariaLabel = `シャッフル: ${isOn ? "オン" : "オフ"}`;
+  
+  [playerShuffle, miniShuffle].forEach((btn) => {
+    if (!btn) return;
+    btn.setAttribute("aria-label", ariaLabel);
+    btn.setAttribute("aria-pressed", isOn);
+    if (isOn) {
+      btn.classList.add("is-active");
+    } else {
+      btn.classList.remove("is-active");
+    }
+    const labelEl = btn.querySelector(".shuffle-label");
+    if (labelEl) {
+      labelEl.textContent = label;
     }
   });
 };
@@ -437,7 +463,7 @@ const openPlayerOverlay = () => {
   updateFavoriteButtons();
 };
 
-const setTrackByIndex = (index) => {
+const setTrackByIndex = (index, reshuffle = true) => {
   const track = state.tracks[index];
   if (!track) {
     return;
@@ -447,6 +473,25 @@ const setTrackByIndex = (index) => {
     return;
   }
   playerState.currentIndex = index;
+  
+  // 新規選択時は再シャッフル（playNext/playPrev以外から呼ばれた場合）
+  if (playerState.shuffleMode && reshuffle) {
+    playerState.shuffleIndices = generateShuffleIndices();
+    // 選択した曲を先頭に
+    const currentPos = playerState.shuffleIndices.indexOf(index);
+    if (currentPos > 0) {
+      [playerState.shuffleIndices[0], playerState.shuffleIndices[currentPos]] = 
+      [playerState.shuffleIndices[currentPos], playerState.shuffleIndices[0]];
+    }
+    playerState.shufflePosition = 0;
+  } else if (playerState.shuffleMode && playerState.shuffleIndices.length > 0) {
+    // playNext/playPrevから呼ばれた場合は位置を同期するだけ
+    const shufflePos = playerState.shuffleIndices.indexOf(index);
+    if (shufflePos >= 0) {
+      playerState.shufflePosition = shufflePos;
+    }
+  }
+  
   if (audioPlayer) {
     audioPlayer.src = track.file_url;
   }
@@ -502,8 +547,27 @@ const playNext = () => {
   if (!state.tracks.length) {
     return;
   }
-  const nextIndex = (playerState.currentIndex + 1) % state.tracks.length;
-  setTrackByIndex(nextIndex);
+  
+  let nextIndex;
+  if (playerState.shuffleMode && playerState.shuffleIndices.length > 0) {
+    // シャッフルモード
+    const nextPos = playerState.shufflePosition + 1;
+    
+    // 1周したら再シャッフル
+    if (nextPos >= playerState.shuffleIndices.length) {
+      playerState.shuffleIndices = generateShuffleIndices();
+      playerState.shufflePosition = 0;
+    } else {
+      playerState.shufflePosition = nextPos;
+    }
+    
+    nextIndex = playerState.shuffleIndices[playerState.shufflePosition];
+  } else {
+    // 通常モード
+    nextIndex = (playerState.currentIndex + 1) % state.tracks.length;
+  }
+  
+  setTrackByIndex(nextIndex, false);
   if (audioPlayer) {
     audioPlayer.play();
   }
@@ -513,9 +577,28 @@ const playPrev = () => {
   if (!state.tracks.length) {
     return;
   }
-  const prevIndex =
-    (playerState.currentIndex - 1 + state.tracks.length) % state.tracks.length;
-  setTrackByIndex(prevIndex);
+  
+  let prevIndex;
+  if (playerState.shuffleMode && playerState.shuffleIndices.length > 0) {
+    // シャッフルモード
+    const prevPos = playerState.shufflePosition - 1;
+    
+    // 先頭から戻ったら再シャッフルして最後尾へ
+    if (prevPos < 0) {
+      playerState.shuffleIndices = generateShuffleIndices();
+      playerState.shufflePosition = playerState.shuffleIndices.length - 1;
+    } else {
+      playerState.shufflePosition = prevPos;
+    }
+    
+    prevIndex = playerState.shuffleIndices[playerState.shufflePosition];
+  } else {
+    // 通常モード
+    prevIndex =
+      (playerState.currentIndex - 1 + state.tracks.length) % state.tracks.length;
+  }
+  
+  setTrackByIndex(prevIndex, false);
   if (audioPlayer) {
     audioPlayer.play();
   }
@@ -529,7 +612,43 @@ const toggleLoopMode = () => {
   updateLoopButtons();
 };
 
-const renderMedia = () => {
+const generateShuffleIndices = () => {
+  const indices = Array.from({ length: state.tracks.length }, (_, i) => i);
+  // Fisher-Yatesシャッフル
+  for (let i = indices.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [indices[i], indices[j]] = [indices[j], indices[i]];
+  }
+  return indices;
+};
+
+const toggleShuffleMode = () => {
+  playerState.shuffleMode = !playerState.shuffleMode;
+  
+  if (playerState.shuffleMode) {
+    // シャッフルON: ランダム配列生成
+    playerState.shuffleIndices = generateShuffleIndices();
+    // 現在再生中の曲を先頭に
+    if (playerState.currentIndex >= 0) {
+      const currentPos = playerState.shuffleIndices.indexOf(playerState.currentIndex);
+      if (currentPos > 0) {
+        [playerState.shuffleIndices[0], playerState.shuffleIndices[currentPos]] = 
+        [playerState.shuffleIndices[currentPos], playerState.shuffleIndices[0]];
+      }
+      playerState.shufflePosition = 0;
+    } else {
+      playerState.shufflePosition = -1;
+    }
+  } else {
+    // シャッフルOFF: 配列クリア
+    playerState.shuffleIndices = [];
+    playerState.shufflePosition = 0;
+  }
+  
+  updateShuffleButtons();
+};
+
+const updateLoopButtons = () => {
   mediaGrid.innerHTML = "";
   if (mediaViewState.mode === "list") {
     mediaGrid.classList.add("is-list");
@@ -1278,7 +1397,7 @@ const renderSettings = (settings) => {
         <img class="settings-version-logo" src="/static/images/logo.png" alt="SquashTerm logo" />
         <div class="settings-version-values">
           <div class="settings-version-row">
-            <span class="settings-version-label">アプリ</span>
+            <span class="settings-version-label">バージョン</span>
             <strong>${version.app || "--"}</strong>
           </div>
           <div class="settings-version-row">
@@ -1286,7 +1405,7 @@ const renderSettings = (settings) => {
             <strong>${version.api || "--"}</strong>
           </div>
           <div class="settings-version-row">
-            <span class="settings-version-label">ビルド</span>
+            <span class="settings-version-label">ビルド日時</span>
             <strong>${version.build || "--"}</strong>
           </div>
         </div>
@@ -1590,21 +1709,27 @@ const streamPlaylistBatchImport = async (payload) => {
       }
       try {
         const event = JSON.parse(data);
-        if (event.type === "playlist_info") {
-          appendImportLog(`プレイリスト検出: ${event.total}件`, { append: true });
+        if (event.type === "log") {
+          appendImportLog(event.message, { append: true });
         }
         if (event.type === "progress") {
-          const percentage = event.percentage || 0;
-          updateImportProgress(percentage, `${event.completed}/${event.total} 完了 (失敗: ${event.failed})`);
-          appendImportLog(`進行中: ${event.completed}/${event.total}`, { append: true });
+          const total = event.total || 1;
+          const completed = event.completed || 0;
+          const failed = event.failed || 0;
+          const percentage = Math.floor((completed + failed) / total * 100);
+          updateImportProgress(percentage, `${completed}/${total} 完了 (失敗: ${failed})`);
+          appendImportLog(`進行中: ${event.message || ''}`, { append: true });
         }
         if (event.type === "error") {
           updateImportProgress(0, "エラー");
           appendImportLog(`エラー: ${event.message}`, { append: true });
         }
         if (event.type === "complete") {
+          const total = event.total || 0;
+          const completed = event.completed || 0;
+          const failed = event.failed || 0;
           updateImportProgress(100, "完了");
-          appendImportLog(`完了: ${event.completed}件成功, ${event.failed}件失敗`, { append: true });
+          appendImportLog(`完了: ${completed}件成功, ${failed}件失敗`, { append: true });
         }
       } catch (error) {
         console.error(error);
@@ -1623,7 +1748,7 @@ const handleImportSubmit = async () => {
   // 並列度設定を取得（デフォルト10）
   const concurrency = parseInt(localStorage.getItem("playlistConcurrency") || "10", 10);
   
-  // 自動判定モード：プレイリストかどうかをバックエンドで判定
+  // バッチダウンロードAPI（自動判定含む）
   const payload = {
     url,
     concurrency,
@@ -1789,6 +1914,22 @@ if (importForm) {
   });
 }
 
+if (playlistConcurrencyInput) {
+  // 初期値をlocalStorageから読み込み
+  const savedConcurrency = localStorage.getItem("playlistConcurrency");
+  if (savedConcurrency) {
+    playlistConcurrencyInput.value = savedConcurrency;
+  }
+  
+  // 変更時にlocalStorageに保存
+  playlistConcurrencyInput.addEventListener("change", () => {
+    const value = parseInt(playlistConcurrencyInput.value, 10);
+    if (value >= 1 && value <= 20) {
+      localStorage.setItem("playlistConcurrency", value.toString());
+    }
+  });
+}
+
 if (playlistCreateToggle && playlistCreateForm) {
   playlistCreateToggle.addEventListener("click", () => {
     const isOpen = playlistCreateForm.classList.toggle("is-open");
@@ -1830,23 +1971,6 @@ if (tagSelect) {
       (track) => String(track.id) === String(tagSelect.value)
     );
     setTagFields(selectedTrack);
-  });
-}
-
-// 並列度設定の読み込み・保存
-if (playlistConcurrencyInput) {
-  // 初期値をlocalStorageから読み込み
-  const savedConcurrency = localStorage.getItem("playlistConcurrency");
-  if (savedConcurrency) {
-    playlistConcurrencyInput.value = savedConcurrency;
-  }
-  
-  // 値変更時にlocalStorageへ保存
-  playlistConcurrencyInput.addEventListener("change", (event) => {
-    const value = parseInt(event.target.value, 10);
-    if (value >= 1 && value <= 20) {
-      localStorage.setItem("playlistConcurrency", value.toString());
-    }
   });
 }
 
@@ -2019,6 +2143,12 @@ if (playerLoop) {
   });
 }
 
+if (playerShuffle) {
+  playerShuffle.addEventListener("click", () => {
+    toggleShuffleMode();
+  });
+}
+
 if (playerFavorite) {
   playerFavorite.addEventListener("click", () => {
     toggleFavorite();
@@ -2064,6 +2194,12 @@ if (miniStop) {
 if (miniLoop) {
   miniLoop.addEventListener("click", () => {
     toggleLoopMode();
+  });
+}
+
+if (miniShuffle) {
+  miniShuffle.addEventListener("click", () => {
+    toggleShuffleMode();
   });
 }
 
