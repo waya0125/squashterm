@@ -162,6 +162,59 @@ git push fork feature/upstream
 
 ### PR作成手順
 
+#### 方法1: GitHub CLI（推奨）
+
+GitHub CLIを使うと、コマンドラインから簡単にPRを作成できます。
+
+1. **feature/upstreamブランチに切り替え**
+
+```bash
+git checkout feature/upstream
+```
+
+2. **GitHub CLIでPRを作成**
+
+```bash
+gh pr create \
+  --base main \
+  --head waya0125:feature/upstream \
+  --repo ibuto/squashterm \
+  --title "Add [機能名]" \
+  --body "$(cat << 'EOF'
+## 概要
+[機能の概要を記載]
+
+## 変更内容
+- [変更点1]
+- [変更点2]
+
+## テスト
+- [x] デスクトップブラウザで動作確認
+- [x] 既存機能に影響がないことを確認
+EOF
+)"
+```
+
+または、エディタで説明を書く場合：
+
+```bash
+gh pr create \
+  --base main \
+  --head waya0125:feature/upstream \
+  --repo ibuto/squashterm \
+  --title "Add [機能名]"
+# エディタが開くので、PR内容を記載
+```
+
+**成功すると、PRのURLが表示されます:**
+```
+https://github.com/ibuto/squashterm/pull/XX
+```
+
+#### 方法2: GitHub Web UI
+
+GitHub CLIが使えない場合は、Web UIから作成します。
+
 1. **feature/upstreamブランチをプッシュ**
 
 ```bash
