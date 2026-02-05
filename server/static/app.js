@@ -608,6 +608,7 @@ const toggleLoopMode = () => {
   const currentIndex = modes.indexOf(playerState.loopMode);
   const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % modes.length;
   playerState.loopMode = modes[nextIndex];
+  localStorage.setItem("loopMode", playerState.loopMode);
   updateLoopButtons();
 };
 
@@ -623,6 +624,7 @@ const generateShuffleIndices = () => {
 
 const toggleShuffleMode = () => {
   playerState.shuffleMode = !playerState.shuffleMode;
+  localStorage.setItem("shuffleMode", playerState.shuffleMode);
   
   if (playerState.shuffleMode) {
     // シャッフルON: ランダム配列生成
@@ -1895,6 +1897,38 @@ const init = async () => {
     }
     renderSettings(settings);
     renderSystem(system);
+    
+    const savedLoopMode = localStorage.getItem("loopMode");
+    if (savedLoopMode && ["off", "playlist", "track"].includes(savedLoopMode)) {
+      playerState.loopMode = savedLoopMode;
+      updateLoopButtons();
+    }
+    
+    const savedShuffleMode = localStorage.getItem("shuffleMode");
+    if (savedShuffleMode === "true") {
+      playerState.shuffleMode = true;
+      if (state.tracks.length > 0) {
+        playerState.shuffleIndices = generateShuffleIndices();
+      }
+      updateShuffleButtons();
+    }
+    
+    const savedTrackIndex = localStorage.getItem("currentTrackIndex");
+    const savedTrackTime = localStorage.getItem("currentTrackTime");
+    if (savedTrackIndex !== null && state.tracks.length > 0) {
+      const trackIndex = parseInt(savedTrackIndex, 10);
+      if (trackIndex >= 0 && trackIndex < state.tracks.length) {
+        setTrackByIndex(trackIndex, false);
+        if (savedTrackTime !== null && audioPlayer) {
+          const seekTime = parseFloat(savedTrackTime);
+          audioPlayer.addEventListener("loadedmetadata", () => {
+            if (audioPlayer.duration >= seekTime) {
+              audioPlayer.currentTime = seekTime;
+            }
+          }, { once: true });
+        }
+      }
+    }
   } catch (error) {
     console.error(error);
   }
@@ -2057,6 +2091,11 @@ if (audioPlayer) {
       miniDuration.textContent = formatTime(duration);
     }
     updateMediaSessionPosition();
+    
+    if (playerState.currentIndex >= 0 && currentTime > 0) {
+      localStorage.setItem("currentTrackIndex", playerState.currentIndex);
+      localStorage.setItem("currentTrackTime", currentTime);
+    }
   });
 
   audioPlayer.addEventListener("ended", () => {
