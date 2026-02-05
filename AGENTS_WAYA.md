@@ -150,6 +150,106 @@ git push fork feature/custom
 git push fork feature/upstream
 ```
 
+## Pull Requestの作成
+
+上流リポジトリに機能を提供する場合は、Pull Requestを作成します。
+
+### 前提条件
+
+- **feature/upstreamブランチで開発済み**であること
+- **Docker関連のファイルを含めない**こと
+- テスト済みで動作確認が完了していること
+
+### PR作成手順
+
+1. **feature/upstreamブランチをプッシュ**
+
+```bash
+git checkout feature/upstream
+git push fork feature/upstream
+```
+
+2. **GitHubでPRを作成**
+
+- GitHubの自分のフォークページ（https://github.com/waya0125/squashterm）にアクセス
+- "Pull requests" タブをクリック
+- "New pull request" をクリック
+- **base repository**: `ibuto/squashterm` (上流)
+- **base branch**: `main`
+- **head repository**: `waya0125/squashterm` (自分のフォーク)
+- **compare branch**: `feature/upstream`
+- "Create pull request" をクリック
+
+3. **PR内容を記載**
+
+タイトル例:
+```
+Add shuffle playback feature
+```
+
+説明例:
+```markdown
+## 概要
+シャッフル再生機能を追加しました。
+
+## 変更内容
+- シャッフルボタンの追加（プレイヤーとミニプレイヤー）
+- Fisher-Yatesアルゴリズムによるランダム再生
+- 1周したら自動的に再シャッフルして継続
+- シャッフルモード時、次の曲に自動進行
+
+## テスト
+- [ ] デスクトップブラウザで動作確認
+- [ ] モバイルブラウザで動作確認
+- [ ] 既存機能に影響がないことを確認
+
+## スクリーンショット
+（必要に応じて追加）
+```
+
+4. **PRを送信**
+
+"Create pull request" ボタンをクリックしてPRを送信。
+
+### 注意事項
+
+- **Docker関連ファイルは絶対に含めない**
+  - Dockerfile
+  - docker-compose.yml
+  - build.sh
+  - start.sh
+  - requirements.txtのRedis関連記述
+
+- **feature/upstreamブランチのみからPRを作成**
+  - feature/customやmainからは作成しない
+
+- **コミットメッセージは英語で**
+  - 簡潔で分かりやすく
+
+- **大きな変更は分割して複数のPRに**
+  - レビューしやすくするため
+
+### PR作成前のチェックリスト
+
+```bash
+# 1. 現在のブランチ確認
+git branch
+# -> feature/upstreamであることを確認
+
+# 2. Dockerファイルが含まれていないか確認
+git ls-files | grep -E "Dockerfile|docker-compose|build.sh|start.sh"
+# -> 何も表示されないことを確認
+
+# 3. 差分確認
+git diff origin/main..feature/upstream
+
+# 4. コミット履歴確認
+git log --oneline origin/main..feature/upstream
+
+# 5. プッシュ
+git push fork feature/upstream
+```
+
 ## CHANGELOG_CUSTOM.mdの更新
 
 **重要**: 新しい機能を追加したり、大きな変更を行った際は、必ずCHANGELOG_CUSTOM.mdを更新してください。
