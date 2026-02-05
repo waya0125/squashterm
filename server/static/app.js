@@ -210,9 +210,9 @@ const updateShuffleButtons = () => {
     } else {
       btn.classList.remove("is-active");
     }
-    const labelEl = btn.querySelector(".shuffle-label");
-    if (labelEl) {
-      labelEl.textContent = label;
+    const textEl = btn.querySelector("text");
+    if (textEl) {
+      textEl.textContent = label;
     }
   });
 };
@@ -648,7 +648,7 @@ const toggleShuffleMode = () => {
   updateShuffleButtons();
 };
 
-const updateLoopButtons = () => {
+const renderMedia = () => {
   mediaGrid.innerHTML = "";
   if (mediaViewState.mode === "list") {
     mediaGrid.classList.add("is-list");
