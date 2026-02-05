@@ -150,6 +150,56 @@ git push fork feature/custom
 git push fork feature/upstream
 ```
 
+## CHANGELOG_CUSTOM.mdの更新
+
+**重要**: 新しい機能を追加したり、大きな変更を行った際は、必ずCHANGELOG_CUSTOM.mdを更新してください。
+
+### 更新タイミング
+
+以下の場合にCHANGELOG_CUSTOM.mdを更新します：
+
+1. **新機能の追加時**
+   - feature/customで独自機能を追加した場合
+   - feature/upstreamで上流提供可能な機能を追加した場合
+
+2. **重要な修正や改善時**
+   - バグフィックス
+   - UI/UXの大幅な改善
+   - パフォーマンス改善
+
+3. **定期的な更新**
+   - 複数の小さな変更がまとまった時
+   - リリース前
+   - コミット数が大幅に増えた時
+
+### 更新内容
+
+- 追加した機能の説明
+- 関連するコミットハッシュまたはコミットメッセージ
+- **現在の先行コミット数** (`git log --oneline origin/main..feature/custom | wc -l`)
+- 最終更新日時（JST）
+
+### 更新手順
+
+```bash
+# 現在の先行コミット数を確認
+git log --oneline origin/main..feature/custom | wc -l
+
+# CHANGELOG_CUSTOM.mdを編集
+# - 新機能を追加
+# - 「現在のコミット数差分」を更新
+# - 「最終更新」日時を更新
+
+# コミット
+git add CHANGELOG_CUSTOM.md
+git commit -m "docs: Update CHANGELOG_CUSTOM.md with [機能名]"
+
+# mainにマージしてプッシュ
+git checkout main
+git merge feature/custom
+git push fork main feature/custom
+```
+
 ## トラブルシューティング
 
 ### コミットに変更が含まれていない
