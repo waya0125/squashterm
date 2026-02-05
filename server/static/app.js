@@ -1278,7 +1278,7 @@ const renderSettings = (settings) => {
         <img class="settings-version-logo" src="/static/images/logo.png" alt="SquashTerm logo" />
         <div class="settings-version-values">
           <div class="settings-version-row">
-            <span class="settings-version-label">アプリ</span>
+            <span class="settings-version-label">バージョン</span>
             <strong>${version.app || "--"}</strong>
           </div>
           <div class="settings-version-row">
@@ -1286,7 +1286,7 @@ const renderSettings = (settings) => {
             <strong>${version.api || "--"}</strong>
           </div>
           <div class="settings-version-row">
-            <span class="settings-version-label">ビルド</span>
+            <span class="settings-version-label">ビルド日時</span>
             <strong>${version.build || "--"}</strong>
           </div>
         </div>
@@ -1575,21 +1575,27 @@ const streamPlaylistBatchImport = async (payload) => {
       }
       try {
         const event = JSON.parse(data);
-        if (event.type === "playlist_info") {
-          appendImportLog(`プレイリスト検出: ${event.total}件`, { append: true });
+        if (event.type === "log") {
+          appendImportLog(event.message, { append: true });
         }
         if (event.type === "progress") {
-          const percentage = event.percentage || 0;
-          updateImportProgress(percentage, `${event.completed}/${event.total} 完了 (失敗: ${event.failed})`);
-          appendImportLog(`進行中: ${event.completed}/${event.total}`, { append: true });
+          const total = event.total || 1;
+          const completed = event.completed || 0;
+          const failed = event.failed || 0;
+          const percentage = Math.floor((completed + failed) / total * 100);
+          updateImportProgress(percentage, `${completed}/${total} 完了 (失敗: ${failed})`);
+          appendImportLog(`進行中: ${event.message || ''}`, { append: true });
         }
         if (event.type === "error") {
           updateImportProgress(0, "エラー");
           appendImportLog(`エラー: ${event.message}`, { append: true });
         }
         if (event.type === "complete") {
+          const total = event.total || 0;
+          const completed = event.completed || 0;
+          const failed = event.failed || 0;
           updateImportProgress(100, "完了");
-          appendImportLog(`完了: ${event.completed}件成功, ${event.failed}件失敗`, { append: true });
+          appendImportLog(`完了: ${completed}件成功, ${failed}件失敗`, { append: true });
         }
       } catch (error) {
         console.error(error);
@@ -1608,7 +1614,7 @@ const handleImportSubmit = async () => {
   // 並列度設定を取得（デフォルト10）
   const concurrency = parseInt(localStorage.getItem("playlistConcurrency") || "10", 10);
   
-  // 自動判定モード：プレイリストかどうかをバックエンドで判定
+  // バッチダウンロードAPI（自動判定含む）
   const payload = {
     url,
     concurrency,
@@ -1774,6 +1780,22 @@ if (importForm) {
   });
 }
 
+if (playlistConcurrencyInput) {
+  // 初期値をlocalStorageから読み込み
+  const savedConcurrency = localStorage.getItem("playlistConcurrency");
+  if (savedConcurrency) {
+    playlistConcurrencyInput.value = savedConcurrency;
+  }
+  
+  // 変更時にlocalStorageに保存
+  playlistConcurrencyInput.addEventListener("change", () => {
+    const value = parseInt(playlistConcurrencyInput.value, 10);
+    if (value >= 1 && value <= 20) {
+      localStorage.setItem("playlistConcurrency", value.toString());
+    }
+  });
+}
+
 if (playlistCreateToggle && playlistCreateForm) {
   playlistCreateToggle.addEventListener("click", () => {
     const isOpen = playlistCreateForm.classList.toggle("is-open");
@@ -1815,23 +1837,6 @@ if (tagSelect) {
       (track) => String(track.id) === String(tagSelect.value)
     );
     setTagFields(selectedTrack);
-  });
-}
-
-// 並列度設定の読み込み・保存
-if (playlistConcurrencyInput) {
-  // 初期値をlocalStorageから読み込み
-  const savedConcurrency = localStorage.getItem("playlistConcurrency");
-  if (savedConcurrency) {
-    playlistConcurrencyInput.value = savedConcurrency;
-  }
-  
-  // 値変更時にlocalStorageへ保存
-  playlistConcurrencyInput.addEventListener("change", (event) => {
-    const value = parseInt(event.target.value, 10);
-    if (value >= 1 && value <= 20) {
-      localStorage.setItem("playlistConcurrency", value.toString());
-    }
   });
 }
 
