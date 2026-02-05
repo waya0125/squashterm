@@ -1052,6 +1052,36 @@ input[type="file"] {
   border: none;
 }
 
+.mini-volume-slider {
+  width: 60px;
+  height: 4px;
+  background: rgba(148, 163, 184, 0.3);
+  border-radius: 2px;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0 8px;
+}
+
+.mini-volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  background: #93c5fd;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.mini-volume-slider::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  background: #93c5fd;
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+}
+
 .player-menu {
   position: relative;
   display: flex;
