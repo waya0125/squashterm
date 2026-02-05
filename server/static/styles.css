@@ -1003,8 +1003,8 @@ input[type="file"] {
 }
 
 .icon-button.is-active {
-  background: rgba(59, 130, 246, 0.25);
-  color: #93c5fd;
+  background: #2563eb;
+  color: #ffffff;
 }
 
 .loop-label {
