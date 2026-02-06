@@ -286,13 +286,21 @@ def build_upload_track(
     resolved_format = parsed.get("file_format") or file_path.suffix.lstrip(".").lower() or None
     cover_url = DEFAULT_COVER
     if cover and cover.filename:
-        cover_extension = Path(cover.filename).suffix
-        if not cover_extension:
-            cover_extension = extension_from_mime(cover.content_type) or ".jpg"
-        cover_path = MEDIA_DIR / f"{track_id}_cover{cover_extension}"
-        with cover_path.open("wb") as buffer:
-            shutil.copyfileobj(cover.file, buffer)
-        cover_url = f"/media/{cover_path.name}"
+        from media_utils import convert_image_to_webp
+        
+        cover_data = cover.file.read()
+        cover.file.seek(0)
+        webp_path = MEDIA_DIR / f"{track_id}_cover.webp"
+        if convert_image_to_webp(cover_data, webp_path):
+            cover_url = f"/media/{webp_path.name}"
+        else:
+            cover_extension = Path(cover.filename).suffix
+            if not cover_extension:
+                cover_extension = extension_from_mime(cover.content_type) or ".jpg"
+            cover_path = MEDIA_DIR / f"{track_id}_cover{cover_extension}"
+            with cover_path.open("wb") as buffer:
+                shutil.copyfileobj(cover.file, buffer)
+            cover_url = f"/media/{cover_path.name}"
     else:
         id3_cover = save_cover_from_id3(file_path, track_id)
         if id3_cover:

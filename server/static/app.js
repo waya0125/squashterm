@@ -716,7 +716,7 @@ const renderMedia = () => {
             <polygon points="8,5 19,12 8,19" />
           </svg>
         </span>
-        <img class="media-list-cover" src="${track.cover}" alt="${track.album}" />
+        <img class="media-list-cover" src="${track.cover}" alt="${track.album}" loading="lazy" />
         <span class="media-list-title">${track.title}</span>
         <span class="media-list-artist">${track.artist}</span>
         <span class="media-list-duration">${track.duration}</span>
@@ -741,7 +741,7 @@ const renderMedia = () => {
     card.className = "media-card";
     const hasAudio = Boolean(track.file_url);
     card.innerHTML = `
-      <img src="${track.cover}" alt="${track.album}" />
+      <img src="${track.cover}" alt="${track.album}" loading="lazy" />
       <h3>${track.title}</h3>
       <p>${track.artist}</p>
       <p>${track.album}</p>
@@ -801,7 +801,7 @@ const buildPlaylistTrackRow = (track, listType) => {
         <polygon points="8,5 19,12 8,19" />
       </svg>
     </span>
-    <img class="media-list-cover" src="${track.cover}" alt="${track.album}" />
+    <img class="media-list-cover" src="${track.cover}" alt="${track.album}" loading="lazy" />
     <span class="media-list-title">${track.title}</span>
     <span class="media-list-artist">${track.artist}</span>
     <span class="media-list-duration">${track.duration}</span>
