@@ -620,6 +620,13 @@ const playPrev = () => {
     return;
   }
   
+  // 再生位置が3秒以上なら曲の先頭に戻す
+  if (audioPlayer && audioPlayer.currentTime > 3) {
+    audioPlayer.currentTime = 0;
+    return;
+  }
+  
+  // 3秒以内または連続2度目なら前の曲へ
   let prevIndex;
   if (playerState.shuffleMode && playerState.shuffleIndices.length > 0) {
     // シャッフルモード
