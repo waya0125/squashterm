@@ -2454,6 +2454,8 @@ const mobilePlayerClose = document.getElementById("mobile-player-close");
 const mobilePlayerCover = document.getElementById("mobile-player-cover");
 const mobilePlayerTitle = document.getElementById("mobile-player-title");
 const mobilePlayerArtist = document.getElementById("mobile-player-artist");
+const mobilePlayerAlbum = document.getElementById("mobile-player-album");
+const mobilePlayerFormat = document.getElementById("mobile-player-format");
 const mobilePlayerProgressSlider = document.getElementById("mobile-player-progress-slider");
 const mobilePlayerCurrentTime = document.getElementById("mobile-player-current-time");
 const mobilePlayerDuration = document.getElementById("mobile-player-duration");
@@ -2530,6 +2532,12 @@ function updateMobilePlayerUI() {
   if (playerArtist && playerArtist.textContent) {
     mobilePlayerArtist.textContent = playerArtist.textContent;
   }
+  if (mobilePlayerAlbum && playerAlbum && playerAlbum.textContent) {
+    mobilePlayerAlbum.textContent = playerAlbum.textContent;
+  }
+  if (mobilePlayerFormat && playerFormat && playerFormat.textContent) {
+    mobilePlayerFormat.textContent = playerFormat.textContent;
+  }
   
   // プログレスバーと時間を同期
   if (audioPlayer) {
@@ -2579,6 +2587,12 @@ function syncMobilePlayerButtons() {
     const loopLabel = mobilePlayerLoop.querySelector(".loop-label");
     if (loopLabel) {
       loopLabel.textContent = loopMode.includes("オフ") ? "OFF" : loopMode.includes("1曲") ? "1" : "ALL";
+    }
+    // ループがオフの場合は色なし、PL/1の場合は色あり
+    if (loopMode.includes("オフ")) {
+      mobilePlayerLoop.classList.remove("is-active");
+    } else {
+      mobilePlayerLoop.classList.add("is-active");
     }
   }
   

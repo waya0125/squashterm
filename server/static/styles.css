@@ -1813,12 +1813,20 @@ input[type="file"] {
   margin: 0 0 8px 0;
   color: #fff;
   font-weight: 600;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 .mobile-player-info p {
   font-size: 18px;
   margin: 0;
   color: rgba(255, 255, 255, 0.7);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.mobile-player-meta {
+  font-size: 14px !important;
+  margin: 4px 0 0 0 !important;
+  color: rgba(255, 255, 255, 0.6) !important;
 }
 
 .mobile-player-progress {
@@ -1845,6 +1853,8 @@ input[type="file"] {
   gap: 12px;
   width: 100%;
   margin-bottom: 32px;
+  position: relative;
+  z-index: 2;
 }
 
 .mobile-player-volume input[type="range"] {
