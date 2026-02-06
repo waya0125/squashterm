@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import subprocess
 from dataclasses import asdict
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 import time
 
 from library_service import (
@@ -15,6 +15,9 @@ from library_service import (
 )
 from paths import AUTO_SYNC_LOCK, AUTO_SYNC_POLL_SECONDS
 from ytdlp_service import ingest_from_url
+
+# JST (UTC+9) timezone
+JST = timezone(timedelta(hours=9))
 
 
 def fetch_flat_playlist_entries(url: str) -> list[dict]:
@@ -84,7 +87,7 @@ def sync_playlist_with_remote(playlist_id: str) -> dict:
             added_tracks.extend(tracks)
         except Exception as exc:
             errors.append(f"{url}: {exc}")
-    update_playlist_sync_status(playlist_id, errors, datetime.utcnow())
+    update_playlist_sync_status(playlist_id, errors, datetime.now(JST))
     return {
         "missing_count": len(missing_urls),
         "added_count": len(added_tracks),
@@ -114,7 +117,7 @@ def should_auto_sync_playlist(playlist: dict, now: datetime) -> bool:
 
 
 def run_due_auto_sync() -> None:
-    now = datetime.utcnow()
+    now = datetime.now(JST)
     data = load_library()
     playlists = data.get("playlists", [])
     due_ids = [
