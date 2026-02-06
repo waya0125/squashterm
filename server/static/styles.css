@@ -1799,12 +1799,12 @@ input[type="file"] {
   z-index: 1;
   margin-top: auto;
   background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.8) 50%, transparent 100%);
-  padding: 24px 20px 100px 20px;
+  padding: 20px 20px 120px 20px;
 }
 
 .mobile-player-info {
   text-align: center;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   width: 100%;
 }
 
@@ -1831,12 +1831,12 @@ input[type="file"] {
 
 .mobile-player-progress {
   width: 100%;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .mobile-player-progress input[type="range"] {
   width: 100%;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .mobile-player-time {
@@ -1852,7 +1852,7 @@ input[type="file"] {
   justify-content: center;
   gap: 12px;
   width: 100%;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
   position: relative;
   z-index: 2;
 }
