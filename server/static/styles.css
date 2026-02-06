@@ -1567,7 +1567,7 @@ input[type="file"] {
     justify-content: center;
     padding: 10px 16px;
     border-radius: 999px;
-    z-index: 100;
+    z-index: 101;
     height: auto;
   }
 
@@ -1629,16 +1629,11 @@ input[type="file"] {
   }
 
   .mini-player {
-    left: 16px;
-    right: 16px;
-    bottom: 100px;
-    grid-template-columns: 1fr;
-    grid-template-areas:
-      "info"
-      "controls"
-      "progress";
-    align-items: flex-start;
-    z-index: 50;
+    display: none;
+  }
+
+  .nav-player-button.is-hidden {
+    display: none;
   }
 
   .mini-controls {
@@ -1742,4 +1737,162 @@ input[type="file"] {
     grid-template-columns: 18px 20px 36px 1.4fr 1fr 60px 28px;
     gap: 8px;
   }
+}
+
+/* モバイル専用全画面プレイヤー */
+.mobile-player-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.95);
+  z-index: 100;
+  overflow-y: auto;
+}
+
+.mobile-player-overlay[aria-hidden="false"] {
+  display: flex;
+}
+
+.mobile-player-content {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.mobile-player-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  border: none;
+  background: rgba(51, 51, 51, 0.8);
+  color: #e2e8f0;
+  border-radius: 999px;
+  width: 36px;
+  height: 36px;
+  cursor: pointer;
+  z-index: 2;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.mobile-player-visual {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.mobile-player-cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(1px) brightness(0.95);
+}
+
+.mobile-player-bottom {
+  position: relative;
+  z-index: 1;
+  margin-top: auto;
+  background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.8) 50%, transparent 100%);
+  padding: 40px 20px 120px 20px;
+}
+
+.mobile-player-info {
+  text-align: center;
+  margin-bottom: 24px;
+  width: 100%;
+}
+
+.mobile-player-info h2 {
+  font-size: 24px;
+  margin: 0 0 8px 0;
+  color: #fff;
+  font-weight: 600;
+}
+
+.mobile-player-info p {
+  font-size: 18px;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.mobile-player-progress {
+  width: 100%;
+  margin-bottom: 24px;
+}
+
+.mobile-player-progress input[type="range"] {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.mobile-player-time {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.mobile-player-volume {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  margin-bottom: 32px;
+}
+
+.mobile-player-volume input[type="range"] {
+  flex: 1;
+  max-width: 200px;
+}
+
+.mobile-player-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.mobile-player-controls .icon-button {
+  width: 48px;
+  height: 48px;
+}
+
+.mobile-player-controls .is-primary {
+  width: 64px;
+  height: 64px;
+}
+
+.mobile-player-controls-secondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  width: 100%;
+}
+
+.mobile-player-controls-secondary .icon-button {
+  width: 44px;
+  height: 44px;
+}
+
+/* モバイルプレイヤーの再生/一時停止ボタン */
+#mobile-player-toggle .icon-pause {
+  display: none;
+}
+
+#mobile-player-toggle.is-playing .icon-play {
+  display: none;
+}
+
+#mobile-player-toggle.is-playing .icon-pause {
+  display: block;
 }

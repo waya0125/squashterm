@@ -58,6 +58,13 @@
               </svg>
               <span class="label">Settings</span>
             </button>
+            <button class="nav-button nav-player-button is-hidden" id="nav-player-button" aria-label="プレイヤーを開く">
+              <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2" />
+                <polygon points="10,8 16,12 10,16" fill="currentColor" />
+              </svg>
+              <span class="label">Player</span>
+            </button>
           </nav>
         </aside>
 
@@ -653,6 +660,187 @@
               </div>
             </div>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- モバイル専用全画面プレイヤー -->
+    <section class="mobile-player-overlay" id="mobile-player-overlay" aria-hidden="true">
+      <div class="mobile-player-content">
+        <button class="mobile-player-close" type="button" id="mobile-player-close" aria-label="閉じる">
+          ×
+        </button>
+        <div class="mobile-player-visual">
+          <img class="mobile-player-cover" id="mobile-player-cover" src="" alt="" />
+        </div>
+        <div class="mobile-player-bottom">
+          <div class="mobile-player-info">
+            <h2 id="mobile-player-title">--</h2>
+            <p id="mobile-player-artist">--</p>
+          </div>
+        <div class="mobile-player-progress">
+          <input
+            type="range"
+            min="0"
+            max="100"
+            value="0"
+            step="0.1"
+            id="mobile-player-progress-slider"
+            aria-label="再生位置"
+          />
+          <div class="mobile-player-time">
+            <span id="mobile-player-current-time">0:00</span>
+            <span id="mobile-player-duration">0:00</span>
+          </div>
+        </div>
+        <div class="mobile-player-volume">
+          <button class="icon-button" type="button" id="mobile-player-volume-toggle" aria-label="ミュート切り替え">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M11 5L6 9H2v6h4l5 4V5zM15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            value="100"
+            id="mobile-player-volume-slider"
+            aria-label="音量調整"
+          />
+          <button class="icon-button mobile-player-menu-toggle" type="button" id="mobile-player-menu-toggle" aria-label="メニュー">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="5" cy="12" r="2" />
+              <circle cx="12" cy="12" r="2" />
+              <circle cx="19" cy="12" r="2" />
+            </svg>
+          </button>
+        </div>
+        <div class="mobile-player-controls">
+          <button class="icon-button" type="button" id="mobile-player-skip-back" aria-label="10秒戻し">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M11 5a7 7 0 1 0 7 7"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+              <polyline
+                points="8,6 11,3 14,6"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <text x="9" y="16" font-size="7" fill="currentColor">10</text>
+            </svg>
+          </button>
+          <button class="icon-button" type="button" id="mobile-player-prev" aria-label="前へ">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="4" y="5" width="3" height="14" rx="1.5" />
+              <polygon points="20,5 10,12 20,19" />
+            </svg>
+          </button>
+          <button class="icon-button is-primary" type="button" id="mobile-player-toggle" aria-label="再生">
+            <svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true">
+              <polygon points="8,5 19,12 8,19" />
+            </svg>
+            <svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="6" y="4" width="4" height="16" rx="1" />
+              <rect x="14" y="4" width="4" height="16" rx="1" />
+            </svg>
+          </button>
+          <button class="icon-button" type="button" id="mobile-player-next" aria-label="次へ">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="17" y="5" width="3" height="14" rx="1.5" />
+              <polygon points="4,5 14,12 4,19" />
+            </svg>
+          </button>
+          <button class="icon-button" type="button" id="mobile-player-skip-forward" aria-label="10秒先送り">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M13 5a7 7 0 1 1-7 7"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+              <polyline
+                points="16,6 13,3 10,6"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <text x="9" y="16" font-size="7" fill="currentColor">10</text>
+            </svg>
+          </button>
+        </div>
+        <div class="mobile-player-controls-secondary">
+          <button class="icon-button" type="button" id="mobile-player-loop" aria-label="ループ: オフ" aria-pressed="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M4 12a6 6 0 0 1 10-4"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+              <polyline
+                points="14,4 14,8 10,8"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M20 12a6 6 0 0 1-10 4"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+              <polyline
+                points="10,20 10,16 14,16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            <span class="loop-label" aria-hidden="true">OFF</span>
+          </button>
+          <button class="icon-button" type="button" id="mobile-player-shuffle" aria-label="シャッフル: オフ" aria-pressed="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+          <button class="icon-button is-favorite" type="button" id="mobile-player-favorite" aria-label="お気に入りに追加" aria-pressed="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M12 20.3l-1.4-1.3c-4.5-4-7.1-6.4-7.1-9.6 0-2.1 1.6-3.7 3.7-3.7 1.4 0 2.7.7 3.4 1.8.8-1.1 2-1.8 3.4-1.8 2.1 0 3.7 1.6 3.7 3.7 0 3.2-2.6 5.6-7.1 9.6L12 20.3z"
+              />
+            </svg>
+          </button>
+        </div>
         </div>
       </div>
     </section>
