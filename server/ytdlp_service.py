@@ -43,7 +43,7 @@ def download_with_ytdlp(url: str, no_playlist: bool = False) -> tuple[list[dict]
         "--write-thumbnail",
         "-x",
         "--audio-format",
-        "mp3",
+        "m4a",
         "-o",
         str(MEDIA_DIR / "%(id)s.%(ext)s"),
     ]
@@ -85,7 +85,7 @@ def build_ytdlp_command(url: str, no_playlist: bool = False) -> list[str]:
         "--write-thumbnail",
         "-x",
         "--audio-format",
-        "mp3",
+        "m4a",
         "-o",
         str(MEDIA_DIR / "%(id)s.%(ext)s"),
     ]
