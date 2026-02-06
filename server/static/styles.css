@@ -310,11 +310,17 @@ body {
 
 .media-list-title {
   font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .media-list-artist {
   color: #94a3b8;
   font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .media-list-duration {
@@ -1684,8 +1690,38 @@ input[type="file"] {
 
   .media-list-header,
   .media-list-row {
-    grid-template-columns: 20px 40px 1.4fr 1fr 60px;
-    gap: 8px;
+    grid-template-columns: 16px 36px 1fr 0.8fr 56px;
+    gap: 6px;
+    padding: 8px;
+    font-size: 12px;
+  }
+
+  .media-list-header {
+    font-size: 10px;
+    padding: 0 8px;
+  }
+
+  .media-list-cover {
+    width: 32px;
+    height: 32px;
+  }
+
+  .media-list-title {
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .media-list-artist {
+    font-size: 11px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .media-list-duration {
+    font-size: 11px;
   }
 
   .settings-version-item {
@@ -1699,19 +1735,6 @@ input[type="file"] {
 
   .search-input {
     min-width: 100%;
-  }
-
-  .media-list-header {
-    font-size: 11px;
-  }
-
-  .media-list-title {
-    font-size: 13px;
-  }
-
-  .media-list-artist,
-  .media-list-duration {
-    font-size: 11px;
   }
 
   .playlist-track-header,
