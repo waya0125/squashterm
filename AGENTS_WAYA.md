@@ -130,7 +130,27 @@ git show --stat HEAD
 - 1周したら自動的に再シャッフルして継続
 - Fisher-Yatesアルゴリズムでシャッフル
 
-### 7. コミットメッセージ
+### 8. CSS スタイリングの原則
+
+CSS変更時は、以下の原則を守ってください：
+
+- **既存スタイルとの統一**: 他のページと見た目を揃える
+  - カード: `border-radius: 18px`, `padding: 16px`, `box-shadow: inset 0 0 0 1px`
+  - ボタン: `border-radius: 999px`, `padding: 10px 16px`, `font-weight: 600`
+  - 入力欄: `background: #1d1d1d`, `border: 1px solid #334155`, `border-radius: 10px`
+
+- **マージン・パディングの明示**: 継承に頼らず、すべて明示的に設定
+  - 良い例: `margin: 6px 0 0 0;`
+  - 悪い例: `margin-top: 6px;` （他の方向が不明確）
+
+- **フレックスボックスの活用**: 
+  - 下部配置: `margin-top: auto`
+  - 中央揃え: `align-self: center`
+
+- **スペーシングの統一**: 
+  - カード間: `gap: 16px`
+  - ラベル間: `margin: 0 0 6px 0`
+  - ターミナル上部: `padding-top: 12px`
 
 コミットメッセージは英語で、以下の形式で記述：
 

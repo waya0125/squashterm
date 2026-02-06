@@ -185,6 +185,38 @@ Git情報から動的にバージョン情報を生成・表示する機能。
 - アイコン追加
 - 曲削除機能
 
+### パフォーマンス最適化
+
+**画像遅延読み込み（Lazy Loading）:**
+- すべての画像に`loading="lazy"`属性を追加
+- メディア一覧、カード表示、プレイリストトラック行に適用
+- 初期読み込み時間を大幅に短縮
+
+**WebP画像フォーマット対応:**
+- 新規アップロード時に自動的にWebP形式に変換（85%品質）
+- ID3タグから抽出したカバー画像もWebP化
+- 既存784枚の画像を一括WebP変換
+- ファイルサイズを30-40%削減
+- Pillowライブラリを追加
+
+**関連コミット:**
+- Add lazy loading and WebP conversion for images
+- Add scripts for converting existing images to WebP
+- docs: Update CHANGELOG_CUSTOM.md with lazy loading and WebP conversion
+
+### タイムゾーン修正
+
+**プレイリスト同期タイムスタンプ:**
+- UTC表示をJST（日本標準時）に変更
+- `datetime.utcnow()` → `datetime.now(JST)`
+- ユーザー体験を向上
+
+**関連コミット:**
+- Fix playlist sync timestamp to use JST instead of UTC
+
+**upstream報告:**
+- GitHub Issue #36として報告済み
+
 ## 変更されたファイル
 
 ### 追加されたファイル
