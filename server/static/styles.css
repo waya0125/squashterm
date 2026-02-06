@@ -1031,6 +1031,8 @@ input[type="file"] {
   outline: none;
   -webkit-appearance: none;
   appearance: none;
+  margin: 0;
+  align-self: center;
 }
 
 #player-volume-slider::-webkit-slider-thumb {
@@ -1060,7 +1062,8 @@ input[type="file"] {
   outline: none;
   -webkit-appearance: none;
   appearance: none;
-  margin: 0 4px 0 0;
+  margin: 0;
+  align-self: center;
 }
 
 .mini-volume-slider::-webkit-slider-thumb {
