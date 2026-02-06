@@ -48,6 +48,25 @@ http://127.0.0.1:8081/
 
 実際にアクセスするパスは、実装したファイルに基づき適宜変更してください。
 
+### Docker操作
+
+```bash
+# ビルド
+./build.sh
+
+# 起動
+./start.sh
+
+# 再起動（ビルド + 起動）
+./build.sh && ./start.sh
+
+# ログ確認
+docker compose logs -f squashterm
+
+# 停止
+docker compose down
+```
+
 ### スクリーンショット取得
 
 - モバイル表示の実装を主としない限り、デスクトップ表示で取得
