@@ -939,7 +939,7 @@ input[type="file"] {
 .player-controls {
   display: flex;
   gap: 12px;
-  justify-content: center;
+  justify-content: flex-start;
   flex-wrap: wrap;
   position: relative;
   z-index: 2;
