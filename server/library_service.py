@@ -47,6 +47,10 @@ def parse_track_from_info(info: dict, source_url: str | None = None) -> Track:
     resolved_source_url = source_url
     if not resolved_source_url:
         resolved_source_url = info.get("webpage_url") or info.get("original_url")
+    bitrate_value = info.get("abr") or info.get("tbr")
+    bitrate_kbps = None
+    if isinstance(bitrate_value, (int, float)):
+        bitrate_kbps = int(round(bitrate_value))
     return Track(
         id=f"yt_{info.get('id', uuid.uuid4().hex)}",
         title=info.get("track") or info.get("title") or "Unknown Title",
@@ -58,6 +62,8 @@ def parse_track_from_info(info: dict, source_url: str | None = None) -> Track:
         genre=info.get("genre") or "Unknown",
         year=parse_year(info),
         source_url=resolved_source_url,
+        file_format=info.get("ext") or info.get("audio_ext"),
+        bitrate_kbps=bitrate_kbps,
     )
 
 
@@ -187,6 +193,8 @@ def fetch_tracks() -> list[Track]:
                 year=row["year"],
                 file_url=file_url,
                 source_url=row.get("source_url"),
+                file_format=row.get("file_format"),
+                bitrate_kbps=row.get("bitrate_kbps"),
             )
         )
     return tracks
@@ -274,6 +282,8 @@ def build_upload_track(
     elif parsed.get("year"):
         resolved_year = parsed.get("year", 0)
     resolved_duration = parsed.get("duration") or "--"
+    resolved_bitrate = parsed.get("bitrate_kbps")
+    resolved_format = parsed.get("file_format") or file_path.suffix.lstrip(".").lower() or None
     cover_url = DEFAULT_COVER
     if cover and cover.filename:
         cover_extension = Path(cover.filename).suffix
@@ -299,6 +309,8 @@ def build_upload_track(
         year=resolved_year,
         file_url=f"/media/{file_path.name}",
         source_url=source_url,
+        file_format=resolved_format,
+        bitrate_kbps=resolved_bitrate,
     )
     return track
 
@@ -308,6 +320,45 @@ def append_track_record(track: Track, file_path: Path) -> None:
     tracks = data.setdefault("tracks", [])
     tracks.append({**asdict(track), "file_path": str(file_path)})
     save_library(data)
+
+
+def import_local_folder(
+    folder_path: str, playlist_id: str | None, auto_tag: str | bool | None
+) -> list[Track]:
+    ensure_data_dirs()
+    resolved_path = Path(folder_path).expanduser()
+    if not resolved_path.exists() or not resolved_path.is_dir():
+        raise FileNotFoundError("Folder does not exist")
+    data = load_library()
+    tracks = data.setdefault("tracks", [])
+    existing_paths = {track.get("file_path") for track in tracks}
+    supported_exts = {".mp3", ".m4a", ".flac", ".wav", ".ogg", ".opus", ".aac"}
+    added_tracks: list[Track] = []
+    for file_path in sorted(resolved_path.iterdir()):
+        if not file_path.is_file() or file_path.suffix.lower() not in supported_exts:
+            continue
+        if str(file_path) in existing_paths:
+            continue
+        track_id = f"local_{uuid.uuid4().hex}"
+        extension = file_path.suffix or ".mp3"
+        dest_path = MEDIA_DIR / f"{track_id}{extension}"
+        shutil.copy2(file_path, dest_path)
+        track = build_upload_track(
+            dest_path,
+            track_id,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            auto_tag,
+            None,
+        )
+        append_track_record(track, dest_path)
+        added_tracks.append(track)
+    append_tracks_to_playlist(playlist_id, [track.id for track in added_tracks])
+    return added_tracks
 
 
 def update_playlist_sync_status(
