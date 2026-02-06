@@ -2593,23 +2593,27 @@ if (mobilePlayerClose) {
 }
 
 if (mobilePlayerProgressSlider) {
-  mobilePlayerProgressSlider.addEventListener("input", (e) => {
+  const updateProgress = (e) => {
     if (audioPlayer && audioPlayer.duration) {
       const time = (e.target.value / 100) * audioPlayer.duration;
       audioPlayer.currentTime = time;
     }
-  });
+  };
+  mobilePlayerProgressSlider.addEventListener("input", updateProgress);
+  mobilePlayerProgressSlider.addEventListener("change", updateProgress);
 }
 
 if (mobilePlayerVolumeSlider) {
-  mobilePlayerVolumeSlider.addEventListener("input", (e) => {
+  const updateVolume = (e) => {
     if (audioPlayer) {
       audioPlayer.volume = e.target.value / 100;
       if (playerVolumeSlider) {
         playerVolumeSlider.value = e.target.value;
       }
     }
-  });
+  };
+  mobilePlayerVolumeSlider.addEventListener("input", updateVolume);
+  mobilePlayerVolumeSlider.addEventListener("change", updateVolume);
 }
 
 if (mobilePlayerVolumeToggle) {
