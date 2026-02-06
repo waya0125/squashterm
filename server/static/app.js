@@ -2167,12 +2167,14 @@ if (audioPlayer) {
     playerState.isPlaying = true;
     updatePlayerButtons();
     updateMediaSessionPlaybackState();
+    syncMobilePlayerButtons();
   });
 
   audioPlayer.addEventListener("pause", () => {
     playerState.isPlaying = false;
     updatePlayerButtons();
     updateMediaSessionPlaybackState();
+    syncMobilePlayerButtons();
   });
 
   audioPlayer.addEventListener("timeupdate", () => {

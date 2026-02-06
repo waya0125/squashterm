@@ -1906,3 +1906,8 @@ input[type="file"] {
 #mobile-player-toggle.is-playing .icon-pause {
   display: block;
 }
+
+#mobile-player-toggle.is-playing {
+  color: #3b82f6;
+  opacity: 0.7;
+}
