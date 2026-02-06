@@ -4,8 +4,8 @@
 
 ## 概要
 
-- **総コミット数**: 101コミット先行（origin/mainから）
-- **独自機能のコミット数**: 38コミット（feature/upstreamとの差分）
+- **総コミット数**: 110コミット先行（origin/mainから）
+- **独自機能のコミット数**: 42コミット（feature/upstreamとの差分）
 - **上流との関係**: このフォーク独自のオリジナル機能 + 上流に提供予定の機能を統合
 
 ## feature/custom独自のオリジナル機能
@@ -84,7 +84,10 @@ Git情報から動的にバージョン情報を生成・表示する機能。
 - モバイル表示のナビゲーションボタンサイズとレイアウトを修正
 - Manageタブのチェックボックスを左寄せ横並びに修正
 - Manageタブの項目間隔・見出し下の余白を調整
+- Manageタブのスタイルを全面的に再構築し、他のページと統一
 - ブラウザ互換性向上（labelをgridからflexに変更）
+- 全画面プレイヤーのコントロールボタンを左寄せに変更
+- 音量スライダーの垂直位置とレンジを調整
 
 **関連コミット:**
 - モバイル表示のナビゲーションボタンサイズとレイアウトを修正（複数回）
@@ -93,6 +96,10 @@ Git情報から動的にバージョン情報を生成・表示する機能。
 - Manageタブの見出し下の余白を調整
 - Manage項目間隔とnav-buttonサイズを修正
 - fix: labelをgridからflexに変更してブラウザ互換性を向上（複数回）
+- Rebuild Manage tab styling to match other pages
+- Align fullscreen player control buttons to the left
+- Fix volume slider vertical alignment with align-self
+- Improve volume slider track range
 
 ### 上流リファクタリング対応
 
