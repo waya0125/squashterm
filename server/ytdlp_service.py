@@ -10,6 +10,10 @@ from library_service import store_downloaded_tracks
 from models import Track
 from paths import MEDIA_DIR
 
+# yt-dlp 2026以降はJS runtimeが必要（YouTube signature解決のため）
+# node.jsが利用可能な場合に使用する
+_YTDLP_JS_FLAGS = ["--js-runtimes", "node", "--remote-components", "ejs:github"]
+
 
 def is_single_video_url(url: str) -> bool:
     """URLが単体動画かプレイリストかを判定"""
@@ -38,6 +42,7 @@ def is_single_video_url(url: str) -> bool:
 def download_with_ytdlp(url: str, no_playlist: bool = False) -> tuple[list[dict], str]:
     command = [
         "yt-dlp",
+        *_YTDLP_JS_FLAGS,
         "--print-json",
         "--write-info-json",
         "--write-thumbnail",
@@ -78,6 +83,7 @@ def download_with_ytdlp(url: str, no_playlist: bool = False) -> tuple[list[dict]
 def build_ytdlp_command(url: str, no_playlist: bool = False) -> list[str]:
     command = [
         "yt-dlp",
+        *_YTDLP_JS_FLAGS,
         "--newline",
         "--progress",
         "--print-json",
