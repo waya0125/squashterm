@@ -17,14 +17,12 @@ echo "Commit: $GIT_COMMIT"
 echo "Build:  $BUILD_DATE"
 echo "================================"
 
-# ビルド実行
-docker-compose build \
-  --build-arg GIT_COMMIT="$GIT_COMMIT" \
-  --build-arg GIT_BRANCH="$GIT_BRANCH" \
-  --build-arg BUILD_DATE="$BUILD_DATE"
+# ビルド実行（環境変数として export し docker compose に渡す）
+export GIT_COMMIT GIT_BRANCH BUILD_DATE
+docker compose build
 
 echo ""
 echo "ビルド完了！"
 echo ""
-echo "起動するには: docker-compose up -d"
+echo "起動するには: docker compose up -d"
 echo "または: ./start.sh"
