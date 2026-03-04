@@ -2885,25 +2885,40 @@ if (mobilePlayerProgressSlider) {
   mobilePlayerProgressSlider.addEventListener("change", updateProgress);
 }
 
+// iOSではJSから音量変更不可のため、スライダーを注意書きに差し替え
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
 if (mobilePlayerVolumeSlider) {
-  const updateVolume = (e) => {
-    if (audioPlayer) {
-      audioPlayer.volume = e.target.value / 100;
-      if (playerVolumeSlider) {
-        playerVolumeSlider.value = e.target.value;
+  if (isIOS) {
+    const note = document.createElement("span");
+    note.className = "mobile-player-volume-ios-note";
+    note.textContent = "音量はデバイスのボタンで調整してください";
+    mobilePlayerVolumeSlider.replaceWith(note);
+  } else {
+    const updateVolume = (e) => {
+      if (audioPlayer) {
+        audioPlayer.volume = e.target.value / 100;
+        if (playerVolumeSlider) {
+          playerVolumeSlider.value = e.target.value;
+        }
       }
-    }
-  };
-  mobilePlayerVolumeSlider.addEventListener("input", updateVolume);
-  mobilePlayerVolumeSlider.addEventListener("change", updateVolume);
+    };
+    mobilePlayerVolumeSlider.addEventListener("input", updateVolume);
+    mobilePlayerVolumeSlider.addEventListener("change", updateVolume);
+  }
 }
 
 if (mobilePlayerVolumeToggle) {
-  mobilePlayerVolumeToggle.addEventListener("click", () => {
-    if (playerVolumeToggle) {
-      playerVolumeToggle.click();
-    }
-  });
+  if (isIOS) {
+    mobilePlayerVolumeToggle.style.display = "none";
+  } else {
+    mobilePlayerVolumeToggle.addEventListener("click", () => {
+      if (playerVolumeToggle) {
+        playerVolumeToggle.click();
+      }
+    });
+  }
 }
 
 if (mobilePlayerToggle) {
