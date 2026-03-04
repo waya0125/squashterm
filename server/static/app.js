@@ -1,5 +1,6 @@
 const tabs = document.querySelectorAll(".nav-button");
 const panels = document.querySelectorAll(".panel");
+const navPlayerButton = document.getElementById("nav-player-button");
 
 const mediaGrid = document.getElementById("media-grid");
 const mediaViewToggle = document.getElementById("media-view-toggle");
@@ -162,6 +163,12 @@ const supportsMediaSession = "mediaSession" in navigator;
 
 tabs.forEach((tab) => {
   tab.addEventListener("click", () => {
+    // モバイルプレイヤーが開いている場合は閉じるが、タブ復帰はしない
+    if (mobilePlayerOverlay && mobilePlayerOverlay.getAttribute("aria-hidden") === "false") {
+      mobilePlayerOverlay.setAttribute("aria-hidden", "true");
+      previousActiveTab = null; // タブクリックで直接遷移するので以前のタブをクリア
+    }
+    
     tabs.forEach((button) => button.classList.remove("is-active"));
     panels.forEach((panel) => panel.classList.remove("is-active"));
     tab.classList.add("is-active");
@@ -451,6 +458,9 @@ const updatePlayerUI = () => {
       miniPlayer.classList.remove("is-active");
       miniPlayer.setAttribute("aria-hidden", "true");
     }
+    if (navPlayerButton) {
+      navPlayerButton.classList.add("is-hidden");
+    }
     if (playerSeek) {
       playerSeek.value = 0;
     }
@@ -509,6 +519,9 @@ const updatePlayerUI = () => {
     miniPlayer.classList.add("is-active");
     miniPlayer.setAttribute("aria-hidden", "false");
   }
+  if (navPlayerButton) {
+    navPlayerButton.classList.remove("is-hidden");
+  }
   updatePlayerButtons();
   updateMediaSessionMetadata(track);
   updateMediaPlayingIndicator();
@@ -516,6 +529,11 @@ const updatePlayerUI = () => {
   updateLoopButtons();
   renderPlaylistModalList();
   updatePlayerMenuButtons();
+  
+  // モバイルプレイヤーが開いている場合は更新
+  if (mobilePlayerOverlay && mobilePlayerOverlay.getAttribute("aria-hidden") === "false") {
+    updateMobilePlayerUI();
+  }
 };
 
 const closePlayerOverlay = () => {
@@ -655,6 +673,13 @@ const playPrev = () => {
     return;
   }
   
+  // 再生位置が3秒以上なら曲の先頭に戻す
+  if (audioPlayer && audioPlayer.currentTime > 3) {
+    audioPlayer.currentTime = 0;
+    return;
+  }
+  
+  // 3秒以内または連続2度目なら前の曲へ
   let prevIndex;
   if (playerState.shuffleMode && playerState.shuffleIndices.length > 0) {
     // シャッフルモード
@@ -787,7 +812,7 @@ const renderMedia = () => {
         });
         row.appendChild(checkbox);
         row.insertAdjacentHTML("beforeend", `
-          <img class="media-list-cover" src="${track.cover}" alt="${track.album}" />
+          <img class="media-list-cover" src="${track.cover}" alt="${track.album}" loading="lazy" />
           <span class="media-list-title">${track.title}</span>
           <span class="media-list-artist">${track.artist}</span>
           <span class="media-list-duration">${track.duration}</span>
@@ -836,7 +861,7 @@ const renderMedia = () => {
     }
     card.innerHTML = `
       ${selectionState.active ? `<input type="checkbox" class="media-list-checkbox" ${selectionState.selectedIds.has(track.id) ? "checked" : ""} style="margin-bottom:6px" />` : ""}
-      <img src="${track.cover}" alt="${track.album}" />
+      <img src="${track.cover}" alt="${track.album}" loading="lazy" />
       <h3>${track.title}</h3>
       <p>${track.artist}</p>
       <p>${track.album}</p>
@@ -919,7 +944,7 @@ const buildPlaylistTrackRow = (track, listType) => {
         <polygon points="8,5 19,12 8,19" />
       </svg>
     </span>
-    <img class="media-list-cover" src="${track.cover}" alt="${track.album}" />
+    <img class="media-list-cover" src="${track.cover}" alt="${track.album}" loading="lazy" />
     <span class="media-list-title">${track.title}</span>
     <span class="media-list-artist">${track.artist}</span>
     <span class="media-list-duration">${track.duration}</span>
@@ -2385,12 +2410,14 @@ if (audioPlayer) {
     playerState.isPlaying = true;
     updatePlayerButtons();
     updateMediaSessionPlaybackState();
+    syncMobilePlayerButtons();
   });
 
   audioPlayer.addEventListener("pause", () => {
     playerState.isPlaying = false;
     updatePlayerButtons();
     updateMediaSessionPlaybackState();
+    syncMobilePlayerButtons();
   });
 
   audioPlayer.addEventListener("timeupdate", () => {
@@ -2649,6 +2676,314 @@ if (miniExpand) {
     openPlayerOverlay();
   });
 }
+
+// Nav player button: opens fullscreen player (mobile)
+if (navPlayerButton) {
+  navPlayerButton.addEventListener("click", () => {
+    if (isMobileDevice()) {
+      openMobilePlayer();
+    } else {
+      openPlayerOverlay();
+    }
+  });
+}
+
+// モバイル判定関数
+function isMobileDevice() {
+  return window.innerWidth <= 768;
+}
+
+// モバイルプレイヤー要素
+const mobilePlayerOverlay = document.getElementById("mobile-player-overlay");
+const mobilePlayerClose = document.getElementById("mobile-player-close");
+const mobilePlayerCover = document.getElementById("mobile-player-cover");
+const mobilePlayerTitle = document.getElementById("mobile-player-title");
+const mobilePlayerArtist = document.getElementById("mobile-player-artist");
+const mobilePlayerAlbum = document.getElementById("mobile-player-album");
+const mobilePlayerFormat = document.getElementById("mobile-player-format");
+const mobilePlayerProgressSlider = document.getElementById("mobile-player-progress-slider");
+const mobilePlayerCurrentTime = document.getElementById("mobile-player-current-time");
+const mobilePlayerDuration = document.getElementById("mobile-player-duration");
+const mobilePlayerVolumeToggle = document.getElementById("mobile-player-volume-toggle");
+const mobilePlayerVolumeSlider = document.getElementById("mobile-player-volume-slider");
+const mobilePlayerToggle = document.getElementById("mobile-player-toggle");
+const mobilePlayerPrev = document.getElementById("mobile-player-prev");
+const mobilePlayerNext = document.getElementById("mobile-player-next");
+const mobilePlayerShuffle = document.getElementById("mobile-player-shuffle");
+const mobilePlayerLoop = document.getElementById("mobile-player-loop");
+const mobilePlayerMenuToggle = document.getElementById("mobile-player-menu-toggle");
+const mobilePlayerSkipBack = document.getElementById("mobile-player-skip-back");
+const mobilePlayerSkipForward = document.getElementById("mobile-player-skip-forward");
+const mobilePlayerFavorite = document.getElementById("mobile-player-favorite");
+
+// 現在のタブを保存する変数
+let previousActiveTab = null;
+
+// モバイルプレイヤーを開く
+function openMobilePlayer() {
+  if (mobilePlayerOverlay) {
+    // 現在アクティブなタブを保存（data-tab属性があるもののみ）
+    previousActiveTab = null; // リセット
+    tabs.forEach((tab) => {
+      if (tab.classList.contains("is-active") && tab.dataset && tab.dataset.tab) {
+        previousActiveTab = tab.dataset.tab;
+      }
+    });
+    
+    // デフォルトがない場合はmediaをデフォルトに
+    if (!previousActiveTab) {
+      previousActiveTab = "media";
+    }
+    
+    mobilePlayerOverlay.setAttribute("aria-hidden", "false");
+    updateMobilePlayerUI();
+  }
+}
+
+// モバイルプレイヤーを閉じる
+function closeMobilePlayer() {
+  if (mobilePlayerOverlay) {
+    mobilePlayerOverlay.setAttribute("aria-hidden", "true");
+    
+    // 以前のタブに戻す
+    if (previousActiveTab) {
+      tabs.forEach((button) => button.classList.remove("is-active"));
+      panels.forEach((panel) => panel.classList.remove("is-active"));
+      
+      const targetTab = document.querySelector(`.nav-button[data-tab="${previousActiveTab}"]`);
+      const targetPanel = document.getElementById(`panel-${previousActiveTab}`);
+      
+      if (targetTab) {
+        targetTab.classList.add("is-active");
+      }
+      if (targetPanel) {
+        targetPanel.classList.add("is-active");
+      }
+      
+      previousActiveTab = null;
+    }
+  }
+}
+
+// モバイルプレイヤーUIを更新
+function updateMobilePlayerUI() {
+  // デスクトップ版のプレイヤーから情報を同期
+  if (playerCover && playerCover.src) {
+    mobilePlayerCover.src = playerCover.src;
+  }
+  if (playerTitle && playerTitle.textContent) {
+    mobilePlayerTitle.textContent = playerTitle.textContent;
+  }
+  if (playerArtist && playerArtist.textContent) {
+    mobilePlayerArtist.textContent = playerArtist.textContent;
+  }
+  if (mobilePlayerAlbum && playerAlbum && playerAlbum.textContent) {
+    mobilePlayerAlbum.textContent = playerAlbum.textContent;
+  }
+  if (mobilePlayerFormat && playerFormat && playerFormat.textContent) {
+    mobilePlayerFormat.textContent = playerFormat.textContent;
+  }
+  
+  // プログレスバーと時間を同期
+  if (audioPlayer) {
+    const progress = (audioPlayer.currentTime / audioPlayer.duration) * 100 || 0;
+    mobilePlayerProgressSlider.value = progress;
+    mobilePlayerCurrentTime.textContent = formatTime(audioPlayer.currentTime);
+    mobilePlayerDuration.textContent = formatTime(audioPlayer.duration);
+  }
+  
+  // 音量スライダーを同期
+  if (mobilePlayerVolumeSlider) {
+    mobilePlayerVolumeSlider.value = audioPlayer.volume * 100;
+  }
+  
+  // ボタン状態を同期
+  syncMobilePlayerButtons();
+}
+
+// モバイルプレイヤーボタン状態を同期
+function syncMobilePlayerButtons() {
+  // 再生/一時停止ボタン
+  if (mobilePlayerToggle) {
+    if (audioPlayer.paused) {
+      mobilePlayerToggle.classList.remove("is-playing");
+      mobilePlayerToggle.setAttribute("aria-label", "再生");
+    } else {
+      mobilePlayerToggle.classList.add("is-playing");
+      mobilePlayerToggle.setAttribute("aria-label", "一時停止");
+    }
+  }
+  
+  // シャッフルボタン
+  if (mobilePlayerShuffle && playerShuffle) {
+    const isShuffleOn = playerShuffle.getAttribute("aria-pressed") === "true";
+    mobilePlayerShuffle.setAttribute("aria-pressed", isShuffleOn ? "true" : "false");
+    if (isShuffleOn) {
+      mobilePlayerShuffle.classList.add("is-active");
+    } else {
+      mobilePlayerShuffle.classList.remove("is-active");
+    }
+  }
+  
+  // ループボタン
+  if (mobilePlayerLoop && playerLoop) {
+    const loopMode = playerLoop.getAttribute("aria-label");
+    mobilePlayerLoop.setAttribute("aria-label", loopMode);
+    const loopLabel = mobilePlayerLoop.querySelector(".loop-label");
+    if (loopLabel) {
+      loopLabel.textContent = loopMode.includes("オフ") ? "OFF" : loopMode.includes("1曲") ? "1" : "ALL";
+    }
+    // ループがオフの場合は色なし、PL/1の場合は色あり
+    if (loopMode.includes("オフ")) {
+      mobilePlayerLoop.classList.remove("is-active");
+    } else {
+      mobilePlayerLoop.classList.add("is-active");
+    }
+  }
+  
+  // お気に入りボタン
+  if (mobilePlayerFavorite && playerFavorite) {
+    const isFavorite = playerFavorite.getAttribute("aria-pressed") === "true";
+    mobilePlayerFavorite.setAttribute("aria-pressed", isFavorite ? "true" : "false");
+    if (isFavorite) {
+      mobilePlayerFavorite.classList.add("is-active");
+    } else {
+      mobilePlayerFavorite.classList.remove("is-active");
+    }
+  }
+}
+
+// モバイルプレイヤーイベントハンドラー
+if (mobilePlayerClose) {
+  mobilePlayerClose.addEventListener("click", closeMobilePlayer);
+}
+
+if (mobilePlayerProgressSlider) {
+  const updateProgress = (e) => {
+    if (audioPlayer && audioPlayer.duration) {
+      const time = (e.target.value / 100) * audioPlayer.duration;
+      audioPlayer.currentTime = time;
+    }
+  };
+  mobilePlayerProgressSlider.addEventListener("input", updateProgress);
+  mobilePlayerProgressSlider.addEventListener("change", updateProgress);
+}
+
+if (mobilePlayerVolumeSlider) {
+  const updateVolume = (e) => {
+    if (audioPlayer) {
+      audioPlayer.volume = e.target.value / 100;
+      if (playerVolumeSlider) {
+        playerVolumeSlider.value = e.target.value;
+      }
+    }
+  };
+  mobilePlayerVolumeSlider.addEventListener("input", updateVolume);
+  mobilePlayerVolumeSlider.addEventListener("change", updateVolume);
+}
+
+if (mobilePlayerVolumeToggle) {
+  mobilePlayerVolumeToggle.addEventListener("click", () => {
+    if (playerVolumeToggle) {
+      playerVolumeToggle.click();
+    }
+  });
+}
+
+if (mobilePlayerToggle) {
+  mobilePlayerToggle.addEventListener("click", () => {
+    if (playerToggle) {
+      playerToggle.click();
+    }
+  });
+}
+
+if (mobilePlayerPrev) {
+  mobilePlayerPrev.addEventListener("click", () => {
+    if (playerPrev) {
+      playerPrev.click();
+    }
+  });
+}
+
+if (mobilePlayerNext) {
+  mobilePlayerNext.addEventListener("click", () => {
+    if (playerNext) {
+      playerNext.click();
+    }
+  });
+}
+
+if (mobilePlayerShuffle) {
+  mobilePlayerShuffle.addEventListener("click", () => {
+    if (playerShuffle) {
+      playerShuffle.click();
+      setTimeout(syncMobilePlayerButtons, 50);
+    }
+  });
+}
+
+if (mobilePlayerLoop) {
+  mobilePlayerLoop.addEventListener("click", () => {
+    if (playerLoop) {
+      playerLoop.click();
+      setTimeout(syncMobilePlayerButtons, 50);
+    }
+  });
+}
+
+if (mobilePlayerMenuToggle) {
+  mobilePlayerMenuToggle.addEventListener("click", () => {
+    if (playerMenuToggle) {
+      playerMenuToggle.click();
+    }
+  });
+}
+
+if (mobilePlayerSkipBack) {
+  mobilePlayerSkipBack.addEventListener("click", () => {
+    if (playerSkipBack) {
+      playerSkipBack.click();
+    }
+  });
+}
+
+if (mobilePlayerSkipForward) {
+  mobilePlayerSkipForward.addEventListener("click", () => {
+    if (playerSkipForward) {
+      playerSkipForward.click();
+    }
+  });
+}
+
+if (mobilePlayerFavorite) {
+  mobilePlayerFavorite.addEventListener("click", () => {
+    if (playerFavorite) {
+      playerFavorite.click();
+      setTimeout(() => {
+        // お気に入り状態を同期
+        if (playerFavorite.getAttribute("aria-pressed") === "true") {
+          mobilePlayerFavorite.setAttribute("aria-pressed", "true");
+          mobilePlayerFavorite.classList.add("is-active");
+        } else {
+          mobilePlayerFavorite.setAttribute("aria-pressed", "false");
+          mobilePlayerFavorite.classList.remove("is-active");
+        }
+      }, 50);
+    }
+  });
+}
+
+// audioPlayerのtimeupdateイベントでモバイルプレイヤーも更新
+const originalTimeUpdateHandler = audioPlayer.ontimeupdate;
+audioPlayer.addEventListener("timeupdate", () => {
+  if (mobilePlayerOverlay && mobilePlayerOverlay.getAttribute("aria-hidden") === "false") {
+    const progress = (audioPlayer.currentTime / audioPlayer.duration) * 100 || 0;
+    mobilePlayerProgressSlider.value = progress;
+    mobilePlayerCurrentTime.textContent = formatTime(audioPlayer.currentTime);
+    mobilePlayerDuration.textContent = formatTime(audioPlayer.duration);
+  }
+});
 
 if (playerClose) {
   playerClose.addEventListener("click", () => {

@@ -1,0 +1,450 @@
+# AGENTS_WAYA.md
+
+**注意**: AGENTS.mdは上流(upstream)のもののため、ポート番号などは参考にしないでください。このファイルはwaya0125のフォーク固有の情報を記載しています。
+
+## 既知の問題
+
+### モバイルプレイヤーのメニューボタンが機能しない
+
+**症状:**
+- モバイルプレイヤーの3点リーダー（メニュー）ボタンがクリックできない
+- 他のボタン（再生、前後スキップ、シャッフル等）は正常に動作
+- デスクトップ版では同じボタンが正常に動作
+
+**原因調査結果:**
+- 要素の取得は成功（`mobilePlayerMenuToggle: true`, `playerMenuToggle: true`）
+- イベントリスナーの登録も成功（"Mobile menu toggle listener set up successfully"が出力される）
+- クリックイベント自体が発火しない（ログ出力なし）
+- 何らかのレイヤーがボタンを覆っている可能性が高い
+
+**試行した対策（未解決）:**
+1. z-indexの調整（102, 103まで試行）
+2. pointer-events: auto/noneの設定
+3. flex-shrink: 0による要素の固定
+4. 明示的なボタンサイズ指定（44px）
+
+**次のステップ:**
+- ブラウザの開発者ツールで実際のDOM階層とz-indexを確認
+- `mobile-player-bottom`のグラデーション背景が干渉していないか確認
+- タッチイベント（`touchstart`, `touchend`）での動作確認
+- ボタンの実際の描画位置とクリック可能領域の検証
+
+## プロジェクト構造
+
+このプロジェクトは以下のブランチ構成で管理されています：
+
+### ブランチ戦略
+
+- **main**: 安定版ブランチ。feature/customとfeature/upstreamの変更を統合
+- **feature/upstream**: 上流リポジトリにも提供できる機能を開発するブランチ（Dockerファイルを含まない）
+- **feature/custom**: **このフォーク独自のオリジナル機能**を含むブランチ（Docker対応、自動スキャン、設定保存など、上流には提供しない機能）
+
+### 作業フロー
+
+#### 上流にも提供できる機能の場合
+
+1. `feature/upstream`で開発
+2. Docker関連の変更は含めない（upstreamはDockerfileなし）
+3. コミット後、`feature/custom`と`main`にマージ
+4. マージは`git merge`で行う（cherry-pickは特定の場合のみ）
+
+#### このフォーク独自の機能の場合
+
+1. `feature/custom`で開発
+2. Docker対応や独自設定など、上流に含めない機能を実装
+3. コミット後、`main`にマージ
+
+## コードスタイル
+
+変数名は下記ルールを使用してください：
+
+- Pythonではスネークケース（snake_case）
+- JavaScriptではキャメルケース（camelCase）
+
+コメントを追加する際は、指示された内容をそのままコメントするのではなく、各関数がどのような働きをするか示す簡潔なコメントを記載してください。
+
+## テスト環境
+
+### URL
+
+開発環境でのテストは以下のURLで行います：
+
+```
+http://127.0.0.1:8081/
+```
+
+実際にアクセスするパスは、実装したファイルに基づき適宜変更してください。
+
+### Docker操作
+
+```bash
+# ビルド
+./build.sh
+
+# 起動
+./start.sh
+
+# 再起動（ビルド + 起動）
+./build.sh && ./start.sh
+
+# ログ確認
+docker compose logs -f squashterm
+
+# 停止
+docker compose down
+```
+
+### スクリーンショット取得
+
+- モバイル表示の実装を主としない限り、デスクトップ表示で取得
+- 両方のスクリーンショットを取得できる場合は、両方を取得してユーザーに提示
+
+## 開発時の注意点
+
+### 1. ブランチ確認
+
+作業前に必ず現在のブランチを確認してください：
+
+```bash
+git branch
+git status
+```
+
+### 2. コミット前の確認
+
+コミット前に必ず変更内容を確認：
+
+```bash
+git diff
+git diff --stat
+git show --stat HEAD
+```
+
+特にCSSやJavaScriptの変更は、コミットに含まれているか確認してください。
+
+### 3. マージ前の確認
+
+- マージ先ブランチにDockerfileが存在するか確認
+- feature/upstreamにはDockerfileを含めない
+- feature/customとmainにはDockerfileを含む
+
+### 4. localStorage使用時の注意
+
+以下の設定をlocalStorageで永続化しています：
+
+- `playerVolume`: 音量設定
+- `loopMode`: ループモード（off/playlist/track）
+- `shuffleMode`: シャッフルモード（true/false）
+- `currentTrackIndex`: 現在再生中のトラックインデックス
+- `currentTrackTime`: 現在の再生位置（秒）
+
+新しい設定を追加する場合は、同様にlocalStorageで保存・復元するようにしてください。
+
+### 5. 音量コントロールの同期
+
+音量スライダーは以下の2箇所に存在します：
+
+- プレイヤーオーバーレイ: `#player-volume-slider`, `#player-volume-toggle`
+- ミニプレイヤー: `#mini-volume-slider`, `#mini-volume-toggle`
+
+両者は`volumechange`イベントで同期されているため、どちらを変更しても連動します。
+
+### 6. シャッフル機能の実装
+
+シャッフルモードでは：
+
+- 再生終了時、ループ設定がなくても次の曲に進む
+- 1周したら自動的に再シャッフルして継続
+- Fisher-Yatesアルゴリズムでシャッフル
+
+### 7. モバイルプレイヤーの実装
+
+モバイル専用全画面プレイヤーは以下の要素で構成されています：
+
+- **ナビゲーションボタン**: `#nav-player-button` - 再生中のみ表示（`.is-hidden`で制御）
+- **モバイルプレイヤーオーバーレイ**: `#mobile-player-overlay` - `aria-hidden`属性で表示/非表示を制御
+- **タブ復帰機能**: `previousActiveTab`変数で元のタブを記憶し、プレイヤーを閉じると復帰
+- **デスクトップとの同期**: `updateMobilePlayerUI()`でデスクトップ版プレイヤーから情報を取得し同期
+
+新しいプレイヤー機能を追加する場合は、デスクトップ版、ミニプレイヤー、モバイルプレイヤーの3箇所すべてに実装してください。
+
+### 8. CSS スタイリングの原則
+
+CSS変更時は、以下の原則を守ってください：
+
+- **既存スタイルとの統一**: 他のページと見た目を揃える
+  - カード: `border-radius: 18px`, `padding: 16px`, `box-shadow: inset 0 0 0 1px`
+  - ボタン: `border-radius: 999px`, `padding: 10px 16px`, `font-weight: 600`
+  - 入力欄: `background: #1d1d1d`, `border: 1px solid #334155`, `border-radius: 10px`
+
+- **マージン・パディングの明示**: 継承に頼らず、すべて明示的に設定
+  - 良い例: `margin: 6px 0 0 0;`
+  - 悪い例: `margin-top: 6px;` （他の方向が不明確）
+
+- **フレックスボックスの活用**: 
+  - 下部配置: `margin-top: auto`
+  - 中央揃え: `align-self: center`
+
+- **スペーシングの統一**: 
+  - カード間: `gap: 16px`
+  - ラベル間: `margin: 0 0 6px 0`
+  - ターミナル上部: `padding-top: 12px`
+
+コミットメッセージは英語で、以下の形式で記述：
+
+```
+動詞 + 概要
+
+- 詳細1
+- 詳細2
+- 詳細3
+```
+
+例：
+```
+Add volume control slider to player
+
+- Add volume slider and mute toggle button to player controls
+- Add CSS styling for volume slider
+- Implement volume persistence with localStorage
+```
+
+## デプロイ
+
+変更をリモートにプッシュする際は、以下の順序で行います：
+
+```bash
+# feature/upstreamで作業後
+git checkout feature/custom
+git merge feature/upstream
+
+git checkout main
+git merge feature/upstream
+
+# プッシュ
+git push fork main
+git push fork feature/custom
+git push fork feature/upstream
+```
+
+## Pull Requestの作成
+
+上流リポジトリに機能を提供する場合は、Pull Requestを作成します。
+
+### 前提条件
+
+- **feature/upstreamブランチで開発済み**であること
+- **Docker関連のファイルを含めない**こと
+- テスト済みで動作確認が完了していること
+
+### PR作成手順
+
+#### 方法1: GitHub CLI（推奨）
+
+GitHub CLIを使うと、コマンドラインから簡単にPRを作成できます。
+
+1. **feature/upstreamブランチに切り替え**
+
+```bash
+git checkout feature/upstream
+```
+
+2. **GitHub CLIでPRを作成**
+
+```bash
+gh pr create \
+  --base main \
+  --head waya0125:feature/upstream \
+  --repo ibuto/squashterm \
+  --title "Add [機能名]" \
+  --body "$(cat << 'EOF'
+## 概要
+[機能の概要を記載]
+
+## 変更内容
+- [変更点1]
+- [変更点2]
+
+## テスト
+- [x] デスクトップブラウザで動作確認
+- [x] 既存機能に影響がないことを確認
+EOF
+)"
+```
+
+または、エディタで説明を書く場合：
+
+```bash
+gh pr create \
+  --base main \
+  --head waya0125:feature/upstream \
+  --repo ibuto/squashterm \
+  --title "Add [機能名]"
+# エディタが開くので、PR内容を記載
+```
+
+**成功すると、PRのURLが表示されます:**
+```
+https://github.com/ibuto/squashterm/pull/XX
+```
+
+#### 方法2: GitHub Web UI
+
+GitHub CLIが使えない場合は、Web UIから作成します。
+
+1. **feature/upstreamブランチをプッシュ**
+
+```bash
+git checkout feature/upstream
+git push fork feature/upstream
+```
+
+2. **GitHubでPRを作成**
+
+- GitHubの自分のフォークページ（https://github.com/waya0125/squashterm）にアクセス
+- "Pull requests" タブをクリック
+- "New pull request" をクリック
+- **base repository**: `ibuto/squashterm` (上流)
+- **base branch**: `main`
+- **head repository**: `waya0125/squashterm` (自分のフォーク)
+- **compare branch**: `feature/upstream`
+- "Create pull request" をクリック
+
+3. **PR内容を記載**
+
+タイトル例:
+```
+Add shuffle playback feature
+```
+
+説明例:
+```markdown
+## 概要
+シャッフル再生機能を追加しました。
+
+## 変更内容
+- シャッフルボタンの追加（プレイヤーとミニプレイヤー）
+- Fisher-Yatesアルゴリズムによるランダム再生
+- 1周したら自動的に再シャッフルして継続
+- シャッフルモード時、次の曲に自動進行
+
+## テスト
+- [ ] デスクトップブラウザで動作確認
+- [ ] モバイルブラウザで動作確認
+- [ ] 既存機能に影響がないことを確認
+
+## スクリーンショット
+（必要に応じて追加）
+```
+
+4. **PRを送信**
+
+"Create pull request" ボタンをクリックしてPRを送信。
+
+### 注意事項
+
+- **Docker関連ファイルは絶対に含めない**
+  - Dockerfile
+  - docker-compose.yml
+  - build.sh
+  - start.sh
+  - requirements.txtのRedis関連記述
+
+- **feature/upstreamブランチのみからPRを作成**
+  - feature/customやmainからは作成しない
+
+- **コミットメッセージは英語で**
+  - 簡潔で分かりやすく
+
+- **大きな変更は分割して複数のPRに**
+  - レビューしやすくするため
+
+### PR作成前のチェックリスト
+
+```bash
+# 1. 現在のブランチ確認
+git branch
+# -> feature/upstreamであることを確認
+
+# 2. Dockerファイルが含まれていないか確認
+git ls-files | grep -E "Dockerfile|docker-compose|build.sh|start.sh"
+# -> 何も表示されないことを確認
+
+# 3. 差分確認
+git diff origin/main..feature/upstream
+
+# 4. コミット履歴確認
+git log --oneline origin/main..feature/upstream
+
+# 5. プッシュ
+git push fork feature/upstream
+```
+
+## CHANGELOG_CUSTOM.mdの更新
+
+**重要**: 新しい機能を追加したり、大きな変更を行った際は、必ずCHANGELOG_CUSTOM.mdを更新してください。
+
+### 更新タイミング
+
+以下の場合にCHANGELOG_CUSTOM.mdを更新します：
+
+1. **新機能の追加時**
+   - feature/customで独自機能を追加した場合
+   - feature/upstreamで上流提供可能な機能を追加した場合
+
+2. **重要な修正や改善時**
+   - バグフィックス
+   - UI/UXの大幅な改善
+   - パフォーマンス改善
+
+3. **定期的な更新**
+   - 複数の小さな変更がまとまった時
+   - リリース前
+   - コミット数が大幅に増えた時
+
+### 更新内容
+
+- 追加した機能の説明
+- 関連するコミットハッシュまたはコミットメッセージ
+- **現在の先行コミット数** (`git log --oneline origin/main..feature/custom | wc -l`)
+- 最終更新日時（JST）
+
+### 更新手順
+
+```bash
+# 現在の先行コミット数を確認
+git log --oneline origin/main..feature/custom | wc -l
+
+# CHANGELOG_CUSTOM.mdを編集
+# - 新機能を追加
+# - 「現在のコミット数差分」を更新
+# - 「最終更新」日時を更新
+
+# コミット
+git add CHANGELOG_CUSTOM.md
+git commit -m "docs: Update CHANGELOG_CUSTOM.md with [機能名]"
+
+# mainにマージしてプッシュ
+git checkout main
+git merge feature/custom
+git push fork main feature/custom
+```
+
+## トラブルシューティング
+
+### コミットに変更が含まれていない
+
+```bash
+git add <file>
+git commit --amend --no-edit
+```
+
+### ブランチ切り替え時に変更が競合
+
+```bash
+git stash
+git checkout <branch>
+git stash pop
+```
+
+または未コミットの変更をコミットしてから切り替え。

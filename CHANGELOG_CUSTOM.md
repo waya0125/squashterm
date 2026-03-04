@@ -1,0 +1,305 @@
+# CHANGELOG_CUSTOM.md
+
+このファイルは、`feature/custom`ブランチと上流リポジトリ（origin/main）との主な差分を記載しています。
+
+## 概要
+
+- **総コミット数**: 110コミット先行（origin/mainから）
+- **独自機能のコミット数**: 42コミット（feature/upstreamとの差分）
+- **上流との関係**: このフォーク独自のオリジナル機能 + 上流に提供予定の機能を統合
+
+## feature/custom独自のオリジナル機能
+
+これらの機能は、このフォーク独自のもので上流には提供しません。
+
+### Docker対応
+
+- Docker Compose構成の追加
+- Dockerfileの追加
+- ビルドスクリプト（build.sh）とスタートスクリプト（start.sh）の追加
+- Redis対応（キャッシュ・セッション管理用）
+- Git情報と日時（JST）を環境変数に設定
+
+**関連コミット:**
+- Add Docker Compose setup for easy deployment
+- feat: Redis対応とcertifi追加
+- docs: Docker環境とRedis版の説明を追加
+- chore: Redisサービスをデフォルトで有効化
+- ビルドスクリプト追加: Git情報と日時（JST）を環境変数に設定
+
+### 自動ライブラリスキャン機能
+
+ライブラリに新しいファイルが追加された際、自動的にスキャンして取り込む機能。
+
+**関連コミット:**
+- 自動ライブラリスキャン機能を実装（複数回）
+
+### 設定保存機能（サーバー側）
+
+ユーザーの設定をサーバー側で永続化する機能。
+
+**関連コミット:**
+- 設定保存機能を実装（複数回）
+
+### プレイリスト分割並列ダウンロード機能
+
+大量のプレイリストを分割して並列ダウンロードする機能。並列ダウンロード時のlibrary.json競合も解決。
+
+**関連コミット:**
+- feat: プレイリスト分割並列ダウンロード機能を追加
+- feat: プレイリスト分割ダウンロード用UIを追加
+- fix: フォーム要素の幅を適切に設定
+- docs: プレイリスト分割ダウンロード機能の使い方を追加
+- 並列ダウンロード時の保存処理を修正（複数回）
+- 並列ダウンロード時のlibrary.json競合を修正（複数回）
+
+### プレイリスト自動判定機能
+
+URLからプレイリストかどうかを自動判定する機能。
+
+**関連コミット:**
+- プレイリスト自動判定機能を実装
+
+### プレイリストダウンロード修正
+
+プレイリストダウンロード機能の修正と改善。
+
+**関連コミット:**
+- fix: プレイリストダウンロードでURLを正しく抽出するように修正
+- fix: プレイリストダウンロードを非同期で実行するように修正
+- fix: --no-playlistフラグを削除してプレイリストダウンロードを有効化
+- cleanup: デバッグログを削除
+- プレイリスト一括ダウンロード機能を修正
+
+### 動的バージョン情報機能
+
+Git情報から動的にバージョン情報を生成・表示する機能。
+
+**関連コミット:**
+- 動的バージョン情報機能を実装
+- fix: バージョン情報取得のフォールバック処理を追加
+
+### モバイル専用全画面プレイヤー機能
+
+モバイル環境で快適に音楽を楽しめる全画面プレイヤーを実装。
+
+**実装内容:**
+- ナビゲーションバーにプレイヤーボタンを追加（再生中のみ表示）
+- モバイル環境で全画面プレイヤーを表示
+- デスクトップのプレイヤーと完全同期（再生位置、音量、ボタン状態）
+- ミニプレイヤーを非表示にしてナビバーボタンに統一
+- タブ復帰機能（プレイヤーを閉じると元のタブに戻る）
+- カバー画像を背景に表示
+- すべてのプレイヤー機能に対応（再生/一時停止、前後スキップ、10秒送り/戻し、シャッフル、ループ、お気に入り、音量調整、メニュー）
+
+**関連コミット:**
+- Add mobile fullscreen player with nav button
+
+### ローカルフォルダインポート機能
+
+ローカルフォルダから音楽ファイルを一括インポートする機能。
+
+**実装内容:**
+- Manageタブにローカルフォルダインポートセクションを追加
+- フォルダパスを指定して音楽ファイルを一括取り込み
+- トラックフォーマット詳細の表示（ビットレート、サンプルレート、チャンネル数など）
+- 上流リポジトリからマージされた機能
+
+**関連コミット:**
+- Add local folder import and track format details (ad582ed)
+
+### UI/UX改善（このフォーク独自）
+
+- モバイル表示のナビゲーションボタンサイズとレイアウトを修正
+- Manageタブのチェックボックスを左寄せ横並びに修正
+- Manageタブの項目間隔・見出し下の余白を調整
+- Manageタブのスタイルを全面的に再構築し、他のページと統一
+- ブラウザ互換性向上（labelをgridからflexに変更）
+- 全画面プレイヤーのコントロールボタンを左寄せに変更
+- 音量スライダーの垂直位置とレンジを調整
+- モバイルリストビューの改善（グリッドカラム最適化、長いテキストの省略、横スクロール防止）
+
+**関連コミット:**
+- モバイル表示のナビゲーションボタンサイズとレイアウトを修正（複数回）
+- Manageタブのチェックボックスを左寄せ横並びに修正
+- Manageタブの項目間隔を調整
+- Manageタブの見出し下の余白を調整
+- Manage項目間隔とnav-buttonサイズを修正
+- fix: labelをgridからflexに変更してブラウザ互換性を向上（複数回）
+- Rebuild Manage tab styling to match other pages
+- Align fullscreen player control buttons to the left
+- Fix volume slider vertical alignment with align-self
+- Improve volume slider track range
+- Fix mobile list view overflow with responsive grid columns (b4a27b5)
+
+### 上流リファクタリング対応
+
+上流のリファクタリング（PR #31など）に対応し、モジュール構造を刷新。
+
+**関連コミット:**
+- Phase 1: PR #31機能をリファクタリング済み構造で再実装
+- Phase 2: 追加機能を統合（PlaybackOptionUpdate、自動スキャン、動的バージョン）
+- Phase 2-1: 基本的な独自機能を各モジュールに統合
+- 上流のリファクタリングをマージ (origin/main)
+- 上流リファクタリングに対応：モジュール構造を刷新
+- upstream用PR: Docker関連ファイルを除外
+- 追加機能のエンドポイント実装
+- 統合: 全機能をcustomブランチにマージ
+
+### ドキュメント管理
+
+このフォーク固有のワークフローやガイドを追加。上流版と独自版を適切に切り分け。
+
+**関連コミット:**
+- docs: プロジェクト固有のワークフローガイドを追加（複数回）
+- docs: 変更の反映ルールをWORKFLOW.mdに追加
+- READMEを上流の状態に戻す（複数回、Docker関連を除外するため）
+
+## feature/upstreamから取り込んだ機能
+
+以下の機能は、上流リポジトリにも提供できる機能として`feature/upstream`で開発され、`feature/custom`にマージされたものです。
+
+### シャッフル再生機能
+
+**実装内容:**
+- シャッフルボタンの追加（プレイヤーとミニプレイヤー両方）
+- Fisher-Yatesアルゴリズムによるランダム再生順序の生成
+- 1周したら自動的に再シャッフルして継続
+- シャッフルモード時、ループ設定がなくても次の曲に自動進行
+- シャッフルボタンのアクティブ状態を再生ボタンと同じ青色で表示
+
+**関連コミット:**
+- Add shuffle playback feature
+- Refactor shuffle button: overlay text on icon like loop button
+- Simplify shuffle button: show blue color when active
+- Update shuffle button color to match play button and add mini volume toggle
+- Add mini volume controls and fix shuffle playback continuation
+
+### 音量コントロール機能
+
+**実装内容:**
+- 音量スライダーの追加（プレイヤーとミニプレイヤー両方）
+- ミュートトグルボタンの追加
+- 音量設定のlocalStorage永続化
+- プレイヤーとミニプレイヤー間の音量同期（volumechangeイベント）
+- スライダー幅を100pxに拡張（調整しやすく）
+
+**関連コミット:**
+- Add volume control slider to player
+- Fix volume listener implementation
+- Add volume slider UI and fix shuffle button styling
+- Add volume slider to mini player left of prev button
+- Add mini volume controls and fix shuffle playback continuation
+- Increase volume slider width for easier adjustment
+
+### 再生状態の永続化
+
+**実装内容:**
+- ループモード（off/playlist/track）のlocalStorage保存・復元
+- シャッフルモード（on/off）のlocalStorage保存・復元
+- 再生中のトラックインデックスと再生位置の保存
+- ページリロード時に前回の状態から自動復元
+
+**localStorageキー:**
+- `playerVolume`: 音量設定
+- `loopMode`: ループモード
+- `shuffleMode`: シャッフルモード
+- `currentTrackIndex`: 現在再生中のトラックインデックス
+- `currentTrackTime`: 現在の再生位置（秒）
+
+**関連コミット:**
+- Add playback state persistence with localStorage
+
+### その他のUI改善
+
+- ループボタンのラベル表示改善
+- アイコン追加
+- 曲削除機能
+
+### パフォーマンス最適化
+
+**画像遅延読み込み（Lazy Loading）:**
+- すべての画像に`loading="lazy"`属性を追加
+- メディア一覧、カード表示、プレイリストトラック行に適用
+- 初期読み込み時間を大幅に短縮
+
+**WebP画像フォーマット対応:**
+- 新規アップロード時に自動的にWebP形式に変換（85%品質）
+- ID3タグから抽出したカバー画像もWebP化
+- 既存784枚の画像を一括WebP変換
+- ファイルサイズを30-40%削減
+- Pillowライブラリを追加
+
+**関連コミット:**
+- Add lazy loading and WebP conversion for images
+- Add scripts for converting existing images to WebP
+- docs: Update CHANGELOG_CUSTOM.md with lazy loading and WebP conversion
+
+### タイムゾーン修正
+
+**プレイリスト同期タイムスタンプ:**
+- UTC表示をJST（日本標準時）に変更
+- `datetime.utcnow()` → `datetime.now(JST)`
+- ユーザー体験を向上
+
+**関連コミット:**
+- Fix playlist sync timestamp to use JST instead of UTC
+
+**upstream報告:**
+- GitHub Issue #36として報告済み
+
+## 変更されたファイル
+
+### 追加されたファイル
+
+```
+Dockerfile
+docker-compose.yml
+build.sh
+start.sh
+AGENTS_WAYA.md
+CHANGELOG_CUSTOM.md
+WORKFLOW.md (可能性あり)
+```
+
+### 主に変更されたファイル
+
+```
+server/static/app.js - 音量コントロール、シャッフル機能、再生状態永続化
+server/static/styles.css - 音量スライダー、シャッフルボタンのスタイリング
+server/templates/index.html - 音量コントロールUI、シャッフルボタンUI
+requirements.txt - Redis、certifi追加
+README.md - Docker環境、Redis版の説明追加
+```
+
+## マージ戦略
+
+このブランチは以下の流れで更新されます：
+
+1. `feature/upstream`で上流に提供できる機能を開発
+2. `feature/upstream`の変更を`feature/custom`にマージ
+3. `feature/custom`独自の機能を追加
+4. 両方の変更を`main`にマージ
+
+## 今後の展望
+
+### 上流に提供予定の機能
+
+- シャッフル再生機能
+- 音量コントロール機能
+- 再生状態の永続化
+
+### このフォーク独自で保持する機能
+
+- Docker対応
+- Redis対応
+- 自動ライブラリスキャン
+- 設定保存機能（サーバー側）
+- プレイリスト分割並列ダウンロード
+
+---
+
+**最終更新**: 2026-02-07 01:42 JST  
+**ベースブランチ**: origin/main  
+**現在のコミット数差分**: 81コミット先行（コミット前）  
+**独自機能のコミット数**: 43コミット（feature/upstreamとの差分、コミット前）
