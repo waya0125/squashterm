@@ -267,13 +267,16 @@ body {
 }
 
 @keyframes media-text-scroll {
-  from { transform: translateX(0); }
-  to   { transform: translateX(var(--overflow-width, 0px)); }
+  0%, 15%  { transform: translateX(0); }
+  85%, 100% { transform: translateX(var(--overflow-width, 0px)); }
 }
 
-.media-card h3.is-overflowing,
-.media-card p.is-overflowing {
-  animation: media-text-scroll 3s 1s ease-in-out infinite alternate;
+.media-card .scroll-text {
+  display: inline-block;
+}
+
+.media-card .scroll-text.is-overflowing {
+  animation: media-text-scroll 4s linear infinite alternate;
 }
 
 .media-meta {
