@@ -1947,6 +1947,30 @@ input[type="file"] {
   text-align: center;
 }
 
+.mobile-player-menu-panel {
+  position: absolute;
+  right: 16px;
+  bottom: calc(100% + 8px);
+  min-width: 180px;
+  background: rgba(15, 23, 42, 0.97);
+  border-radius: 12px;
+  padding: 8px;
+  display: grid;
+  gap: 4px;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.6);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(6px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 10;
+}
+
+.mobile-player-menu-panel.is-open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
 .mobile-player-controls {
   display: flex;
   align-items: center;

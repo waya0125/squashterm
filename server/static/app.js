@@ -2760,6 +2760,7 @@ function openMobilePlayer() {
 function closeMobilePlayer() {
   if (mobilePlayerOverlay) {
     mobilePlayerOverlay.setAttribute("aria-hidden", "true");
+    closeMobilePlayerMenu();
     
     // 以前のタブに戻す
     if (previousActiveTab) {
@@ -2963,10 +2964,73 @@ if (mobilePlayerLoop) {
   });
 }
 
+const mobilePlayerMenuPanel = document.getElementById("mobile-player-menu-panel");
+
+const openMobilePlayerMenu = () => {
+  if (!mobilePlayerMenuPanel) return;
+  mobilePlayerMenuPanel.classList.add("is-open");
+  mobilePlayerMenuPanel.setAttribute("aria-hidden", "false");
+};
+
+const closeMobilePlayerMenu = () => {
+  if (!mobilePlayerMenuPanel) return;
+  mobilePlayerMenuPanel.classList.remove("is-open");
+  mobilePlayerMenuPanel.setAttribute("aria-hidden", "true");
+};
+
+const toggleMobilePlayerMenu = () => {
+  if (!mobilePlayerMenuPanel) return;
+  if (mobilePlayerMenuPanel.classList.contains("is-open")) {
+    closeMobilePlayerMenu();
+  } else {
+    openMobilePlayerMenu();
+  }
+};
+
 if (mobilePlayerMenuToggle) {
-  mobilePlayerMenuToggle.addEventListener("click", () => {
-    if (playerMenuToggle) {
-      playerMenuToggle.click();
+  mobilePlayerMenuToggle.addEventListener("click", (e) => {
+    e.stopPropagation();
+    toggleMobilePlayerMenu();
+  });
+}
+
+if (mobilePlayerMenuPanel) {
+  // 各ボタンをデスクトップ側のボタンに委譲
+  const mobilePlayerDownload = document.getElementById("mobile-player-download");
+  const mobilePlayerAddPlaylist = document.getElementById("mobile-player-add-playlist");
+  const mobilePlayerOpenSource = document.getElementById("mobile-player-open-source");
+  const mobilePlayerEditInfo = document.getElementById("mobile-player-edit-info");
+  const mobilePlayerDeleteTrack = document.getElementById("mobile-player-delete-track");
+
+  if (mobilePlayerDownload) mobilePlayerDownload.addEventListener("click", () => {
+    closeMobilePlayerMenu();
+    document.getElementById("player-download")?.click();
+  });
+  if (mobilePlayerAddPlaylist) mobilePlayerAddPlaylist.addEventListener("click", () => {
+    closeMobilePlayerMenu();
+    document.getElementById("player-add-playlist")?.click();
+  });
+  if (mobilePlayerOpenSource) mobilePlayerOpenSource.addEventListener("click", () => {
+    closeMobilePlayerMenu();
+    document.getElementById("player-open-source")?.click();
+  });
+  if (mobilePlayerEditInfo) mobilePlayerEditInfo.addEventListener("click", () => {
+    closeMobilePlayerMenu();
+    document.getElementById("player-edit-info")?.click();
+  });
+  if (mobilePlayerDeleteTrack) mobilePlayerDeleteTrack.addEventListener("click", () => {
+    closeMobilePlayerMenu();
+    document.getElementById("player-delete-track")?.click();
+  });
+
+  // パネル外タップで閉じる
+  document.addEventListener("click", (e) => {
+    if (
+      mobilePlayerMenuPanel.classList.contains("is-open") &&
+      !mobilePlayerMenuPanel.contains(e.target) &&
+      e.target !== mobilePlayerMenuToggle
+    ) {
+      closeMobilePlayerMenu();
     }
   });
 }
