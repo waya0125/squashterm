@@ -2733,8 +2733,7 @@ const mobilePlayerSkipBack = document.getElementById("mobile-player-skip-back");
 const mobilePlayerSkipForward = document.getElementById("mobile-player-skip-forward");
 const mobilePlayerFavorite = document.getElementById("mobile-player-favorite");
 
-// 現在のタブを保存する変数
-let previousActiveTab = null;
+// 現在のタブを保存する変数（ファイル冒頭で宣言済み）
 
 // モバイルプレイヤーを開く
 function openMobilePlayer() {
