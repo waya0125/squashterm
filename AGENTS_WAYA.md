@@ -198,14 +198,23 @@ Add volume control slider to player
 変更をリモートにプッシュする際は、変更したブランチのみプッシュします：
 
 ```bash
-# 各ブランチのリモート
-# fork = waya0125/squashterm（書き込み可能）
-# origin = ibuto/squashterm（読み取り専用）
+# リモート構成
+# fork   = waya0125/squashterm (GitHub、書き込み可能)
+# origin = ibuto/squashterm   (GitHub、読み取り専用・上流)
+# gitlab = waya0125/squashterm (self-hosted GitLab、ミラー)
 
+# GitHub fork へプッシュ
 git push fork main
 git push fork docker
 # upstream は保護済みのため feature/ ブランチ経由でPR
+
+# GitLab へも同期（ミラー）
+git push gitlab main
+git push gitlab docker
 ```
+
+> GitLab は `git@gitlab-local:waya0125/squashterm.git` へ SSH 接続。  
+> 機能の一次リポジトリは GitHub (fork)。GitLab は同期ミラーとして扱う。
 
 ## Pull Requestの作成
 
