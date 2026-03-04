@@ -837,9 +837,9 @@ const renderMedia = () => {
     card.innerHTML = `
       ${selectionState.active ? `<input type="checkbox" class="media-list-checkbox" ${selectionState.selectedIds.has(track.id) ? "checked" : ""} style="margin-bottom:6px" />` : ""}
       <img src="${track.cover}" alt="${track.album}" />
-      <h3>${track.title}</h3>
-      <p>${track.artist}</p>
-      <p>${track.album}</p>
+      <h3><span class="scroll-text">${track.title}</span></h3>
+      <p><span class="scroll-text">${track.artist}</span></p>
+      <p><span class="scroll-text">${track.album}</span></p>
       <div class="media-meta">
         <span>${track.genre} ・ ${track.year}</span>
         <span>${track.duration}</span>
@@ -879,6 +879,17 @@ const renderMedia = () => {
       });
     }
     mediaGrid.appendChild(card);
+  });
+
+  // はみ出しているテキストに自動スクロールアニメーションを適用
+  requestAnimationFrame(() => {
+    mediaGrid.querySelectorAll(".media-card .scroll-text").forEach((el) => {
+      const parent = el.parentElement;
+      if (el.scrollWidth > parent.clientWidth) {
+        el.style.setProperty("--overflow-width", `-${el.scrollWidth - parent.clientWidth}px`);
+        el.classList.add("is-overflowing");
+      }
+    });
   });
 };
 

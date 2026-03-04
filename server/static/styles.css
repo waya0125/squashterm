@@ -246,12 +246,37 @@ body {
 .media-card h3 {
   margin: 0;
   font-size: 18px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.media-card h3::-webkit-scrollbar {
+  display: none;
 }
 
 .media-card p {
   margin: 0;
   color: #94a3b8;
   font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.media-card p::-webkit-scrollbar {
+  display: none;
+}
+
+@keyframes media-text-scroll {
+  0%, 15%  { transform: translateX(0); }
+  85%, 100% { transform: translateX(var(--overflow-width, 0px)); }
+}
+
+.media-card .scroll-text {
+  display: inline-block;
+}
+
+.media-card .scroll-text.is-overflowing {
+  animation: media-text-scroll 4s linear infinite alternate;
 }
 
 .media-meta {
