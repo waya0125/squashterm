@@ -51,11 +51,15 @@ git cherry-pick <commit-hash>
 
 ## ビルド
 
-`docker` ブランチ上で必ず `./build.sh` を使う。  
-直接 `docker build` を使うとバージョン情報（Git commit/branch/日時）が `unknown` になるため。
+`docker` ブランチ上で `docker compose` を使う。  
+バージョン情報（Git commit/branch/日時）は `.git` をread-onlyマウントしてコンテナ内から自動取得される。
 
 ```bash
 git checkout docker
-./build.sh
-docker-compose up -d
+
+# 通常起動（コード変更はボリュームマウントで即時反映）
+docker compose up -d
+
+# Dockerfile や docker-compose.yml を変更した場合のみビルドが必要
+docker compose build && docker compose up -d
 ```
