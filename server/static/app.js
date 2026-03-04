@@ -2,6 +2,9 @@ const tabs = document.querySelectorAll(".nav-button");
 const panels = document.querySelectorAll(".panel");
 const navPlayerButton = document.getElementById("nav-player-button");
 
+// プレイヤーオーバーレイを閉じた時に戻るタブを記録する
+let previousActiveTab = null;
+
 const mediaGrid = document.getElementById("media-grid");
 const mediaViewToggle = document.getElementById("media-view-toggle");
 const mediaSelectToggle = document.getElementById("media-select-toggle");
@@ -163,12 +166,13 @@ const supportsMediaSession = "mediaSession" in navigator;
 
 tabs.forEach((tab) => {
   tab.addEventListener("click", () => {
-    // モバイルプレイヤーが開いている場合は閉じるが、タブ復帰はしない
+    // data-tabのないボタン（プレイヤーボタン等）はタブ切り替えをスキップ
+    if (!tab.dataset.tab) return;
+    // モバイルプレイヤーが開いている場合は閉じる
     if (mobilePlayerOverlay && mobilePlayerOverlay.getAttribute("aria-hidden") === "false") {
       mobilePlayerOverlay.setAttribute("aria-hidden", "true");
       previousActiveTab = null; // タブクリックで直接遷移するので以前のタブをクリア
     }
-    
     tabs.forEach((button) => button.classList.remove("is-active"));
     panels.forEach((panel) => panel.classList.remove("is-active"));
     tab.classList.add("is-active");
@@ -543,11 +547,24 @@ const closePlayerOverlay = () => {
   }
   document.body?.classList.remove("player-overlay-open");
   closePlayerMenu();
+  // 直前のタブに戻す
+  if (previousActiveTab) {
+    activateTab(previousActiveTab);
+    previousActiveTab = null;
+  }
 };
 
 const isPlayerOverlayActive = () => playerOverlay?.classList.contains("is-active");
 
 const openPlayerOverlay = () => {
+  // 現在のアクティブタブを記録（閉じた時に戻すため）
+  previousActiveTab = null;
+  tabs.forEach((t) => {
+    if (t.classList.contains("is-active") && t.dataset.tab) {
+      previousActiveTab = t.dataset.tab;
+    }
+  });
+  if (!previousActiveTab) previousActiveTab = "media";
   if (playerOverlay) {
     playerOverlay.classList.add("is-active");
     playerOverlay.setAttribute("aria-hidden", "false");
