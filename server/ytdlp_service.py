@@ -151,9 +151,13 @@ def iter_ytdlp_events(url: str, playlist_id: str | None = None, no_playlist: boo
         yield {"type": "error", "message": "yt-dlp did not return metadata"}
         return
     tracks = store_downloaded_tracks(infos, url, playlist_id)
+    failed_count = len(infos) - len(tracks)
     yield {
         "type": "complete",
         "tracks": [asdict(track) for track in tracks],
+        "completed": len(tracks),
+        "failed": failed_count,
+        "total": len(infos),
     }
 
 
