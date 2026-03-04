@@ -16,6 +16,8 @@ upstream  ←→  fork元(ibuto/squashterm)へのPR専用ブランチ
 - fork元 (ibuto/squashterm) へのPRに使う標準機能のみ
 - **Docker固有・環境依存のコードは絶対に含めない**
 - mainやdockerからの逆流コミット禁止（不可逆コミット）
+- **GitHub上でブランチ保護設定済み（直接pushおよびforce push禁止・PR必須・削除禁止）**
+- `upstream` への変更は必ず `feature/` ブランチを作成してPR経由で行うこと
 
 ### `main`
 - `upstream` の変更と独自機能をまとめる結合点
