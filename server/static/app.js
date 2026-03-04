@@ -881,14 +881,28 @@ const renderMedia = () => {
     mediaGrid.appendChild(card);
   });
 
-  // はみ出しているテキストに自動スクロールアニメーションを適用
+  // はみ出しているテキストにシームレスマーキーを適用
+  const GAP_PX = 48; // テキスト繰り返し間の空白幅 (px)
+  const SPEED_PX_S = 60; // スクロール速度 (px/s)
   requestAnimationFrame(() => {
     mediaGrid.querySelectorAll(".media-card .scroll-text").forEach((el) => {
       const parent = el.parentElement;
-      if (el.scrollWidth > parent.clientWidth) {
-        el.style.setProperty("--overflow-width", `-${el.scrollWidth - parent.clientWidth}px`);
-        el.classList.add("is-overflowing");
-      }
+      const singleWidth = el.scrollWidth;
+      if (singleWidth <= parent.clientWidth) return;
+
+      // テキストを複製してシームレスループ構造にする
+      const originalText = el.textContent;
+      el.textContent = "";
+      el.appendChild(document.createTextNode(originalText));
+      const gap = document.createElement("span");
+      gap.style.cssText = `display:inline-block;width:${GAP_PX}px`;
+      el.appendChild(gap);
+      el.appendChild(document.createTextNode(originalText));
+
+      const totalDist = singleWidth + GAP_PX;
+      el.style.setProperty("--overflow-width", `-${totalDist}px`);
+      el.style.setProperty("--scroll-duration", `${(totalDist / SPEED_PX_S).toFixed(1)}s`);
+      el.classList.add("is-overflowing");
     });
   });
 };

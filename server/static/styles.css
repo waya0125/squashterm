@@ -266,17 +266,18 @@ body {
   display: none;
 }
 
-@keyframes media-text-scroll {
-  0%, 15%  { transform: translateX(0); }
-  85%, 100% { transform: translateX(var(--overflow-width, 0px)); }
+@keyframes marquee-scroll {
+  0%, 20%  { transform: translateX(0); }
+  100%     { transform: translateX(var(--overflow-width, 0px)); }
 }
 
 .media-card .scroll-text {
   display: inline-block;
+  white-space: nowrap;
 }
 
 .media-card .scroll-text.is-overflowing {
-  animation: media-text-scroll 4s linear infinite alternate;
+  animation: marquee-scroll var(--scroll-duration, 6s) linear infinite;
 }
 
 .media-meta {
