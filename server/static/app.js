@@ -898,6 +898,16 @@ const renderMedia = () => {
     }
     mediaGrid.appendChild(card);
   });
+
+  // はみ出しているテキストに自動スクロールアニメーションを適用
+  requestAnimationFrame(() => {
+    mediaGrid.querySelectorAll(".media-card h3, .media-card p").forEach((el) => {
+      if (el.scrollWidth > el.clientWidth) {
+        el.style.setProperty("--overflow-width", `-${el.scrollWidth - el.clientWidth}px`);
+        el.classList.add("is-overflowing");
+      }
+    });
+  });
 };
 
 const setSelectedPlaylist = (type, playlistId) => {
