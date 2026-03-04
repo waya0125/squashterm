@@ -247,8 +247,7 @@ body {
   margin: 0;
   font-size: 18px;
   white-space: nowrap;
-  overflow-x: auto;
-  scrollbar-width: none;
+  overflow: hidden;
 }
 
 .media-card h3::-webkit-scrollbar {
@@ -260,12 +259,21 @@ body {
   color: #94a3b8;
   font-size: 13px;
   white-space: nowrap;
-  overflow-x: auto;
-  scrollbar-width: none;
+  overflow: hidden;
 }
 
 .media-card p::-webkit-scrollbar {
   display: none;
+}
+
+@keyframes media-text-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(var(--overflow-width, 0px)); }
+}
+
+.media-card h3.is-overflowing,
+.media-card p.is-overflowing {
+  animation: media-text-scroll 3s 1s ease-in-out infinite alternate;
 }
 
 .media-meta {
