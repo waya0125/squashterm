@@ -267,8 +267,8 @@ body {
 }
 
 @keyframes marquee-scroll {
-  from { transform: translateX(0); }
-  to   { transform: translateX(var(--overflow-width, 0px)); }
+  0%, 20%  { transform: translateX(0); }
+  100%     { transform: translateX(var(--overflow-width, 0px)); }
 }
 
 .media-card .scroll-text {
