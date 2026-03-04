@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3-slim
 
 # ビルド時引数でGit情報を受け取る
 ARG GIT_COMMIT=unknown
