@@ -2799,28 +2799,39 @@ function updateMobilePlayerUI() {
   if (playerCover && playerCover.src) {
     mobilePlayerCover.src = playerCover.src;
   }
-  if (playerTitle && playerTitle.textContent) {
-    mobilePlayerTitle.textContent = playerTitle.textContent;
-  }
-  if (playerArtist && playerArtist.textContent) {
-    mobilePlayerArtist.textContent = playerArtist.textContent;
-  }
-  if (mobilePlayerAlbum && playerAlbum && playerAlbum.textContent) {
-    mobilePlayerAlbum.textContent = playerAlbum.textContent;
-  }
+
+  // テキストをspan.scroll-textでラップしてセット（XSS対策でtextContent使用）
+  const setScrollText = (container, text) => {
+    if (!container || !text) return;
+    container.innerHTML = "";
+    const span = document.createElement("span");
+    span.className = "scroll-text";
+    span.textContent = text;
+    container.appendChild(span);
+  };
+  setScrollText(mobilePlayerTitle, playerTitle?.textContent);
+  setScrollText(mobilePlayerArtist, playerArtist?.textContent);
+  setScrollText(mobilePlayerAlbum, playerAlbum?.textContent);
+
   if (mobilePlayerFormat && playerFormat && playerFormat.textContent) {
     mobilePlayerFormat.textContent = playerFormat.textContent;
   }
 
-  // テキストがはみ出している場合に自動スクロールアニメーションを適用
+  // はみ出しているspan.scroll-textに自動スクロールを適用
   requestAnimationFrame(() => {
     [mobilePlayerTitle, mobilePlayerArtist, mobilePlayerAlbum].forEach((el) => {
       if (!el) return;
-      el.classList.remove("is-overflowing");
-      el.style.removeProperty("--overflow-width");
-      if (el.scrollWidth > el.clientWidth) {
-        el.style.setProperty("--overflow-width", `-${el.scrollWidth - el.clientWidth}px`);
-        el.classList.add("is-overflowing");
+      const span = el.querySelector(".scroll-text");
+      if (!span) return;
+      span.classList.remove("is-overflowing");
+      span.style.removeProperty("--overflow-width");
+      // 中央揃えのままだとスクロール開始位置がズレるので左揃えに切り替え
+      if (span.scrollWidth > el.clientWidth) {
+        el.style.textAlign = "left";
+        span.style.setProperty("--overflow-width", `-${span.scrollWidth - el.clientWidth}px`);
+        span.classList.add("is-overflowing");
+      } else {
+        el.style.removeProperty("text-align");
       }
     });
   });
