@@ -70,6 +70,42 @@ def resolve_git_hash(repo_root: Path) -> str:
     return result.stdout.strip() or "unknown"
 
 
+def resolve_git_branch(repo_root: Path) -> str:
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            check=False,
+            capture_output=True,
+            text=True,
+            cwd=repo_root,
+        )
+    except FileNotFoundError:
+        return "unknown"
+    if result.returncode != 0:
+        return "unknown"
+    return result.stdout.strip() or "unknown"
+
+
+def resolve_git_commit_date(repo_root: Path) -> str:
+    try:
+        result = subprocess.run(
+            ["git", "log", "-1", "--format=%ci"],
+            check=False,
+            capture_output=True,
+            text=True,
+            cwd=repo_root,
+        )
+    except FileNotFoundError:
+        return ""
+    if result.returncode != 0 or not result.stdout.strip():
+        return ""
+    try:
+        dt = datetime.strptime(result.stdout.strip()[:19], "%Y-%m-%d %H:%M:%S")
+        return dt.strftime("%Y.%m.%d %H:%M")
+    except ValueError:
+        return result.stdout.strip()[:16]
+
+
 def resolve_build_time() -> str:
     if not VERSION_PATH.exists():
         return ""
@@ -176,13 +212,13 @@ def get_dynamic_version(repo_root: Path) -> dict:
     
     # Fallback: 上流のバージョンロジック（Python直接起動時）
     try:
-        version_data = load_version_data()
         git_hash = resolve_git_hash(repo_root)
+        git_branch = resolve_git_branch(repo_root)
         import fastapi
         return {
-            "app": f"{version_data.get('version', '0.1.0')}@{git_hash}",
+            "app": f"{git_branch}@{git_hash}",
             "api": f"FastAPI {fastapi.__version__}",
-            "build": resolve_build_time()
+            "build": resolve_git_commit_date(repo_root)
         }
     except Exception:
         # Git情報取得失敗時のフォールバック
