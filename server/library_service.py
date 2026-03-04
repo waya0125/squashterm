@@ -259,7 +259,16 @@ def store_downloaded_tracks(
         resolved_cover = resolve_thumbnail_path(info)
         if resolved_cover:
             track.cover = resolved_cover
-        file_path = MEDIA_DIR / f"{info.get('id', track.id)}.mp3"
+        track_id = info.get("id", track.id)
+        # yt-dlp のメタ情報(ext)は変換前の形式を返すため、実ファイルを確認して正確なパスを取得
+        file_path = None
+        for ext in ("m4a", "mp3", "opus", "ogg", "webm", "flac"):
+            candidate = MEDIA_DIR / f"{track_id}.{ext}"
+            if candidate.exists():
+                file_path = candidate
+                break
+        if file_path is None:
+            file_path = MEDIA_DIR / f"{track_id}.m4a"  # フォールバック: m4a（--audio-format m4a 設定）
         track.file_url = f"/media/{file_path.name}"
         if track.id not in track_map:
             track_entry = {**asdict(track), "file_path": str(file_path)}
