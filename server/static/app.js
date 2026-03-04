@@ -3,6 +3,13 @@ const panels = document.querySelectorAll(".panel");
 
 const mediaGrid = document.getElementById("media-grid");
 const mediaViewToggle = document.getElementById("media-view-toggle");
+const mediaSelectToggle = document.getElementById("media-select-toggle");
+const bulkActionBar = document.getElementById("bulk-action-bar");
+const bulkSelectedCount = document.getElementById("bulk-selected-count");
+const bulkAddFavorite = document.getElementById("bulk-add-favorite");
+const bulkAddPlaylist = document.getElementById("bulk-add-playlist");
+const bulkDeleteBtn = document.getElementById("bulk-delete");
+const bulkSelectCancel = document.getElementById("bulk-select-cancel");
 const mediaSearchInput = document.getElementById("media-search");
 const playlistList = document.getElementById("playlist-list");
 const favorites = document.getElementById("favorites");
@@ -73,6 +80,7 @@ const playerNext = document.getElementById("player-next");
 const playerSkipForward = document.getElementById("player-skip-forward");
 const playerStop = document.getElementById("player-stop");
 const playerLoop = document.getElementById("player-loop");
+const playerShuffle = document.getElementById("player-shuffle");
 const playerFavorite = document.getElementById("player-favorite");
 const playerMenuToggle = document.getElementById("player-menu-toggle");
 const playerMenuPanel = document.getElementById("player-menu-panel");
@@ -84,6 +92,8 @@ const playerDeleteTrack = document.getElementById("player-delete-track");
 const playerSeek = document.getElementById("player-seek");
 const playerCurrent = document.getElementById("player-current");
 const playerDuration = document.getElementById("player-duration");
+const playerVolumeToggle = document.getElementById("player-volume-toggle");
+const playerVolumeSlider = document.getElementById("player-volume-slider");
 
 const miniPlayer = document.getElementById("mini-player");
 const miniCover = document.getElementById("mini-cover");
@@ -96,11 +106,14 @@ const miniNext = document.getElementById("mini-next");
 const miniSkipForward = document.getElementById("mini-skip-forward");
 const miniStop = document.getElementById("mini-stop");
 const miniLoop = document.getElementById("mini-loop");
+const miniShuffle = document.getElementById("mini-shuffle");
 const miniFavorite = document.getElementById("mini-favorite");
 const miniExpand = document.getElementById("mini-expand");
 const miniSeek = document.getElementById("mini-seek");
 const miniCurrent = document.getElementById("mini-current");
 const miniDuration = document.getElementById("mini-duration");
+const miniVolumeToggle = document.getElementById("mini-volume-toggle");
+const miniVolumeSlider = document.getElementById("mini-volume-slider");
 
 const playlistModal = document.getElementById("playlist-modal");
 const playlistModalList = document.getElementById("playlist-modal-list");
@@ -121,10 +134,18 @@ const state = {
   selectedPlaylist: null,
 };
 
+const selectionState = {
+  active: false,
+  selectedIds: new Set(),
+};
+
 const playerState = {
   currentIndex: -1,
   isPlaying: false,
   loopMode: "off",
+  shuffleMode: false,
+  shuffleIndices: [],
+  shufflePosition: 0,
 };
 
 const mediaViewState = {
@@ -158,6 +179,45 @@ const formatTime = (seconds) => {
   const minutes = Math.floor(seconds / 60);
   const remainder = Math.floor(seconds % 60);
   return `${minutes}:${remainder.toString().padStart(2, "0")}`;
+};
+
+const showConfirmDialog = ({ title, message, showFileOption = false, buttons }) => {
+  return new Promise((resolve) => {
+    const dialog = document.getElementById("confirm-dialog");
+    const titleEl = document.getElementById("confirm-dialog-title");
+    const messageEl = document.getElementById("confirm-dialog-message");
+    const fileOption = document.getElementById("confirm-dialog-file-option");
+    const deleteFileCheckbox = document.getElementById("confirm-dialog-delete-file");
+    const actionsEl = document.getElementById("confirm-dialog-actions");
+    if (!dialog || !titleEl || !messageEl || !actionsEl) {
+      resolve({ action: buttons[buttons.length - 1]?.value ?? "cancel", deleteFile: true });
+      return;
+    }
+    titleEl.textContent = title;
+    messageEl.textContent = message;
+    if (fileOption) {
+      fileOption.style.display = showFileOption ? "" : "none";
+    }
+    if (showFileOption && deleteFileCheckbox) {
+      deleteFileCheckbox.checked = true;
+    }
+    actionsEl.innerHTML = "";
+    const close = (value) => {
+      dialog.classList.remove("is-open");
+      dialog.setAttribute("aria-hidden", "true");
+      resolve({ action: value, deleteFile: deleteFileCheckbox?.checked ?? true });
+    };
+    buttons.forEach(({ label, className, value }) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = className;
+      btn.textContent = label;
+      btn.addEventListener("click", () => close(value));
+      actionsEl.appendChild(btn);
+    });
+    dialog.classList.add("is-open");
+    dialog.setAttribute("aria-hidden", "false");
+  });
 };
 
 const formatFileDetails = (track) => {
@@ -206,6 +266,22 @@ const updateLoopButtons = () => {
     const labelSpan = button.querySelector(".loop-label");
     if (labelSpan) {
       labelSpan.textContent = loopLabel.short;
+    }
+  });
+};
+
+const updateShuffleButtons = () => {
+  const isOn = playerState.shuffleMode;
+  const ariaLabel = `シャッフル: ${isOn ? "オン" : "オフ"}`;
+  
+  [playerShuffle, miniShuffle].forEach((btn) => {
+    if (!btn) return;
+    btn.setAttribute("aria-label", ariaLabel);
+    btn.setAttribute("aria-pressed", isOn);
+    if (isOn) {
+      btn.classList.add("is-active");
+    } else {
+      btn.classList.remove("is-active");
     }
   });
 };
@@ -464,7 +540,7 @@ const openPlayerOverlay = () => {
   updateFavoriteButtons();
 };
 
-const setTrackByIndex = (index) => {
+const setTrackByIndex = (index, reshuffle = true) => {
   const track = state.tracks[index];
   if (!track) {
     return;
@@ -474,6 +550,25 @@ const setTrackByIndex = (index) => {
     return;
   }
   playerState.currentIndex = index;
+  
+  // 新規選択時は再シャッフル（playNext/playPrev以外から呼ばれた場合）
+  if (playerState.shuffleMode && reshuffle) {
+    playerState.shuffleIndices = generateShuffleIndices();
+    // 選択した曲を先頭に
+    const currentPos = playerState.shuffleIndices.indexOf(index);
+    if (currentPos > 0) {
+      [playerState.shuffleIndices[0], playerState.shuffleIndices[currentPos]] = 
+      [playerState.shuffleIndices[currentPos], playerState.shuffleIndices[0]];
+    }
+    playerState.shufflePosition = 0;
+  } else if (playerState.shuffleMode && playerState.shuffleIndices.length > 0) {
+    // playNext/playPrevから呼ばれた場合は位置を同期するだけ
+    const shufflePos = playerState.shuffleIndices.indexOf(index);
+    if (shufflePos >= 0) {
+      playerState.shufflePosition = shufflePos;
+    }
+  }
+  
   if (audioPlayer) {
     audioPlayer.src = track.file_url;
   }
@@ -529,8 +624,27 @@ const playNext = () => {
   if (!state.tracks.length) {
     return;
   }
-  const nextIndex = (playerState.currentIndex + 1) % state.tracks.length;
-  setTrackByIndex(nextIndex);
+  
+  let nextIndex;
+  if (playerState.shuffleMode && playerState.shuffleIndices.length > 0) {
+    // シャッフルモード
+    const nextPos = playerState.shufflePosition + 1;
+    
+    // 1周したら再シャッフル
+    if (nextPos >= playerState.shuffleIndices.length) {
+      playerState.shuffleIndices = generateShuffleIndices();
+      playerState.shufflePosition = 0;
+    } else {
+      playerState.shufflePosition = nextPos;
+    }
+    
+    nextIndex = playerState.shuffleIndices[playerState.shufflePosition];
+  } else {
+    // 通常モード
+    nextIndex = (playerState.currentIndex + 1) % state.tracks.length;
+  }
+  
+  setTrackByIndex(nextIndex, false);
   if (audioPlayer) {
     audioPlayer.play();
   }
@@ -540,9 +654,28 @@ const playPrev = () => {
   if (!state.tracks.length) {
     return;
   }
-  const prevIndex =
-    (playerState.currentIndex - 1 + state.tracks.length) % state.tracks.length;
-  setTrackByIndex(prevIndex);
+  
+  let prevIndex;
+  if (playerState.shuffleMode && playerState.shuffleIndices.length > 0) {
+    // シャッフルモード
+    const prevPos = playerState.shufflePosition - 1;
+    
+    // 先頭から戻ったら再シャッフルして最後尾へ
+    if (prevPos < 0) {
+      playerState.shuffleIndices = generateShuffleIndices();
+      playerState.shufflePosition = playerState.shuffleIndices.length - 1;
+    } else {
+      playerState.shufflePosition = prevPos;
+    }
+    
+    prevIndex = playerState.shuffleIndices[playerState.shufflePosition];
+  } else {
+    // 通常モード
+    prevIndex =
+      (playerState.currentIndex - 1 + state.tracks.length) % state.tracks.length;
+  }
+  
+  setTrackByIndex(prevIndex, false);
   if (audioPlayer) {
     audioPlayer.play();
   }
@@ -553,7 +686,45 @@ const toggleLoopMode = () => {
   const currentIndex = modes.indexOf(playerState.loopMode);
   const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % modes.length;
   playerState.loopMode = modes[nextIndex];
+  localStorage.setItem("loopMode", playerState.loopMode);
   updateLoopButtons();
+};
+
+const generateShuffleIndices = () => {
+  const indices = Array.from({ length: state.tracks.length }, (_, i) => i);
+  // Fisher-Yatesシャッフル
+  for (let i = indices.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [indices[i], indices[j]] = [indices[j], indices[i]];
+  }
+  return indices;
+};
+
+const toggleShuffleMode = () => {
+  playerState.shuffleMode = !playerState.shuffleMode;
+  localStorage.setItem("shuffleMode", playerState.shuffleMode);
+  
+  if (playerState.shuffleMode) {
+    // シャッフルON: ランダム配列生成
+    playerState.shuffleIndices = generateShuffleIndices();
+    // 現在再生中の曲を先頭に
+    if (playerState.currentIndex >= 0) {
+      const currentPos = playerState.shuffleIndices.indexOf(playerState.currentIndex);
+      if (currentPos > 0) {
+        [playerState.shuffleIndices[0], playerState.shuffleIndices[currentPos]] = 
+        [playerState.shuffleIndices[currentPos], playerState.shuffleIndices[0]];
+      }
+      playerState.shufflePosition = 0;
+    } else {
+      playerState.shufflePosition = -1;
+    }
+  } else {
+    // シャッフルOFF: 配列クリア
+    playerState.shuffleIndices = [];
+    playerState.shufflePosition = 0;
+  }
+  
+  updateShuffleButtons();
 };
 
 const renderMedia = () => {
@@ -583,34 +754,72 @@ const renderMedia = () => {
       </div>
     `;
     visibleTracks.forEach((track) => {
-      const row = document.createElement("button");
-      row.type = "button";
+      const row = document.createElement(selectionState.active ? "div" : "button");
+      row.type = selectionState.active ? undefined : "button";
       row.className = "media-list-row";
       row.dataset.trackId = track.id;
       const hasAudio = Boolean(track.file_url);
-      row.disabled = !hasAudio;
-      if (!hasAudio) {
-        row.classList.add("is-disabled");
+      if (!selectionState.active) {
+        row.disabled = !hasAudio;
+        if (!hasAudio) {
+          row.classList.add("is-disabled");
+        }
       }
-      row.innerHTML = `
-        <span class="media-list-status" aria-hidden="true">
-          <svg class="media-playing-icon" viewBox="0 0 24 24">
-            <polygon points="8,5 19,12 8,19" />
-          </svg>
-        </span>
-        <img class="media-list-cover" src="${track.cover}" alt="${track.album}" />
-        <span class="media-list-title">${track.title}</span>
-        <span class="media-list-artist">${track.artist}</span>
-        <span class="media-list-duration">${track.duration}</span>
-      `;
-      if (hasAudio) {
-        row.addEventListener("click", () => {
-          const index = state.tracks.findIndex((item) => item.id === track.id);
-          if (index >= 0) {
-            setTrackByIndex(index);
-            togglePlayback();
+      if (selectionState.active && selectionState.selectedIds.has(track.id)) {
+        row.classList.add("is-selected");
+      }
+
+      if (selectionState.active) {
+        // 選択モード: チェックボックスが status 列に入る（グリッド構造を維持）
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.className = "media-list-checkbox";
+        checkbox.checked = selectionState.selectedIds.has(track.id);
+        checkbox.addEventListener("change", () => {
+          if (checkbox.checked) {
+            selectionState.selectedIds.add(track.id);
+            row.classList.add("is-selected");
+          } else {
+            selectionState.selectedIds.delete(track.id);
+            row.classList.remove("is-selected");
           }
+          updateBulkBar();
         });
+        row.appendChild(checkbox);
+        row.insertAdjacentHTML("beforeend", `
+          <img class="media-list-cover" src="${track.cover}" alt="${track.album}" />
+          <span class="media-list-title">${track.title}</span>
+          <span class="media-list-artist">${track.artist}</span>
+          <span class="media-list-duration">${track.duration}</span>
+        `);
+        row.style.cursor = "pointer";
+        row.addEventListener("click", (e) => {
+          if (e.target.type === "checkbox") return;
+          checkbox.checked = !checkbox.checked;
+          checkbox.dispatchEvent(new Event("change"));
+        });
+      } else {
+        // 通常モード: status + cover + title + artist + duration（5カラム維持）
+        row.innerHTML = `
+          <span class="media-list-status" aria-hidden="true">
+            <svg class="media-playing-icon" viewBox="0 0 24 24">
+              <polygon points="8,5 19,12 8,19" />
+            </svg>
+          </span>
+          <img class="media-list-cover" src="${track.cover}" alt="${track.album}" />
+          <span class="media-list-title">${track.title}</span>
+          <span class="media-list-artist">${track.artist}</span>
+          <span class="media-list-duration">${track.duration}</span>
+        `;
+        if (hasAudio) {
+          row.addEventListener("click", () => {
+            const index = state.tracks.findIndex((item) => item.id === track.id);
+            if (index >= 0) {
+              setTrackByIndex(index);
+              togglePlayback();
+            }
+          });
+        }
       }
       list.appendChild(row);
     });
@@ -622,7 +831,11 @@ const renderMedia = () => {
     const card = document.createElement("div");
     card.className = "media-card";
     const hasAudio = Boolean(track.file_url);
+    if (selectionState.active && selectionState.selectedIds.has(track.id)) {
+      card.classList.add("is-selected");
+    }
     card.innerHTML = `
+      ${selectionState.active ? `<input type="checkbox" class="media-list-checkbox" ${selectionState.selectedIds.has(track.id) ? "checked" : ""} style="margin-bottom:6px" />` : ""}
       <img src="${track.cover}" alt="${track.album}" />
       <h3>${track.title}</h3>
       <p>${track.artist}</p>
@@ -631,17 +844,40 @@ const renderMedia = () => {
         <span>${track.genre} ・ ${track.year}</span>
         <span>${track.duration}</span>
       </div>
-      <button class="play-button ${hasAudio ? "" : "is-disabled"}" type="button" ${
-  hasAudio ? "" : "disabled"
-}>${hasAudio ? "再生" : "音源なし"}</button>
+      ${!selectionState.active ? `<button class="play-button ${hasAudio ? "" : "is-disabled"}" type="button" ${hasAudio ? "" : "disabled"}>${hasAudio ? "再生" : "音源なし"}</button>` : ""}
     `;
-    card.querySelector("button").addEventListener("click", () => {
-      const index = state.tracks.findIndex((item) => item.id === track.id);
-      if (index >= 0) {
-        setTrackByIndex(index);
-        togglePlayback();
+    if (selectionState.active) {
+      const cb = card.querySelector(".media-list-checkbox");
+      if (cb) {
+        cb.addEventListener("change", () => {
+          if (cb.checked) {
+            selectionState.selectedIds.add(track.id);
+            card.classList.add("is-selected");
+          } else {
+            selectionState.selectedIds.delete(track.id);
+            card.classList.remove("is-selected");
+          }
+          updateBulkBar();
+        });
       }
-    });
+      card.style.cursor = "pointer";
+      card.addEventListener("click", (e) => {
+        if (e.target.type === "checkbox") return;
+        const checkbox = card.querySelector(".media-list-checkbox");
+        if (checkbox) {
+          checkbox.checked = !checkbox.checked;
+          checkbox.dispatchEvent(new Event("change"));
+        }
+      });
+    } else {
+      card.querySelector("button")?.addEventListener("click", () => {
+        const index = state.tracks.findIndex((item) => item.id === track.id);
+        if (index >= 0) {
+          setTrackByIndex(index);
+          togglePlayback();
+        }
+      });
+    }
     mediaGrid.appendChild(card);
   });
 };
@@ -991,8 +1227,16 @@ const renderPlaylists = () => {
     `;
     deleteButton.addEventListener("click", async (event) => {
       event.stopPropagation();
-      const confirmed = window.confirm(`プレイリスト「${playlist.name}」を削除しますか？`);
-      if (!confirmed) {
+      const result = await showConfirmDialog({
+        title: "プレイリストを削除",
+        message: `プレイリスト「${playlist.name}」を削除しますか？`,
+        showFileOption: false,
+        buttons: [
+          { label: "キャンセル", className: "secondary", value: "cancel" },
+          { label: "削除する", className: "danger", value: "confirm" },
+        ],
+      });
+      if (result.action !== "confirm") {
         return;
       }
       try {
@@ -1048,21 +1292,41 @@ const renderPlaylistModalList = () => {
     playlistModalList.appendChild(empty);
     return;
   }
+  const isBulkMode = selectionState.active && selectionState.selectedIds.size > 0;
   const track = state.tracks[playerState.currentIndex];
   state.playlists.forEach((playlist) => {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "modal-item";
-    const alreadyAdded = track ? playlist.track_ids.includes(track.id) : false;
-    button.disabled = !track || alreadyAdded;
+    const alreadyAdded = !isBulkMode && track ? playlist.track_ids.includes(track.id) : false;
+    button.disabled = !isBulkMode && (!track || alreadyAdded);
     button.innerHTML = `
       <strong>${playlist.name}</strong>
       <span>収録曲数: ${playlist.track_ids.length}</span>
       ${alreadyAdded ? "<span>追加済み</span>" : ""}
     `;
-    button.addEventListener("click", () => {
-      addTrackToPlaylist(playlist.id);
-      closePlaylistModal();
+    button.addEventListener("click", async () => {
+      if (isBulkMode) {
+        const idsToAdd = [...selectionState.selectedIds].filter(
+          (id) => !playlist.track_ids.includes(id)
+        );
+        if (idsToAdd.length) {
+          const updatedTrackIds = [...playlist.track_ids, ...idsToAdd];
+          try {
+            await updatePlaylistTracks(playlist.id, updatedTrackIds);
+            playlist.track_ids = updatedTrackIds;
+            renderPlaylistDetail();
+            renderPlaylists();
+          } catch (error) {
+            console.error(error);
+          }
+        }
+        closePlaylistModal();
+        exitSelectionMode();
+      } else {
+        addTrackToPlaylist(playlist.id);
+        closePlaylistModal();
+      }
     });
     playlistModalList.appendChild(button);
   });
@@ -1180,8 +1444,8 @@ const updateTrackMetadata = async (trackId, payload) => {
   return requestJson(`/api/library/${trackId}`, payload, "PUT");
 };
 
-const deleteTrack = async (trackId) => {
-  return requestJson(`/api/library/${trackId}`, null, "DELETE");
+const deleteTrack = async (trackId, deleteFile = true) => {
+  return requestJson(`/api/library/${trackId}?delete_file=${deleteFile}`, null, "DELETE");
 };
 
 const addTrackToPlaylist = async (playlistId) => {
@@ -1336,7 +1600,22 @@ const renderSettings = (settings) => {
         const input = document.createElement("input");
         input.type = "checkbox";
         input.checked = Boolean(option.enabled);
-        input.disabled = true;
+        input.dataset.optionId = option.id;
+        input.addEventListener("change", async (e) => {
+          try {
+            await fetch("/api/settings/playback-options", {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                option_id: option.id,
+                enabled: e.target.checked,
+              }),
+            });
+          } catch (err) {
+            console.error("設定保存エラー:", err);
+            e.target.checked = !e.target.checked;
+          }
+        });
         const span = document.createElement("span");
         span.textContent = option.label || option.id || "--";
         label.appendChild(input);
@@ -1838,6 +2117,38 @@ const init = async () => {
     }
     renderSettings(settings);
     renderSystem(system);
+    
+    const savedLoopMode = localStorage.getItem("loopMode");
+    if (savedLoopMode && ["off", "playlist", "track"].includes(savedLoopMode)) {
+      playerState.loopMode = savedLoopMode;
+      updateLoopButtons();
+    }
+    
+    const savedShuffleMode = localStorage.getItem("shuffleMode");
+    if (savedShuffleMode === "true") {
+      playerState.shuffleMode = true;
+      if (state.tracks.length > 0) {
+        playerState.shuffleIndices = generateShuffleIndices();
+      }
+      updateShuffleButtons();
+    }
+    
+    const savedTrackIndex = localStorage.getItem("currentTrackIndex");
+    const savedTrackTime = localStorage.getItem("currentTrackTime");
+    if (savedTrackIndex !== null && state.tracks.length > 0) {
+      const trackIndex = parseInt(savedTrackIndex, 10);
+      if (trackIndex >= 0 && trackIndex < state.tracks.length) {
+        setTrackByIndex(trackIndex, false);
+        if (savedTrackTime !== null && audioPlayer) {
+          const seekTime = parseFloat(savedTrackTime);
+          audioPlayer.addEventListener("loadedmetadata", () => {
+            if (audioPlayer.duration >= seekTime) {
+              audioPlayer.currentTime = seekTime;
+            }
+          }, { once: true });
+        }
+      }
+    }
   } catch (error) {
     console.error(error);
   }
@@ -1972,6 +2283,103 @@ if (mediaViewToggle) {
   });
 }
 
+const updateBulkBar = () => {
+  const count = selectionState.selectedIds.size;
+  if (bulkSelectedCount) {
+    bulkSelectedCount.textContent = `${count}件選択中`;
+  }
+  if (bulkActionBar) {
+    bulkActionBar.setAttribute("aria-hidden", selectionState.active ? "false" : "true");
+  }
+};
+
+const enterSelectionMode = () => {
+  selectionState.active = true;
+  selectionState.selectedIds.clear();
+  if (mediaSelectToggle) mediaSelectToggle.classList.add("is-active");
+  updateBulkBar();
+  renderMedia();
+};
+
+const exitSelectionMode = () => {
+  selectionState.active = false;
+  selectionState.selectedIds.clear();
+  if (mediaSelectToggle) mediaSelectToggle.classList.remove("is-active");
+  if (bulkActionBar) bulkActionBar.setAttribute("aria-hidden", "true");
+  renderMedia();
+};
+
+if (mediaSelectToggle) {
+  mediaSelectToggle.addEventListener("click", () => {
+    if (selectionState.active) {
+      exitSelectionMode();
+    } else {
+      enterSelectionMode();
+    }
+  });
+}
+
+if (bulkSelectCancel) {
+  bulkSelectCancel.addEventListener("click", () => exitSelectionMode());
+}
+
+if (bulkAddFavorite) {
+  bulkAddFavorite.addEventListener("click", async () => {
+    if (!selectionState.selectedIds.size) return;
+    const newFavorites = [...state.favorites];
+    selectionState.selectedIds.forEach((id) => {
+      if (!newFavorites.includes(id)) newFavorites.push(id);
+    });
+    try {
+      await updateFavoritesTracks(newFavorites);
+      state.favorites = newFavorites;
+      renderFavorites();
+      updateFavoriteButtons();
+      exitSelectionMode();
+    } catch (error) {
+      console.error(error);
+    }
+  });
+}
+
+if (bulkAddPlaylist) {
+  bulkAddPlaylist.addEventListener("click", () => {
+    if (!selectionState.selectedIds.size) return;
+    if (playlistModal) {
+      playlistModal.classList.add("is-open");
+      playlistModal.setAttribute("aria-hidden", "false");
+      renderPlaylistModalList();
+    }
+  });
+}
+
+if (bulkDeleteBtn) {
+  bulkDeleteBtn.addEventListener("click", async () => {
+    const ids = [...selectionState.selectedIds];
+    if (!ids.length) return;
+    const result = await showConfirmDialog({
+      title: "楽曲を削除",
+      message: `選択した${ids.length}件の楽曲を削除しますか？`,
+      showFileOption: true,
+      buttons: [
+        { label: "キャンセル", className: "secondary", value: "cancel" },
+        { label: "削除する", className: "danger", value: "confirm" },
+      ],
+    });
+    if (result.action !== "confirm") return;
+    try {
+      for (const id of ids) {
+        await deleteTrack(id, result.deleteFile);
+      }
+      exitSelectionMode();
+      await refreshLibrary();
+    } catch (error) {
+      console.error(error);
+      appendImportLog("削除中にエラーが発生しました。", { append: true });
+    }
+  });
+}
+
 if (audioPlayer) {
   audioPlayer.addEventListener("play", () => {
     playerState.isPlaying = true;
@@ -2007,12 +2415,21 @@ if (audioPlayer) {
       miniDuration.textContent = formatTime(duration);
     }
     updateMediaSessionPosition();
+    
+    if (playerState.currentIndex >= 0 && currentTime > 0) {
+      localStorage.setItem("currentTrackIndex", playerState.currentIndex);
+      localStorage.setItem("currentTrackTime", currentTime);
+    }
   });
 
   audioPlayer.addEventListener("ended", () => {
     if (playerState.loopMode === "track") {
       audioPlayer.currentTime = 0;
       audioPlayer.play();
+      return;
+    }
+    if (playerState.shuffleMode) {
+      playNext();
       return;
     }
     if (playerState.loopMode === "playlist") {
@@ -2031,6 +2448,81 @@ if (playerSeek && audioPlayer) {
     const value = Number(event.target.value);
     if (Number.isFinite(value) && audioPlayer.duration) {
       audioPlayer.currentTime = (value / 100) * audioPlayer.duration;
+    }
+  });
+}
+
+if (playerVolumeSlider && audioPlayer) {
+  playerVolumeSlider.addEventListener("input", (e) => {
+    const volume = e.target.value / 100;
+    audioPlayer.volume = volume;
+    localStorage.setItem("playerVolume", volume);
+  });
+  
+  audioPlayer.addEventListener("volumechange", () => {
+    if (playerVolumeSlider) {
+      playerVolumeSlider.value = audioPlayer.volume * 100;
+    }
+  });
+  
+  const savedVolume = localStorage.getItem("playerVolume");
+  if (savedVolume !== null) {
+    const volume = parseFloat(savedVolume);
+    playerVolumeSlider.value = volume * 100;
+    audioPlayer.volume = volume;
+  }
+}
+
+if (playerVolumeToggle && audioPlayer) {
+  let previousVolume = 1;
+  
+  playerVolumeToggle.addEventListener("click", () => {
+    if (audioPlayer.volume > 0) {
+      previousVolume = audioPlayer.volume;
+      audioPlayer.volume = 0;
+      if (playerVolumeSlider) playerVolumeSlider.value = 0;
+    } else {
+      const volume = previousVolume > 0 ? previousVolume : 1;
+      audioPlayer.volume = volume;
+      if (playerVolumeSlider) playerVolumeSlider.value = volume * 100;
+      localStorage.setItem("playerVolume", volume);
+    }
+  });
+}
+
+if (miniVolumeSlider && audioPlayer) {
+  miniVolumeSlider.addEventListener("input", (e) => {
+    const volume = e.target.value / 100;
+    audioPlayer.volume = volume;
+    localStorage.setItem("playerVolume", volume);
+  });
+  
+  audioPlayer.addEventListener("volumechange", () => {
+    if (miniVolumeSlider) {
+      miniVolumeSlider.value = audioPlayer.volume * 100;
+    }
+  });
+  
+  const savedVolume = localStorage.getItem("playerVolume");
+  if (savedVolume !== null) {
+    const volume = parseFloat(savedVolume);
+    miniVolumeSlider.value = volume * 100;
+  }
+}
+
+if (miniVolumeToggle && audioPlayer) {
+  let miniPreviousVolume = 1;
+  
+  miniVolumeToggle.addEventListener("click", () => {
+    if (audioPlayer.volume > 0) {
+      miniPreviousVolume = audioPlayer.volume;
+      audioPlayer.volume = 0;
+      if (miniVolumeSlider) miniVolumeSlider.value = 0;
+    } else {
+      const volume = miniPreviousVolume > 0 ? miniPreviousVolume : 1;
+      audioPlayer.volume = volume;
+      if (miniVolumeSlider) miniVolumeSlider.value = volume * 100;
+      localStorage.setItem("playerVolume", volume);
     }
   });
 }
@@ -2092,6 +2584,12 @@ if (playerLoop) {
   });
 }
 
+if (playerShuffle) {
+  playerShuffle.addEventListener("click", () => {
+    toggleShuffleMode();
+  });
+}
+
 if (playerFavorite) {
   playerFavorite.addEventListener("click", () => {
     toggleFavorite();
@@ -2137,6 +2635,12 @@ if (miniStop) {
 if (miniLoop) {
   miniLoop.addEventListener("click", () => {
     toggleLoopMode();
+  });
+}
+
+if (miniShuffle) {
+  miniShuffle.addEventListener("click", () => {
+    toggleShuffleMode();
   });
 }
 
@@ -2204,14 +2708,22 @@ if (playerDeleteTrack) {
       return;
     }
     closePlayerMenu();
-    const confirmed = window.confirm(`「${track.title}」を削除しますか？`);
-    if (!confirmed) {
+    const result = await showConfirmDialog({
+      title: "楽曲を削除",
+      message: `「${track.title}」を削除しますか？`,
+      showFileOption: true,
+      buttons: [
+        { label: "キャンセル", className: "secondary", value: "cancel" },
+        { label: "削除する", className: "danger", value: "confirm" },
+      ],
+    });
+    if (result.action !== "confirm") {
       return;
     }
     try {
       stopPlayback();
       closePlayerOverlay();
-      await deleteTrack(track.id);
+      await deleteTrack(track.id, result.deleteFile);
       await refreshLibrary();
     } catch (error) {
       console.error(error);
