@@ -1,5 +1,5 @@
 services:
-  squashterm:
+  app:
     build:
       context: .
       dockerfile: Dockerfile
