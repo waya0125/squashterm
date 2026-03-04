@@ -2811,6 +2811,19 @@ function updateMobilePlayerUI() {
   if (mobilePlayerFormat && playerFormat && playerFormat.textContent) {
     mobilePlayerFormat.textContent = playerFormat.textContent;
   }
+
+  // テキストがはみ出している場合に自動スクロールアニメーションを適用
+  requestAnimationFrame(() => {
+    [mobilePlayerTitle, mobilePlayerArtist, mobilePlayerAlbum].forEach((el) => {
+      if (!el) return;
+      el.classList.remove("is-overflowing");
+      el.style.removeProperty("--overflow-width");
+      if (el.scrollWidth > el.clientWidth) {
+        el.style.setProperty("--overflow-width", `-${el.scrollWidth - el.clientWidth}px`);
+        el.classList.add("is-overflowing");
+      }
+    });
+  });
   
   // プログレスバーと時間を同期
   if (audioPlayer) {

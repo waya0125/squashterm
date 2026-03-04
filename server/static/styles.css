@@ -275,7 +275,9 @@ body {
   display: inline-block;
 }
 
-.media-card .scroll-text.is-overflowing {
+.media-card .scroll-text.is-overflowing,
+.mobile-player-info h2.is-overflowing,
+.mobile-player-info p.is-overflowing {
   animation: media-text-scroll 4s linear infinite alternate;
 }
 
@@ -1917,6 +1919,8 @@ input[type="file"] {
   color: #fff;
   font-weight: 600;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .mobile-player-info p {
@@ -1924,6 +1928,8 @@ input[type="file"] {
   margin: 0 0 2px 0;
   color: rgba(255, 255, 255, 0.7);
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .mobile-player-meta {
