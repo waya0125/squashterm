@@ -923,14 +923,28 @@ const renderMedia = () => {
     mediaGrid.appendChild(card);
   });
 
-  // はみ出しているテキストに自動スクロールアニメーションを適用
+  // はみ出しているテキストにシームレスマーキーを適用
+  const GAP_PX = 48; // テキスト繰り返し間の空白幅 (px)
+  const SPEED_PX_S = 60; // スクロール速度 (px/s)
   requestAnimationFrame(() => {
     mediaGrid.querySelectorAll(".media-card .scroll-text").forEach((el) => {
       const parent = el.parentElement;
-      if (el.scrollWidth > parent.clientWidth) {
-        el.style.setProperty("--overflow-width", `-${el.scrollWidth - parent.clientWidth}px`);
-        el.classList.add("is-overflowing");
-      }
+      const singleWidth = el.scrollWidth;
+      if (singleWidth <= parent.clientWidth) return;
+
+      // テキストを複製してシームレスループ構造にする
+      const originalText = el.textContent;
+      el.textContent = "";
+      el.appendChild(document.createTextNode(originalText));
+      const gap = document.createElement("span");
+      gap.style.cssText = `display:inline-block;width:${GAP_PX}px`;
+      el.appendChild(gap);
+      el.appendChild(document.createTextNode(originalText));
+
+      const totalDist = singleWidth + GAP_PX;
+      el.style.setProperty("--overflow-width", `-${totalDist}px`);
+      el.style.setProperty("--scroll-duration", `${(totalDist / SPEED_PX_S).toFixed(1)}s`);
+      el.classList.add("is-overflowing");
     });
   });
 };
@@ -2817,7 +2831,9 @@ function updateMobilePlayerUI() {
     mobilePlayerFormat.textContent = playerFormat.textContent;
   }
 
-  // はみ出しているspan.scroll-textに自動スクロールを適用
+  // はみ出しているspan.scroll-textにシームレスマーキーを適用
+  const MOBILE_GAP_PX = 64;
+  const MOBILE_SPEED_PX_S = 50; // media-cardより少し遅め
   requestAnimationFrame(() => {
     [mobilePlayerTitle, mobilePlayerArtist, mobilePlayerAlbum].forEach((el) => {
       if (!el) return;
@@ -2825,14 +2841,26 @@ function updateMobilePlayerUI() {
       if (!span) return;
       span.classList.remove("is-overflowing");
       span.style.removeProperty("--overflow-width");
-      // 中央揃えのままだとスクロール開始位置がズレるので左揃えに切り替え
-      if (span.scrollWidth > el.clientWidth) {
-        el.style.textAlign = "left";
-        span.style.setProperty("--overflow-width", `-${span.scrollWidth - el.clientWidth}px`);
-        span.classList.add("is-overflowing");
-      } else {
-        el.style.removeProperty("text-align");
-      }
+      span.style.removeProperty("--scroll-duration");
+      el.style.removeProperty("text-align");
+
+      const singleWidth = span.scrollWidth;
+      if (singleWidth <= el.clientWidth) return;
+
+      // シームレスループ構造: テキスト [空白] テキスト
+      const originalText = span.textContent;
+      span.textContent = "";
+      span.appendChild(document.createTextNode(originalText));
+      const gap = document.createElement("span");
+      gap.style.cssText = `display:inline-block;width:${MOBILE_GAP_PX}px`;
+      span.appendChild(gap);
+      span.appendChild(document.createTextNode(originalText));
+
+      const totalDist = singleWidth + MOBILE_GAP_PX;
+      el.style.textAlign = "left";
+      span.style.setProperty("--overflow-width", `-${totalDist}px`);
+      span.style.setProperty("--scroll-duration", `${(totalDist / MOBILE_SPEED_PX_S).toFixed(1)}s`);
+      span.classList.add("is-overflowing");
     });
   });
   

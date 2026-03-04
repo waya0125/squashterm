@@ -266,18 +266,18 @@ body {
   display: none;
 }
 
-@keyframes media-text-scroll {
-  0%, 15%   { transform: translateX(0); }
-  85%, 100% { transform: translateX(var(--overflow-width, 0px)); }
+@keyframes marquee-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(var(--overflow-width, 0px)); }
 }
 
 .media-card .scroll-text {
   display: inline-block;
+  white-space: nowrap;
 }
 
-/* media-card: span内テキストをスクロール */
 .media-card .scroll-text.is-overflowing {
-  animation: media-text-scroll 6s linear infinite normal;
+  animation: marquee-scroll var(--scroll-duration, 6s) linear infinite;
 }
 
 /* モバイルプレイヤー: span内テキストをスクロール */
@@ -286,7 +286,7 @@ body {
 }
 
 .mobile-player-info .scroll-text.is-overflowing {
-  animation: media-text-scroll 8s linear infinite normal;
+  animation: marquee-scroll var(--scroll-duration, 8s) linear infinite;
 }
 
 .media-meta {
