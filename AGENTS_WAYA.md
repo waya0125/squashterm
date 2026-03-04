@@ -1,58 +1,39 @@
 # AGENTS_WAYA.md
 
-**注意**: AGENTS.mdは上流(upstream)のもののため、ポート番号などは参考にしないでください。このファイルはwaya0125のフォーク固有の情報を記載しています。
+**注意**: AGENTS.mdは上流(ibuto/squashterm)のもののため、ポート番号などは参考にしないでください。このファイルはwaya0125のフォーク固有の情報を記載しています。
 
-## 既知の問題
+## ブランチ構成
 
-### モバイルプレイヤーのメニューボタンが機能しない
+詳細は `BRANCHES.md` を参照。概要は以下の通り：
 
-**症状:**
-- モバイルプレイヤーの3点リーダー（メニュー）ボタンがクリックできない
-- 他のボタン（再生、前後スキップ、シャッフル等）は正常に動作
-- デスクトップ版では同じボタンが正常に動作
+```
+upstream  ←→  fork元(ibuto/squashterm)へのPR専用
+    ↓ merge
+  main    ←  upstream + 独自機能の結合点（Docker・環境依存は含めない）
+    ↓ merge
+  docker  ←  Docker/デプロイ環境依存の変更専用
+```
 
-**原因調査結果:**
-- 要素の取得は成功（`mobilePlayerMenuToggle: true`, `playerMenuToggle: true`）
-- イベントリスナーの登録も成功（"Mobile menu toggle listener set up successfully"が出力される）
-- クリックイベント自体が発火しない（ログ出力なし）
-- 何らかのレイヤーがボタンを覆っている可能性が高い
+### 各ブランチの役割
 
-**試行した対策（未解決）:**
-1. z-indexの調整（102, 103まで試行）
-2. pointer-events: auto/noneの設定
-3. flex-shrink: 0による要素の固定
-4. 明示的なボタンサイズ指定（44px）
-
-**次のステップ:**
-- ブラウザの開発者ツールで実際のDOM階層とz-indexを確認
-- `mobile-player-bottom`のグラデーション背景が干渉していないか確認
-- タッチイベント（`touchstart`, `touchend`）での動作確認
-- ボタンの実際の描画位置とクリック可能領域の検証
-
-## プロジェクト構造
-
-このプロジェクトは以下のブランチ構成で管理されています：
-
-### ブランチ戦略
-
-- **main**: 安定版ブランチ。feature/customとfeature/upstreamの変更を統合
-- **feature/upstream**: 上流リポジトリにも提供できる機能を開発するブランチ（Dockerファイルを含まない）
-- **feature/custom**: **このフォーク独自のオリジナル機能**を含むブランチ（Docker対応、自動スキャン、設定保存など、上流には提供しない機能）
+| ブランチ | 役割 | Docker含む |
+|----------|------|-----------|
+| `upstream` | ibuto へのPR用。標準機能のみ | ❌ |
+| `main` | upstream + 独自機能の統合 | ❌ |
+| `docker` | Dockerfile・docker-compose等の環境依存 | ✅ |
 
 ### 作業フロー
 
-#### 上流にも提供できる機能の場合
+#### 上流(ibuto)にも提供する機能
 
-1. `feature/upstream`で開発
-2. Docker関連の変更は含めない（upstreamはDockerfileなし）
-3. コミット後、`feature/custom`と`main`にマージ
-4. マージは`git merge`で行う（cherry-pickは特定の場合のみ）
+1. `feature/` ブランチを作成して実装（`upstream` ブランチは保護済みのため直接push・force push禁止）
+2. Docker関連ファイルを含めない
+3. `feature/` → `upstream` へPR → マージ後 `main` → `docker` へ伝播
 
-#### このフォーク独自の機能の場合
+#### このフォーク独自の機能（Docker専用等）
 
-1. `feature/custom`で開発
-2. Docker対応や独自設定など、上流に含めない機能を実装
-3. コミット後、`main`にマージ
+1. `main` で実装（Dockerファイルは含めない）
+2. `main` → `docker` へマージ
 
 ## コードスタイル
 
@@ -78,21 +59,24 @@ http://127.0.0.1:8081/
 ### Docker操作
 
 ```bash
-# ビルド
-./build.sh
+# ビルド（バージョン情報はgitマウントから自動取得されるためbuild.sh不要）
+docker compose build
 
 # 起動
-./start.sh
+docker compose up -d
 
-# 再起動（ビルド + 起動）
-./build.sh && ./start.sh
+# ビルド + 起動
+docker compose build && docker compose up -d
 
 # ログ確認
-docker compose logs -f squashterm
+docker compose logs -f
 
 # 停止
 docker compose down
 ```
+
+> `./server:/app/server` がボリュームマウントされているため、Pythonファイル・JS・CSSの変更は再ビルド不要（再起動のみ）。  
+> Dockerfile や docker-compose.yml を変更した場合は `docker compose build` が必要。
 
 ### スクリーンショット取得
 
@@ -124,9 +108,9 @@ git show --stat HEAD
 
 ### 3. マージ前の確認
 
-- マージ先ブランチにDockerfileが存在するか確認
-- feature/upstreamにはDockerfileを含めない
-- feature/customとmainにはDockerfileを含む
+- `upstream` / `main` には Dockerfile・docker-compose.yml を含めない
+- `docker` ブランチにのみ Docker 関連ファイルを含める
+- 他ブランチのファイル確認は `git show branch:file` で行う（`git checkout` するとボリュームマウント経由でコンテナが即時切り替わるため注意）
 
 ### 4. localStorage使用時の注意
 
@@ -211,223 +195,58 @@ Add volume control slider to player
 
 ## デプロイ
 
-変更をリモートにプッシュする際は、以下の順序で行います：
+変更をリモートにプッシュする際は、変更したブランチのみプッシュします：
 
 ```bash
-# feature/upstreamで作業後
-git checkout feature/custom
-git merge feature/upstream
+# 各ブランチのリモート
+# fork = waya0125/squashterm（書き込み可能）
+# origin = ibuto/squashterm（読み取り専用）
 
-git checkout main
-git merge feature/upstream
-
-# プッシュ
 git push fork main
-git push fork feature/custom
-git push fork feature/upstream
+git push fork docker
+# upstream は保護済みのため feature/ ブランチ経由でPR
 ```
 
 ## Pull Requestの作成
 
-上流リポジトリに機能を提供する場合は、Pull Requestを作成します。
+上流リポジトリ (ibuto/squashterm) に機能を提供する場合は Pull Request を作成します。
 
 ### 前提条件
 
-- **feature/upstreamブランチで開発済み**であること
-- **Docker関連のファイルを含めない**こと
-- テスト済みで動作確認が完了していること
+- `upstream` ブランチは保護済みのため、必ず `feature/` ブランチを作成して実装
+- Docker関連ファイルを含めないこと
+- 動作確認済みであること
 
 ### PR作成手順
 
-#### 方法1: GitHub CLI（推奨）
-
-GitHub CLIを使うと、コマンドラインから簡単にPRを作成できます。
-
-1. **feature/upstreamブランチに切り替え**
-
 ```bash
-git checkout feature/upstream
-```
+# 1. feature ブランチを upstream ベースで作成
+git checkout upstream
+git checkout -b feature/your-feature-name
 
-2. **GitHub CLIでPRを作成**
+# 2. 実装・コミット
 
-```bash
+# 3. fork へプッシュ
+git push fork feature/your-feature-name
+
+# 4. GitHub CLI で PR 作成
 gh pr create \
-  --base main \
-  --head waya0125:feature/upstream \
   --repo ibuto/squashterm \
-  --title "Add [機能名]" \
-  --body "$(cat << 'EOF'
-## 概要
-[機能の概要を記載]
-
-## 変更内容
-- [変更点1]
-- [変更点2]
-
-## テスト
-- [x] デスクトップブラウザで動作確認
-- [x] 既存機能に影響がないことを確認
-EOF
-)"
-```
-
-または、エディタで説明を書く場合：
-
-```bash
-gh pr create \
   --base main \
-  --head waya0125:feature/upstream \
-  --repo ibuto/squashterm \
-  --title "Add [機能名]"
-# エディタが開くので、PR内容を記載
+  --head waya0125:feature/your-feature-name \
+  --title "feat: 機能名" \
+  --body "変更内容の説明"
 ```
-
-**成功すると、PRのURLが表示されます:**
-```
-https://github.com/ibuto/squashterm/pull/XX
-```
-
-#### 方法2: GitHub Web UI
-
-GitHub CLIが使えない場合は、Web UIから作成します。
-
-1. **feature/upstreamブランチをプッシュ**
-
-```bash
-git checkout feature/upstream
-git push fork feature/upstream
-```
-
-2. **GitHubでPRを作成**
-
-- GitHubの自分のフォークページ（https://github.com/waya0125/squashterm）にアクセス
-- "Pull requests" タブをクリック
-- "New pull request" をクリック
-- **base repository**: `ibuto/squashterm` (上流)
-- **base branch**: `main`
-- **head repository**: `waya0125/squashterm` (自分のフォーク)
-- **compare branch**: `feature/upstream`
-- "Create pull request" をクリック
-
-3. **PR内容を記載**
-
-タイトル例:
-```
-Add shuffle playback feature
-```
-
-説明例:
-```markdown
-## 概要
-シャッフル再生機能を追加しました。
-
-## 変更内容
-- シャッフルボタンの追加（プレイヤーとミニプレイヤー）
-- Fisher-Yatesアルゴリズムによるランダム再生
-- 1周したら自動的に再シャッフルして継続
-- シャッフルモード時、次の曲に自動進行
-
-## テスト
-- [ ] デスクトップブラウザで動作確認
-- [ ] モバイルブラウザで動作確認
-- [ ] 既存機能に影響がないことを確認
-
-## スクリーンショット
-（必要に応じて追加）
-```
-
-4. **PRを送信**
-
-"Create pull request" ボタンをクリックしてPRを送信。
-
-### 注意事項
-
-- **Docker関連ファイルは絶対に含めない**
-  - Dockerfile
-  - docker-compose.yml
-  - build.sh
-  - start.sh
-  - requirements.txtのRedis関連記述
-
-- **feature/upstreamブランチのみからPRを作成**
-  - feature/customやmainからは作成しない
-
-- **コミットメッセージは英語で**
-  - 簡潔で分かりやすく
-
-- **大きな変更は分割して複数のPRに**
-  - レビューしやすくするため
 
 ### PR作成前のチェックリスト
 
 ```bash
-# 1. 現在のブランチ確認
-git branch
-# -> feature/upstreamであることを確認
-
-# 2. Dockerファイルが含まれていないか確認
-git ls-files | grep -E "Dockerfile|docker-compose|build.sh|start.sh"
+# Docker関連ファイルが含まれていないか確認
+git diff upstream...feature/your-feature-name --name-only | grep -E "Dockerfile|docker-compose|build\.sh|start\.sh"
 # -> 何も表示されないことを確認
 
-# 3. 差分確認
-git diff origin/main..feature/upstream
-
-# 4. コミット履歴確認
-git log --oneline origin/main..feature/upstream
-
-# 5. プッシュ
-git push fork feature/upstream
-```
-
-## CHANGELOG_CUSTOM.mdの更新
-
-**重要**: 新しい機能を追加したり、大きな変更を行った際は、必ずCHANGELOG_CUSTOM.mdを更新してください。
-
-### 更新タイミング
-
-以下の場合にCHANGELOG_CUSTOM.mdを更新します：
-
-1. **新機能の追加時**
-   - feature/customで独自機能を追加した場合
-   - feature/upstreamで上流提供可能な機能を追加した場合
-
-2. **重要な修正や改善時**
-   - バグフィックス
-   - UI/UXの大幅な改善
-   - パフォーマンス改善
-
-3. **定期的な更新**
-   - 複数の小さな変更がまとまった時
-   - リリース前
-   - コミット数が大幅に増えた時
-
-### 更新内容
-
-- 追加した機能の説明
-- 関連するコミットハッシュまたはコミットメッセージ
-- **現在の先行コミット数** (`git log --oneline origin/main..feature/custom | wc -l`)
-- 最終更新日時（JST）
-
-### 更新手順
-
-```bash
-# 現在の先行コミット数を確認
-git log --oneline origin/main..feature/custom | wc -l
-
-# CHANGELOG_CUSTOM.mdを編集
-# - 新機能を追加
-# - 「現在のコミット数差分」を更新
-# - 「最終更新」日時を更新
-
-# コミット
-git add CHANGELOG_CUSTOM.md
-git commit -m "docs: Update CHANGELOG_CUSTOM.md with [機能名]"
-
-# mainにマージしてプッシュ
-git checkout main
-git merge feature/custom
-git push fork main feature/custom
+# 差分確認
+git diff upstream...feature/your-feature-name
 ```
 
 ## トラブルシューティング
