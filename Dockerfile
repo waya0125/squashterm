@@ -15,7 +15,9 @@ RUN apt-get update && apt-get install -y \
     ffmpeg \
     curl \
     nodejs \
-    && rm -rf /var/lib/apt/lists/*
+    git \
+    && rm -rf /var/lib/apt/lists/* \
+    && git config --global --add safe.directory /app
 
 # yt-dlpをインストール
 RUN pip install --upgrade pip
