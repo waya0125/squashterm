@@ -1947,9 +1947,13 @@ input[type="file"] {
   text-align: center;
 }
 
+.mobile-player-menu-wrapper {
+  position: relative;
+}
+
 .mobile-player-menu-panel {
   position: absolute;
-  right: 16px;
+  right: 0;
   bottom: calc(100% + 8px);
   min-width: 180px;
   background: rgba(15, 23, 42, 0.97);

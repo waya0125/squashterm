@@ -732,15 +732,15 @@
             id="mobile-player-volume-slider"
             aria-label="音量調整"
           />
-          <button class="icon-button mobile-player-menu-toggle" type="button" id="mobile-player-menu-toggle" aria-label="メニュー">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <circle cx="5" cy="12" r="2" />
-              <circle cx="12" cy="12" r="2" />
-              <circle cx="19" cy="12" r="2" />
-            </svg>
-          </button>
-        </div>
-        <div class="mobile-player-menu-panel" id="mobile-player-menu-panel" role="menu" aria-hidden="true">
+          <div class="mobile-player-menu-wrapper">
+            <button class="icon-button mobile-player-menu-toggle" type="button" id="mobile-player-menu-toggle" aria-label="メニュー">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="5" cy="12" r="2" />
+                <circle cx="12" cy="12" r="2" />
+                <circle cx="19" cy="12" r="2" />
+              </svg>
+            </button>
+            <div class="mobile-player-menu-panel" id="mobile-player-menu-panel" role="menu" aria-hidden="true">
           <button type="button" role="menuitem" id="mobile-player-download" class="player-menu-action">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M12 4v10" stroke="currentColor" stroke-width="2" />
@@ -782,6 +782,8 @@
             </svg>
             <span>曲を削除する</span>
           </button>
+        </div>
+          </div>
         </div>
         <div class="mobile-player-controls">
           <button class="icon-button" type="button" id="mobile-player-skip-back" aria-label="10秒戻し">
