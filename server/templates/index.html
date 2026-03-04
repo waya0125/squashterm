@@ -86,6 +86,13 @@
                   placeholder="曲を検索"
                 />
                 <button
+                  class="secondary"
+                  id="media-select-toggle"
+                  type="button"
+                >
+                  選択
+                </button>
+                <button
                   class="secondary view-toggle"
                   id="media-view-toggle"
                   type="button"
@@ -96,6 +103,15 @@
               </div>
             </div>
             <div class="media-grid" id="media-grid"></div>
+            <div class="bulk-action-bar" id="bulk-action-bar" aria-hidden="true">
+              <span id="bulk-selected-count">0件選択中</span>
+              <div class="bulk-actions">
+                <button type="button" class="secondary" id="bulk-add-favorite">お気に入りに追加</button>
+                <button type="button" class="secondary" id="bulk-add-playlist">プレイリストに追加</button>
+                <button type="button" class="danger" id="bulk-delete">削除する</button>
+                <button type="button" class="secondary" id="bulk-select-cancel">キャンセル</button>
+              </div>
+            </div>
           </section>
 
           <section class="panel" id="panel-playlist" role="tabpanel">
@@ -498,6 +514,25 @@
                 <span class="sr-only">ループ</span>
               </button>
               <button
+                class="icon-button"
+                type="button"
+                id="player-shuffle"
+                aria-label="シャッフル: オフ"
+                aria-pressed="false"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+                <span class="sr-only">シャッフル</span>
+              </button>
+              <button
                 class="icon-button is-favorite"
                 type="button"
                 id="player-favorite"
@@ -511,6 +546,34 @@
                 </svg>
                 <span class="sr-only">お気に入りに追加</span>
               </button>
+            </div>
+            <div class="player-volume-control">
+              <button
+                class="icon-button"
+                type="button"
+                id="player-volume-toggle"
+                aria-label="ミュート切り替え"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M11 5L6 9H2v6h4l5 4V5zM15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+                <span class="sr-only">音量</span>
+              </button>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value="100"
+                id="player-volume-slider"
+                aria-label="音量調整"
+              />
             </div>
             <div class="player-menu">
               <button
@@ -673,6 +736,28 @@
       </div>
     </div>
 
+    <div
+      class="modal-overlay"
+      id="confirm-dialog"
+      aria-hidden="true"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 id="confirm-dialog-title">確認</h3>
+        </div>
+        <div class="modal-body">
+          <p id="confirm-dialog-message"></p>
+          <label class="checkbox" id="confirm-dialog-file-option">
+            <input type="checkbox" id="confirm-dialog-delete-file" checked />
+            <span>ファイルも削除する</span>
+          </label>
+        </div>
+        <div class="modal-actions" id="confirm-dialog-actions"></div>
+      </div>
+    </div>
+
     <div class="mini-player" id="mini-player" aria-hidden="true">
       <div class="mini-info">
         <img class="mini-cover" id="mini-cover" src="" alt="" />
@@ -682,6 +767,33 @@
         </div>
       </div>
       <div class="mini-controls">
+        <button
+          class="icon-button"
+          type="button"
+          id="mini-volume-toggle"
+          aria-label="ミュート切り替え"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M11 5L6 9H2v6h4l5 4V5zM15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          <span class="sr-only">音量</span>
+        </button>
+        <input
+          type="range"
+          min="0"
+          max="100"
+          value="100"
+          id="mini-volume-slider"
+          class="mini-volume-slider"
+          aria-label="音量調整"
+        />
         <button class="icon-button" type="button" id="mini-prev" aria-label="前へ">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <rect x="4" y="5" width="3" height="14" rx="1.5" />
@@ -810,6 +922,25 @@
           </svg>
           <span class="loop-label" aria-hidden="true">OFF</span>
           <span class="sr-only">ループ</span>
+        </button>
+        <button
+          class="icon-button"
+          type="button"
+          id="mini-shuffle"
+          aria-label="シャッフル: オフ"
+          aria-pressed="false"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          <span class="sr-only">シャッフル</span>
         </button>
         <button
           class="icon-button is-favorite"
