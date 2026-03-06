@@ -402,6 +402,26 @@ def apply_album_from_playlists(payload: list[dict]):
     return apply_album_from_source_playlists(payload)
 
 
+@app.post("/api/maintenance/sync-local-to-otomad")
+def sync_local_to_otomad():
+    """ライブラリの全トラックを otomad-core-api に一括登録する (one-shot)。"""
+    try:
+        from otomad_service import sync_local_tracks_to_otomad
+        count = sync_local_tracks_to_otomad()
+        return {"synced": count}
+    except ImportError:
+        raise HTTPException(status_code=501, detail="otomad_service not available")
+
+
+@app.on_event("startup")
+def start_otomad_worker() -> None:
+    try:
+        from otomad_service import start_otomad_sync_worker
+        start_otomad_sync_worker()
+    except Exception:
+        pass
+
+
 def run(host: str = "0.0.0.0", port: int = 8000) -> None:
     print(f"SquashTerm server running on http://{host}:{port}")
     uvicorn.run(app, host=host, port=port)

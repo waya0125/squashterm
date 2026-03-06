@@ -161,6 +161,10 @@ def ingest_from_url_via_api(
 
     info = _build_info_dict(status, extractor_id, url)
     tracks = store_downloaded_tracks([info], url, playlist_id, playlist_name)
+    try:
+        from otomad_service import ingest_to_otomad
+        for t in tracks: ingest_to_otomad(asdict(t))
+    except Exception: pass
     log = f"[ytdlp-core-api] {url} → {extractor_id}.m4a"
     return tracks, log
 
@@ -243,6 +247,10 @@ def iter_events_via_api(
 
         info = _build_info_dict(status, extractor_id, url)
         tracks = store_downloaded_tracks([info], url, playlist_id, playlist_name)
+        try:
+            from otomad_service import ingest_to_otomad
+            for t in tracks: ingest_to_otomad(asdict(t))
+        except Exception: pass
         failed = 0
         yield {
             "type":      "complete",
@@ -325,6 +333,10 @@ def batch_download_playlist_via_api(
                     entry_url = task_map[task_id].get("url") or task_map[task_id].get("webpage_url") or ""
                     info = _build_info_dict(st, extractor_id, entry_url)
                     tracks = store_downloaded_tracks([info], entry_url, playlist_id, playlist_title)
+                    try:
+                        from otomad_service import ingest_to_otomad
+                        for t in tracks: ingest_to_otomad(asdict(t))
+                    except Exception: pass
                     all_tracks.extend(tracks)
                     completed_count += 1
                 except Exception as e:
