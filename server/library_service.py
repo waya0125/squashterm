@@ -43,7 +43,7 @@ def parse_year(info: dict) -> int:
     return 0
 
 
-def parse_track_from_info(info: dict, source_url: str | None = None) -> Track:
+def parse_track_from_info(info: dict, source_url: str | None = None, playlist_name: str | None = None) -> Track:
     resolved_source_url = source_url
     if not resolved_source_url:
         resolved_source_url = info.get("webpage_url") or info.get("original_url")
@@ -55,7 +55,7 @@ def parse_track_from_info(info: dict, source_url: str | None = None) -> Track:
         id=f"yt_{info.get('id', uuid.uuid4().hex)}",
         title=info.get("track") or info.get("title") or "Unknown Title",
         artist=info.get("artist") or info.get("uploader") or "Unknown Artist",
-        album=info.get("album") or "Unknown Album",
+        album=info.get("album") or playlist_name or info.get("playlist_title") or info.get("playlist") or "Unknown Album",
         cover=DEFAULT_COVER,
         duration=format_duration(info.get("duration")),
         bpm=int(info.get("bpm") or 0),
@@ -248,14 +248,14 @@ def append_tracks_to_playlist(playlist_id: str | None, track_ids: list[str]) -> 
 
 
 def store_downloaded_tracks(
-    infos: list[dict], source_url: str | None = None, playlist_id: str | None = None
+    infos: list[dict], source_url: str | None = None, playlist_id: str | None = None, playlist_name: str | None = None
 ) -> list[Track]:
     stored_tracks: list[Track] = []
     data = load_library()
     tracks = data.setdefault("tracks", [])
     track_map = {track["id"]: track for track in tracks}
     for info in infos:
-        track = parse_track_from_info(info, source_url)
+        track = parse_track_from_info(info, source_url, playlist_name)
         resolved_cover = resolve_thumbnail_path(info)
         if resolved_cover:
             track.cover = resolved_cover
@@ -444,6 +444,8 @@ def batch_download_playlist(url: str, playlist_id: str | None, concurrency: int)
     if not entries:
         raise RuntimeError("Playlist is empty or could not be fetched")
     
+    playlist_title = entries[0].get("playlist_title") or entries[0].get("playlist")
+    
     # 並列ダウンロードキューを作成
     queue = ThreadPoolDownloadQueue(max_workers=concurrency)
     
@@ -456,7 +458,7 @@ def batch_download_playlist(url: str, playlist_id: str | None, concurrency: int)
         from ytdlp_service import download_with_ytdlp
         try:
             infos, _ = download_with_ytdlp(entry_url, no_playlist=True)
-            tracks = store_downloaded_tracks(infos, entry_url, playlist_id)
+            tracks = store_downloaded_tracks(infos, entry_url, playlist_id, playlist_title)
             return {"success": True, "tracks": tracks}
         except Exception as e:
             return {"success": False, "error": str(e)}
