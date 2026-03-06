@@ -22,7 +22,7 @@ services:
       # docker ブランチ限定: ytdlp-core-api 経由で IP 制限をバイパス
       - YTDLP_API_URL=http://ytdlp-core-api:8000
       # docker ブランチ限定: otomad-core-api への登録同期
-      - OTOMAD_API_URL=http://otomad-core-api:25010
+      - OTOMAD_API_URL=http://otomad-core-api:8000
       - OTOMAD_SERVICE_KEY=wayamoti2015
       - OTOMAD_SERVICE_UUID=826ef615-3184-4e1f-b0b5-53e2bcbe7592
     restart: unless-stopped
