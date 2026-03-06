@@ -17,6 +17,7 @@ import uvicorn
 from library_service import (
     append_track_record,
     append_tracks_to_playlist,
+    apply_playlist_album_names,
     batch_download_playlist,
     build_upload_track,
     ensure_data_dirs,
@@ -301,6 +302,16 @@ def get_status():
 @app.get("/api/settings")
 def get_settings():
     return build_settings_payload(REPO_ROOT)
+
+
+@app.post("/api/library/apply-playlist-album-names")
+def api_apply_playlist_album_names():
+    """既存楽曲のうち album 未設定のものに所属プレイリスト名を遡及適用する。"""
+    try:
+        result = apply_playlist_album_names()
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.put("/api/settings/playback-options")
