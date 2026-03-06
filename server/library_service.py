@@ -560,7 +560,7 @@ def apply_album_from_source_playlists(
     Returns:
         {"updated": N, "skipped": M, "details": [...]}
     """
-    from sync_service import fetch_flat_playlist_entries  # 循環import回避
+    import subprocess
 
     data = load_library()
     tracks = data.get("tracks", [])
@@ -576,21 +576,27 @@ def apply_album_from_source_playlists(
         if not url:
             continue
         try:
-            entries = fetch_flat_playlist_entries(url)
+            # --dump-single-json でプレイリストタイトルとエントリを一括取得
+            result = subprocess.run(
+                ["yt-dlp", "--flat-playlist", "--dump-single-json", url],
+                capture_output=True, text=True, check=False,
+            )
+            if result.returncode != 0:
+                raise RuntimeError(result.stderr.strip() or "yt-dlp failed")
+            pdata = json.loads(result.stdout)
         except Exception as e:
             details.append({"url": url, "error": str(e)})
             continue
 
-        # playlist_title をエントリから自動検出
-        playlist_title: str | None = forced_name
-        if not playlist_title and entries:
-            playlist_title = entries[0].get("playlist_title") or entries[0].get("playlist")
+        # playlist_title を自動検出（forced_name 優先）
+        playlist_title: str | None = forced_name or pdata.get("title") or pdata.get("playlist_title")
         if not playlist_title:
             playlist_title = url
 
+        entries = pdata.get("entries") or []
         matched = 0
         for entry in entries:
-            eid = entry.get("id")
+            eid = (entry or {}).get("id")
             if not eid:
                 continue
             track = track_map.get(eid)
