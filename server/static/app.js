@@ -3353,8 +3353,6 @@ if (supportsMediaSession) {
 // Spotify風モバイル専用全画面プレイヤー
 // ===================================================================
 
-const isMobileDevice = () => window.innerWidth <= 768;
-
 // モバイルプレイヤー要素
 const mobilePlayerOverlay      = document.getElementById("mobile-player-overlay");
 const mobilePlayerBg           = document.getElementById("mobile-player-bg");
