@@ -1960,8 +1960,8 @@ input[type="file"] {
   align-items: center;
   gap: 12px;
   flex-shrink: 0;
+  margin-top: auto;
   margin-bottom: 10px;
-  margin-top: 12px;
 }
 
 .mobile-player-info {
@@ -2005,7 +2005,6 @@ input[type="file"] {
 /* シークバー */
 .mobile-player-progress {
   flex-shrink: 0;
-  margin-top: auto;
   margin-bottom: 6px;
 }
 
