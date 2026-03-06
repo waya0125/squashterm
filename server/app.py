@@ -413,6 +413,23 @@ def sync_local_to_otomad():
         raise HTTPException(status_code=501, detail="otomad_service not available")
 
 
+@app.post("/api/maintenance/resolve-soundcloud-urls")
+def resolve_soundcloud_urls():
+    """既存トラックの SoundCloud API URL を正規ページ URL に修正する (one-shot)。
+
+    ytdlp-core-api の /api/info エンドポイントを使用して解決する。
+    YTDLP_API_URL が未設定の場合はスキップ。
+    """
+    try:
+        from ytdlp_api_service import YTDLP_API_URL, resolve_soundcloud_source_urls
+        if not YTDLP_API_URL:
+            raise HTTPException(status_code=501, detail="YTDLP_API_URL not configured")
+        result = resolve_soundcloud_source_urls()
+        return result
+    except ImportError:
+        raise HTTPException(status_code=501, detail="ytdlp_api_service not available")
+
+
 @app.on_event("startup")
 def start_otomad_worker() -> None:
     try:

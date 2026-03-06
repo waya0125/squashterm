@@ -50,19 +50,21 @@ def fetch_playlist_info_via_api(url: str) -> tuple[list[dict], str | None]:
     playlist_title: str | None = data.get("title")
     entries: list[dict] = []
     for e in data.get("entries", []):
-        entry_url = e.get("url") or e.get("webpage_url")
+        # webpage_url を優先（SoundCloud では url がストリーム/API URL になる場合がある）
+        entry_url = e.get("webpage_url") or e.get("url")
         if not entry_url:
             eid = e.get("id")
             if eid:
                 entry_url = f"https://www.youtube.com/watch?v={eid}"
         if entry_url:
             entries.append({
-                "id":          e.get("id"),
-                "webpage_url": entry_url,
-                "url":         entry_url,
-                "title":       e.get("title"),
-                "uploader":    e.get("uploader"),
-                "ie_key":      e.get("extractor") or "",
+                "id":            e.get("id"),
+                "webpage_url":   entry_url,
+                "url":           entry_url,
+                "permalink_url": e.get("permalink_url"),
+                "title":         e.get("title"),
+                "uploader":      e.get("uploader"),
+                "ie_key":        e.get("extractor") or "",
             })
     return entries, playlist_title
 
@@ -121,13 +123,14 @@ def _fetch_thumbnail(extractor_id: str, thumbnail_url: str) -> None:
 def _build_info_dict(status: dict, extractor_id: str, url: str) -> dict:
     """API ステータスから store_downloaded_tracks 互換の info dict を構築する。"""
     return {
-        "id":          extractor_id,
-        "title":       status.get("title") or "Unknown Title",
-        "uploader":    status.get("uploader"),
-        "duration":    status.get("duration"),
-        "webpage_url": url,
-        "thumbnail":   status.get("thumbnail_url"),
-        "ext":         "m4a",
+        "id":            extractor_id,
+        "title":         status.get("title") or "Unknown Title",
+        "uploader":      status.get("uploader"),
+        "duration":      status.get("duration"),
+        "webpage_url":   status.get("webpage_url") or url,
+        "permalink_url": status.get("permalink_url"),
+        "thumbnail":     status.get("thumbnail_url"),
+        "ext":           "m4a",
     }
 
 
@@ -367,3 +370,45 @@ def batch_download_playlist_via_api(
         "failed": failed_count,
         "tracks": [asdict(t) for t in all_tracks],
     }
+
+
+def resolve_soundcloud_source_urls() -> dict:
+    """ライブラリ内の SoundCloud API URL を /api/info 経由で正規ページ URL に修正する。
+
+    Returns:
+        {"resolved": int, "skipped": int, "failed": int}
+    """
+    from library_service import load_library, save_library, _is_soundcloud_api_url
+
+    data = load_library()
+    tracks = data.get("tracks", [])
+    resolved = 0
+    skipped = 0
+    failed = 0
+
+    for track in tracks:
+        raw_url = track.get("source_url") or ""
+        if not _is_soundcloud_api_url(raw_url):
+            skipped += 1
+            continue
+        try:
+            resp = requests.post(
+                f"{YTDLP_API_URL}/api/info",
+                json={"url": raw_url},
+                timeout=30,
+            )
+            resp.raise_for_status()
+            info = resp.json()
+            page_url = info.get("webpage_url")
+            if page_url and page_url.startswith("https://soundcloud.com"):
+                track["source_url"] = page_url
+                resolved += 1
+            else:
+                failed += 1
+        except Exception:
+            failed += 1
+
+    if resolved:
+        save_library(data)
+
+    return {"resolved": resolved, "skipped": skipped, "failed": failed}
