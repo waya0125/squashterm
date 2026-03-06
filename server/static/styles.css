@@ -2092,7 +2092,14 @@ input[type="file"] {
   align-items: center;
   gap: 10px;
   flex-shrink: 0;
-  padding-bottom: env(safe-area-inset-bottom, 72px);
+}
+
+/* 音量バー下のスペーサー（padding-bottomはflexで無効になるため::afterで代替） */
+.mobile-player-content::after {
+  content: '';
+  display: block;
+  flex-shrink: 0;
+  height: calc(72px + env(safe-area-inset-bottom, 0px));
 }
 
 .mobile-player-volume .icon-button {
