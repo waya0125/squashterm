@@ -30,6 +30,16 @@ def fetch_playlist_entries_via_api(url: str) -> list[dict]:
 
     sync_service.fetch_flat_playlist_entries と同じ戻り値形式。
     """
+    entries, _ = fetch_playlist_info_via_api(url)
+    return entries
+
+
+def fetch_playlist_info_via_api(url: str) -> tuple[list[dict], str | None]:
+    """ytdlp-core-api /api/playlist からエントリ一覧とプレイリスト名を返す。
+
+    Returns:
+        (entries, playlist_title)
+    """
     resp = requests.post(
         f"{YTDLP_API_URL}/api/playlist",
         json={"url": url},
@@ -37,6 +47,7 @@ def fetch_playlist_entries_via_api(url: str) -> list[dict]:
     )
     resp.raise_for_status()
     data = resp.json()
+    playlist_title: str | None = data.get("title")
     entries: list[dict] = []
     for e in data.get("entries", []):
         entry_url = e.get("url") or e.get("webpage_url")
@@ -53,7 +64,7 @@ def fetch_playlist_entries_via_api(url: str) -> list[dict]:
                 "uploader":    e.get("uploader"),
                 "ie_key":      e.get("extractor") or "",
             })
-    return entries
+    return entries, playlist_title
 
 
 def _poll_until_done(task_id: str) -> dict:
@@ -121,7 +132,7 @@ def _build_info_dict(status: dict, extractor_id: str, url: str) -> dict:
 
 
 def ingest_from_url_via_api(
-    url: str, playlist_id: str | None = None
+    url: str, playlist_id: str | None = None, playlist_name: str | None = None
 ) -> tuple[list[Track], str]:
     """ytdlp-core-api 経由でダウンロードしてライブラリに登録する。
 
@@ -149,7 +160,7 @@ def ingest_from_url_via_api(
     _fetch_thumbnail(extractor_id, status.get("thumbnail_url") or "")
 
     info = _build_info_dict(status, extractor_id, url)
-    tracks = store_downloaded_tracks([info], url, playlist_id)
+    tracks = store_downloaded_tracks([info], url, playlist_id, playlist_name)
     log = f"[ytdlp-core-api] {url} → {extractor_id}.m4a"
     return tracks, log
 
@@ -158,6 +169,7 @@ def iter_events_via_api(
     url: str,
     playlist_id: str | None = None,
     no_playlist: bool = False,
+    playlist_name: str | None = None,
 ):
     """ytdlp-core-api 経由でダウンロードしながら SSE 互換イベントを yield する。
 
@@ -199,8 +211,15 @@ def iter_events_via_api(
 
         progress = float(status.get("progress") or 0)
         if progress != last_progress:
+            speed = status.get("speed") or ""
+            eta = status.get("eta")
+            extra = ""
+            if speed:
+                extra += f" {speed}"
+            if eta is not None:
+                extra += f" ETA:{eta}s"
             yield {"type": "progress", "value": progress,
-                   "message": f"[ytdlp-core-api] {progress:.1f}%"}
+                   "message": f"[ytdlp-core-api] {progress:.1f}%{extra}"}
             last_progress = progress
 
         if status.get("status") == "error":
@@ -223,7 +242,7 @@ def iter_events_via_api(
         _fetch_thumbnail(extractor_id, status.get("thumbnail_url") or "")
 
         info = _build_info_dict(status, extractor_id, url)
-        tracks = store_downloaded_tracks([info], url, playlist_id)
+        tracks = store_downloaded_tracks([info], url, playlist_id, playlist_name)
         failed = 0
         yield {
             "type":      "complete",
@@ -235,3 +254,104 @@ def iter_events_via_api(
         return
 
     yield {"type": "error", "message": f"ytdlp-core-api timed out after {_POLL_TIMEOUT}s"}
+
+
+def batch_download_playlist_via_api(
+    url: str,
+    playlist_id: str | None = None,
+    concurrency: int = 3,
+):
+    """ytdlp-core-api 経由でプレイリストを並列ダウンロードしながら SSE イベントを yield する。
+
+    library_service.batch_download_playlist の API 版。
+    """
+    import concurrent.futures
+
+    MEDIA_DIR.mkdir(parents=True, exist_ok=True)
+
+    yield {"type": "log", "message": f"[ytdlp-core-api] Fetching playlist: {url}"}
+
+    entries, playlist_title = fetch_playlist_info_via_api(url)
+    if not entries:
+        yield {"type": "error", "message": "Playlist is empty or could not be fetched"}
+        return
+
+    total = len(entries)
+    yield {"type": "progress", "total": total, "completed": 0, "failed": 0,
+           "message": f"プレイリスト取得完了: {total}件 / {playlist_title or url}"}
+
+    # 全エントリを一括 submit
+    task_map: dict[str, dict] = {}  # task_id → entry dict
+    for entry in entries:
+        entry_url = entry.get("url") or entry.get("webpage_url")
+        if not entry_url:
+            continue
+        try:
+            resp = requests.post(
+                f"{YTDLP_API_URL}/api/download",
+                json={"url": entry_url, "extract_audio": True,
+                      "audio_format": "m4a", "embed_thumbnail": True},
+                timeout=30,
+            )
+            resp.raise_for_status()
+            task_id = resp.json()["task_id"]
+            task_map[task_id] = entry
+        except Exception as e:
+            yield {"type": "log", "message": f"[ytdlp-core-api] submit failed {entry_url}: {e}"}
+
+    completed_count = 0
+    failed_count = 0
+    all_tracks: list[Track] = []
+    pending = set(task_map.keys())
+    deadline = time.monotonic() + _POLL_TIMEOUT + total * 60  # 1 分/エントリ余裕
+
+    while pending and time.monotonic() < deadline:
+        time.sleep(_POLL_INTERVAL)
+        done_this_round: set[str] = set()
+
+        for task_id in list(pending):
+            try:
+                st = requests.get(
+                    f"{YTDLP_API_URL}/api/status/{task_id}", timeout=15
+                ).json()
+            except Exception:
+                continue
+
+            if st.get("status") == "completed":
+                extractor_id = st.get("extractor_id") or task_id.replace("-", "")
+                try:
+                    _fetch_file(task_id, extractor_id)
+                    _fetch_thumbnail(extractor_id, st.get("thumbnail_url") or "")
+                    entry_url = task_map[task_id].get("url") or task_map[task_id].get("webpage_url") or ""
+                    info = _build_info_dict(st, extractor_id, entry_url)
+                    tracks = store_downloaded_tracks([info], entry_url, playlist_id, playlist_title)
+                    all_tracks.extend(tracks)
+                    completed_count += 1
+                except Exception as e:
+                    yield {"type": "log", "message": f"[ytdlp-core-api] store failed {extractor_id}: {e}"}
+                    failed_count += 1
+                done_this_round.add(task_id)
+
+            elif st.get("status") == "error":
+                yield {"type": "log",
+                       "message": f"[ytdlp-core-api] error: {st.get('error')} ({task_id})"}
+                failed_count += 1
+                done_this_round.add(task_id)
+
+        pending -= done_this_round
+        if done_this_round:
+            yield {
+                "type": "progress",
+                "total": total,
+                "completed": completed_count,
+                "failed": failed_count,
+                "message": f"ダウンロード中 {completed_count + failed_count}/{total}",
+            }
+
+    yield {
+        "type": "complete",
+        "total": total,
+        "completed": completed_count,
+        "failed": failed_count,
+        "tracks": [asdict(t) for t in all_tracks],
+    }

@@ -417,6 +417,12 @@ def update_playlist_sync_status(
 
 def batch_download_playlist(url: str, playlist_id: str | None, concurrency: int):
     """プレイリストを並列ダウンロード（download_queue使用）"""
+    import os
+    if os.getenv("YTDLP_API_URL"):
+        from ytdlp_api_service import batch_download_playlist_via_api
+        yield from batch_download_playlist_via_api(url, playlist_id, concurrency)
+        return
+
     from download_queue import ThreadPoolDownloadQueue
     import subprocess
     import time

@@ -115,10 +115,10 @@ def parse_progress(line: str) -> float | None:
         return None
 
 
-def iter_ytdlp_events(url: str, playlist_id: str | None = None, no_playlist: bool = False):
+def iter_ytdlp_events(url: str, playlist_id: str | None = None, no_playlist: bool = False, playlist_name: str | None = None):
     if _YTDLP_API_URL:
         from ytdlp_api_service import iter_events_via_api
-        yield from iter_events_via_api(url, playlist_id, no_playlist)
+        yield from iter_events_via_api(url, playlist_id, no_playlist, playlist_name)
         return
     command = build_ytdlp_command(url, no_playlist)
     process = subprocess.Popen(
@@ -174,7 +174,7 @@ def ingest_from_url(
 ) -> tuple[list[Track], str]:
     if _YTDLP_API_URL:
         from ytdlp_api_service import ingest_from_url_via_api
-        return ingest_from_url_via_api(url, playlist_id)
+        return ingest_from_url_via_api(url, playlist_id, playlist_name)
     infos, log_output = download_with_ytdlp(url)
     tracks = store_downloaded_tracks(infos, url, playlist_id, playlist_name)
     return tracks, log_output
