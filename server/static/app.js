@@ -2751,11 +2751,9 @@ const mobilePlayerVolumeSlider = document.getElementById("mobile-player-volume-s
 const mobilePlayerToggle = document.getElementById("mobile-player-toggle");
 const mobilePlayerPrev = document.getElementById("mobile-player-prev");
 const mobilePlayerNext = document.getElementById("mobile-player-next");
-const mobilePlayerShuffle = document.getElementById("mobile-player-shuffle");
-const mobilePlayerLoop = document.getElementById("mobile-player-loop");
-const mobilePlayerMenuToggle = document.getElementById("mobile-player-menu-toggle");
-const mobilePlayerSkipBack = document.getElementById("mobile-player-skip-back");
-const mobilePlayerSkipForward = document.getElementById("mobile-player-skip-forward");
+const mobilePlayerShuffle      = document.getElementById("mobile-player-shuffle");
+const mobilePlayerLoop         = document.getElementById("mobile-player-loop");
+const mobilePlayerMenuToggle   = document.getElementById("mobile-player-menu-toggle");
 const mobilePlayerFavorite = document.getElementById("mobile-player-favorite");
 
 // 現在のタブを保存する変数（ファイル冒頭で宣言済み）
@@ -3094,22 +3092,6 @@ if (mobilePlayerMenuPanel) {
       e.target !== mobilePlayerMenuToggle
     ) {
       closeMobilePlayerMenu();
-    }
-  });
-}
-
-if (mobilePlayerSkipBack) {
-  mobilePlayerSkipBack.addEventListener("click", () => {
-    if (playerSkipBack) {
-      playerSkipBack.click();
-    }
-  });
-}
-
-if (mobilePlayerSkipForward) {
-  mobilePlayerSkipForward.addEventListener("click", () => {
-    if (playerSkipForward) {
-      playerSkipForward.click();
     }
   });
 }
