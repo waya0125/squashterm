@@ -2917,4 +2917,306 @@ if (supportsMediaSession) {
   });
 }
 
+// ===================================================================
+// Spotify風モバイル専用全画面プレイヤー
+// ===================================================================
+
+const isMobileDevice = () => window.innerWidth <= 768;
+
+// モバイルプレイヤー要素
+const mobilePlayerOverlay      = document.getElementById("mobile-player-overlay");
+const mobilePlayerClose        = document.getElementById("mobile-player-close");
+const mobilePlayerCover        = document.getElementById("mobile-player-cover");
+const mobilePlayerTitle        = document.getElementById("mobile-player-title");
+const mobilePlayerArtist       = document.getElementById("mobile-player-artist");
+const mobilePlayerProgressSlider = document.getElementById("mobile-player-progress-slider");
+const mobilePlayerCurrentTime  = document.getElementById("mobile-player-current-time");
+const mobilePlayerDuration     = document.getElementById("mobile-player-duration");
+const mobilePlayerVolumeToggle = document.getElementById("mobile-player-volume-toggle");
+const mobilePlayerVolumeSlider = document.getElementById("mobile-player-volume-slider");
+const mobilePlayerVolumeIosNote = document.getElementById("mobile-player-volume-ios-note");
+const mobilePlayerToggle       = document.getElementById("mobile-player-toggle");
+const mobilePlayerPrev         = document.getElementById("mobile-player-prev");
+const mobilePlayerNext         = document.getElementById("mobile-player-next");
+const mobilePlayerShuffle      = document.getElementById("mobile-player-shuffle");
+const mobilePlayerLoop         = document.getElementById("mobile-player-loop");
+const mobilePlayerFavorite     = document.getElementById("mobile-player-favorite");
+const mobilePlayerMenuToggle   = document.getElementById("mobile-player-menu-toggle");
+const mobilePlayerMenuPanel    = document.getElementById("mobile-player-menu-panel");
+const mobilePlayerDownload     = document.getElementById("mobile-player-download");
+const mobilePlayerAddPlaylist  = document.getElementById("mobile-player-add-playlist");
+const mobilePlayerOpenSource   = document.getElementById("mobile-player-open-source");
+const mobilePlayerEditInfo     = document.getElementById("mobile-player-edit-info");
+const mobilePlayerDeleteTrack  = document.getElementById("mobile-player-delete-track");
+
+const updateMobilePlayerUI = () => {
+  const track = state.tracks[playerState.currentIndex];
+  if (!track) return;
+
+  if (mobilePlayerCover) {
+    mobilePlayerCover.src = track.cover || "";
+    mobilePlayerCover.alt = track.title || "";
+  }
+  if (mobilePlayerTitle)  mobilePlayerTitle.textContent  = track.title  || "--";
+  if (mobilePlayerArtist) mobilePlayerArtist.textContent = track.artist || "--";
+
+  // 再生/一時停止ボタン同期
+  if (mobilePlayerToggle) {
+    mobilePlayerToggle.classList.toggle("is-playing", playerState.isPlaying);
+    mobilePlayerToggle.setAttribute("aria-label", playerState.isPlaying ? "一時停止" : "再生");
+  }
+
+  // シャッフル同期
+  if (mobilePlayerShuffle) {
+    mobilePlayerShuffle.setAttribute("aria-pressed", playerState.shuffleMode ? "true" : "false");
+    mobilePlayerShuffle.classList.toggle("is-active", playerState.shuffleMode);
+    mobilePlayerShuffle.setAttribute("aria-label", `シャッフル: ${playerState.shuffleMode ? "オン" : "オフ"}`);
+  }
+
+  // ループ同期
+  if (mobilePlayerLoop) {
+    const mode = playerState.loopMode;
+    const loopLabels = { off: "OFF", playlist: "PL", track: "1" };
+    mobilePlayerLoop.setAttribute("aria-pressed", mode === "off" ? "false" : "true");
+    mobilePlayerLoop.classList.toggle("is-loop", mode !== "off");
+    mobilePlayerLoop.setAttribute("aria-label", `ループ: ${mode === "off" ? "オフ" : mode === "playlist" ? "プレイリスト" : "1曲"}`);
+    const lbl = mobilePlayerLoop.querySelector(".loop-label");
+    if (lbl) lbl.textContent = loopLabels[mode] || "OFF";
+  }
+
+  // お気に入り同期
+  if (mobilePlayerFavorite) {
+    const isFav = state.favorites.includes(track.id);
+    mobilePlayerFavorite.setAttribute("aria-pressed", isFav ? "true" : "false");
+    mobilePlayerFavorite.classList.toggle("is-active", isFav);
+    mobilePlayerFavorite.setAttribute("aria-label", isFav ? "お気に入りから削除" : "お気に入りに追加");
+  }
+
+  // iOS音量スライダー制御
+  if (mobilePlayerVolumeSlider && mobilePlayerVolumeIosNote) {
+    const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    if (isIos) {
+      mobilePlayerVolumeSlider.style.display = "none";
+      mobilePlayerVolumeIosNote.removeAttribute("hidden");
+      mobilePlayerVolumeIosNote.textContent = "iOSでは端末の音量ボタンをご使用ください";
+    } else {
+      mobilePlayerVolumeSlider.style.display = "";
+      mobilePlayerVolumeIosNote.setAttribute("hidden", "");
+    }
+  }
+};
+
+const openMobilePlayer = () => {
+  if (!mobilePlayerOverlay) return;
+  previousActiveTab = null;
+  tabs.forEach((t) => {
+    if (t.classList.contains("is-active") && t.dataset?.tab) {
+      previousActiveTab = t.dataset.tab;
+    }
+  });
+  if (!previousActiveTab) previousActiveTab = "media";
+  mobilePlayerOverlay.setAttribute("aria-hidden", "false");
+  updateMobilePlayerUI();
+};
+
+const closeMobilePlayer = () => {
+  if (!mobilePlayerOverlay) return;
+  mobilePlayerOverlay.setAttribute("aria-hidden", "true");
+  closeMobilePlayerMenu();
+  if (previousActiveTab) {
+    activateTab(previousActiveTab);
+    previousActiveTab = null;
+  }
+};
+
+const closeMobilePlayerMenu = () => {
+  if (mobilePlayerMenuPanel) {
+    mobilePlayerMenuPanel.classList.remove("is-open");
+    mobilePlayerMenuPanel.setAttribute("aria-hidden", "true");
+  }
+};
+
+// モバイルプレイヤー progress/time を timeupdate で同期
+if (audioPlayer) {
+  audioPlayer.addEventListener("timeupdate", () => {
+    if (!mobilePlayerOverlay || mobilePlayerOverlay.getAttribute("aria-hidden") !== "false") return;
+    const { currentTime, duration } = audioPlayer;
+    const pct = duration ? Math.floor((currentTime / duration) * 100) : 0;
+    if (mobilePlayerProgressSlider) mobilePlayerProgressSlider.value = pct;
+    if (mobilePlayerCurrentTime) mobilePlayerCurrentTime.textContent = formatTime(currentTime);
+    if (mobilePlayerDuration)    mobilePlayerDuration.textContent    = formatTime(duration);
+  });
+}
+
+// ミニプレイヤー展開ボタン: モバイルではモバイルプレイヤーを開く
+if (miniExpand) {
+  const _origClick = miniExpand.onclick;
+  miniExpand.addEventListener("click", (e) => {
+    if (isMobileDevice() && mobilePlayerOverlay) {
+      e.stopImmediatePropagation();
+      openMobilePlayer();
+    }
+  }, true); // capture=true でネイティブハンドラより先に動く
+}
+
+// 閉じるボタン
+if (mobilePlayerClose) {
+  mobilePlayerClose.addEventListener("click", () => closeMobilePlayer());
+}
+
+// 再生/一時停止
+if (mobilePlayerToggle) {
+  mobilePlayerToggle.addEventListener("click", () => {
+    togglePlayback();
+    if (mobilePlayerToggle) {
+      mobilePlayerToggle.classList.toggle("is-playing", playerState.isPlaying);
+    }
+  });
+}
+
+// 前へ
+if (mobilePlayerPrev) {
+  mobilePlayerPrev.addEventListener("click", () => playPrev());
+}
+
+// 次へ
+if (mobilePlayerNext) {
+  mobilePlayerNext.addEventListener("click", () => playNext());
+}
+
+// シャッフル
+if (mobilePlayerShuffle) {
+  mobilePlayerShuffle.addEventListener("click", () => {
+    toggleShuffleMode();
+    updateMobilePlayerUI();
+  });
+}
+
+// ループ
+if (mobilePlayerLoop) {
+  mobilePlayerLoop.addEventListener("click", () => {
+    toggleLoopMode();
+    updateMobilePlayerUI();
+  });
+}
+
+// お気に入り
+if (mobilePlayerFavorite) {
+  mobilePlayerFavorite.addEventListener("click", () => {
+    toggleFavorite();
+    updateMobilePlayerUI();
+  });
+}
+
+// シークバー
+if (mobilePlayerProgressSlider && audioPlayer) {
+  mobilePlayerProgressSlider.addEventListener("input", (e) => {
+    const v = Number(e.target.value);
+    if (Number.isFinite(v) && audioPlayer.duration) {
+      audioPlayer.currentTime = (v / 100) * audioPlayer.duration;
+    }
+  });
+}
+
+// 音量スライダー
+if (mobilePlayerVolumeSlider && audioPlayer) {
+  mobilePlayerVolumeSlider.addEventListener("input", (e) => {
+    const vol = e.target.value / 100;
+    audioPlayer.volume = vol;
+    localStorage.setItem("playerVolume", vol);
+  });
+  audioPlayer.addEventListener("volumechange", () => {
+    if (mobilePlayerVolumeSlider) {
+      mobilePlayerVolumeSlider.value = audioPlayer.volume * 100;
+    }
+  });
+}
+
+// 音量ミュートトグル
+if (mobilePlayerVolumeToggle && audioPlayer) {
+  mobilePlayerVolumeToggle.addEventListener("click", () => {
+    audioPlayer.muted = !audioPlayer.muted;
+  });
+}
+
+// メニュー開閉
+if (mobilePlayerMenuToggle) {
+  mobilePlayerMenuToggle.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const isOpen = mobilePlayerMenuPanel?.classList.contains("is-open");
+    if (isOpen) {
+      closeMobilePlayerMenu();
+    } else {
+      mobilePlayerMenuPanel?.classList.add("is-open");
+      mobilePlayerMenuPanel?.setAttribute("aria-hidden", "false");
+    }
+  });
+}
+
+// メニュー外クリックで閉じる
+document.addEventListener("click", (e) => {
+  if (mobilePlayerMenuPanel?.classList.contains("is-open") && !e.target?.closest(".mobile-player-menu-wrapper")) {
+    closeMobilePlayerMenu();
+  }
+});
+
+// ダウンロード
+if (mobilePlayerDownload) {
+  mobilePlayerDownload.addEventListener("click", () => {
+    closeMobilePlayerMenu();
+    if (playerDownload) playerDownload.click();
+  });
+}
+
+// プレイリストに追加
+if (mobilePlayerAddPlaylist) {
+  mobilePlayerAddPlaylist.addEventListener("click", () => {
+    closeMobilePlayerMenu();
+    if (playerAddPlaylist) playerAddPlaylist.click();
+  });
+}
+
+// ソースURLを開く
+if (mobilePlayerOpenSource) {
+  mobilePlayerOpenSource.addEventListener("click", () => {
+    closeMobilePlayerMenu();
+    if (playerOpenSource) playerOpenSource.click();
+  });
+}
+
+// 情報を編集
+if (mobilePlayerEditInfo) {
+  mobilePlayerEditInfo.addEventListener("click", () => {
+    closeMobilePlayerMenu();
+    if (playerEditInfo) playerEditInfo.click();
+  });
+}
+
+// 曲を削除
+if (mobilePlayerDeleteTrack) {
+  mobilePlayerDeleteTrack.addEventListener("click", () => {
+    closeMobilePlayerMenu();
+    if (playerDeleteTrack) playerDeleteTrack.click();
+  });
+}
+
+// updatePlayerButtons / updateLoopButtons / updateShuffleButtons / updateFavoriteButtons
+// をモバイルプレイヤーにも反映するパッチ
+const _origUpdatePlayerButtons = updatePlayerButtons;
+// ※ updatePlayerButtons は const だが同名で上書きはできないため、
+//   代わりに setTrack / togglePlayback 後に updateMobilePlayerUI を呼ぶ
+
+// updatePlayerUI 後にモバイルプレイヤーも更新
+const _patchMobileUpdate = () => {
+  if (mobilePlayerOverlay?.getAttribute("aria-hidden") === "false") {
+    updateMobilePlayerUI();
+  }
+};
+
+// audioPlayer play/pause イベントでモバイルUI同期
+if (audioPlayer) {
+  audioPlayer.addEventListener("play",  _patchMobileUpdate);
+  audioPlayer.addEventListener("pause", _patchMobileUpdate);
+}
+
 init();
