@@ -387,6 +387,21 @@ async def upload_track(
     return asdict(track)
 
 
+# ---------------------------------------------------------------------------
+# Maintenance endpoints
+# ---------------------------------------------------------------------------
+
+@app.post("/api/maintenance/apply-album-from-source-playlists")
+def apply_album_from_playlists(payload: list[dict]):
+    """プレイリストURLに基づきトラックのAlbumを遡及設定する (one-shot)。
+
+    Body: [{"url": "...", "album_name": "..."}, ...]
+    album_name は省略可（yt-dlp の playlist_title を自動使用）。
+    """
+    from library_service import apply_album_from_source_playlists
+    return apply_album_from_source_playlists(payload)
+
+
 def run(host: str = "0.0.0.0", port: int = 8000) -> None:
     print(f"SquashTerm server running on http://{host}:{port}")
     uvicorn.run(app, host=host, port=port)

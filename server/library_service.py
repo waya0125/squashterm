@@ -522,3 +522,68 @@ def batch_download_playlist(url: str, playlist_id: str | None, concurrency: int)
     }
 
 
+def apply_album_from_source_playlists(
+    playlist_defs: list[dict],
+) -> dict:
+    """プレイリストURLに含まれる動画IDとライブラリトラックをマッチし、Album名を遡及設定する。
+
+    Args:
+        playlist_defs: [{"url": "...", "album_name": "..."}] のリスト。
+                       album_name 省略時はyt-dlpが返す playlist_title を使用。
+
+    Returns:
+        {"updated": N, "skipped": M, "details": [...]}
+    """
+    from sync_service import fetch_flat_playlist_entries  # 循環import回避
+
+    data = load_library()
+    tracks = data.get("tracks", [])
+    track_map: dict[str, dict] = {t["id"][3:]: t for t in tracks if t.get("id", "").startswith("yt_")}
+
+    updated = 0
+    skipped = 0
+    details: list[dict] = []
+
+    for pdef in playlist_defs:
+        url = pdef.get("url", "")
+        forced_name: str | None = pdef.get("album_name")
+        if not url:
+            continue
+        try:
+            entries = fetch_flat_playlist_entries(url)
+        except Exception as e:
+            details.append({"url": url, "error": str(e)})
+            continue
+
+        # playlist_title をエントリから自動検出
+        playlist_title: str | None = forced_name
+        if not playlist_title and entries:
+            playlist_title = entries[0].get("playlist_title") or entries[0].get("playlist")
+        if not playlist_title:
+            playlist_title = url
+
+        matched = 0
+        for entry in entries:
+            eid = entry.get("id")
+            if not eid:
+                continue
+            track = track_map.get(eid)
+            if track is None:
+                continue
+            track["album"] = playlist_title
+            matched += 1
+            updated += 1
+
+        unmatched = len(entries) - matched
+        skipped += unmatched
+        details.append({
+            "url": url,
+            "album_name": playlist_title,
+            "matched": matched,
+            "unmatched": unmatched,
+        })
+
+    save_library(data)
+    return {"updated": updated, "skipped": skipped, "details": details}
+
+
