@@ -1662,3 +1662,276 @@ input[type="file"] {
     gap: 8px;
   }
 }
+
+/* ===================================================================
+   Spotify風モバイル専用全画面プレイヤー (mobile-player-overlay)
+   デスクトップ・ミニプレイヤーには一切干渉しない
+   =================================================================== */
+
+.mobile-player-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: #121212;
+  z-index: 200;
+  overflow: hidden;
+}
+
+.mobile-player-overlay[aria-hidden="false"] {
+  display: flex;
+}
+
+.mobile-player-content {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  padding: env(safe-area-inset-top, 16px) 28px env(safe-area-inset-bottom, 28px) 28px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* ヘッダー */
+.mobile-player-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 52px;
+  flex-shrink: 0;
+}
+
+.mobile-player-close {
+  color: #b3b3b3;
+  width: 40px;
+  height: 40px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-player-close:hover {
+  color: #fff;
+}
+
+.mobile-player-heading {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #b3b3b3;
+}
+
+.mobile-player-header-space {
+  width: 40px;
+}
+
+/* アルバムアート */
+.mobile-player-art-wrap {
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 0;
+  min-height: 0;
+}
+
+.mobile-player-cover {
+  width: min(calc(100% - 0px), 300px);
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 8px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7);
+  background: #333;
+  flex-shrink: 0;
+}
+
+/* トラック情報 + ハート */
+.mobile-player-info-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  margin-bottom: 10px;
+}
+
+.mobile-player-info {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.mobile-player-info h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 4px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mobile-player-info p {
+  font-size: 14px;
+  color: #b3b3b3;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mobile-player-info-row .is-favorite svg {
+  width: 26px;
+  height: 26px;
+}
+
+/* シークバー */
+.mobile-player-progress {
+  flex-shrink: 0;
+  margin-bottom: 6px;
+}
+
+.mobile-player-progress input[type="range"] {
+  width: 100%;
+  margin: 0 0 4px 0;
+  height: 4px;
+  accent-color: #1db954;
+}
+
+.mobile-player-time {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #b3b3b3;
+}
+
+/* メインコントロール: shuffle prev play next loop */
+.mobile-player-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  margin-bottom: 10px;
+}
+
+.mobile-player-controls .icon-button {
+  width: 44px;
+  height: 44px;
+  color: #b3b3b3;
+}
+
+.mobile-player-controls .icon-button:hover {
+  color: #fff;
+}
+
+.mobile-player-controls .icon-button.is-active,
+.mobile-player-controls .icon-button.is-loop {
+  color: #1db954;
+}
+
+.mobile-player-controls .is-primary {
+  width: 64px;
+  height: 64px;
+  background: #fff;
+  color: #000;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.mobile-player-controls .is-primary:hover {
+  background: #e0e0e0;
+  color: #000;
+}
+
+.mobile-player-controls .is-primary svg {
+  width: 28px;
+  height: 28px;
+  fill: currentColor;
+}
+
+/* play/pause アイコン切り替え */
+#mobile-player-toggle .icon-pause { display: none; }
+#mobile-player-toggle.is-playing .icon-play  { display: none; }
+#mobile-player-toggle.is-playing .icon-pause { display: block; }
+
+/* loop-label バッジ */
+.mobile-player-controls .loop-label {
+  font-size: 8px;
+  font-weight: 700;
+  display: block;
+  text-align: center;
+  margin-top: 1px;
+  line-height: 1;
+}
+
+/* 音量 + メニュー */
+.mobile-player-volume {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.mobile-player-volume .icon-button {
+  color: #b3b3b3;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+}
+
+.mobile-player-volume .icon-button:hover {
+  color: #fff;
+}
+
+.mobile-player-volume input[type="range"] {
+  flex: 1;
+  accent-color: #1db954;
+}
+
+.mobile-player-volume-ios-note {
+  flex: 1;
+  font-size: 11px;
+  color: #b3b3b3;
+  text-align: center;
+}
+
+/* メニューラッパー */
+.mobile-player-menu-wrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.mobile-player-menu-panel {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  min-width: 190px;
+  background: #282828;
+  border-radius: 8px;
+  padding: 8px;
+  display: grid;
+  gap: 4px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.mobile-player-menu-panel.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* モバイルプレイヤーは768px以下でのみ使用 */
+@media (min-width: 769px) {
+  .mobile-player-overlay {
+    display: none !important;
+  }
+}
