@@ -2250,34 +2250,6 @@ if (playlistConcurrencyInput) {
   });
 }
 
-const applyPlaylistAlbumBtn = document.getElementById("apply-playlist-album-names");
-const applyPlaylistAlbumResult = document.getElementById("apply-playlist-album-result");
-if (applyPlaylistAlbumBtn) {
-  applyPlaylistAlbumBtn.addEventListener("click", async () => {
-    applyPlaylistAlbumBtn.disabled = true;
-    applyPlaylistAlbumBtn.textContent = "適用中…";
-    if (applyPlaylistAlbumResult) applyPlaylistAlbumResult.textContent = "";
-    try {
-      const res = await fetch("/api/library/apply-playlist-album-names", { method: "POST" });
-      if (!res.ok) throw new Error(await res.text());
-      const { updated, skipped } = await res.json();
-      if (applyPlaylistAlbumResult) {
-        applyPlaylistAlbumResult.textContent = `完了: ${updated}件を更新、${skipped}件はスキップ`;
-      }
-      if (updated > 0) {
-        const data = await fetchJson("/api/library");
-        state.tracks = data;
-        renderMedia();
-      }
-    } catch (e) {
-      if (applyPlaylistAlbumResult) applyPlaylistAlbumResult.textContent = `エラー: ${e.message}`;
-    } finally {
-      applyPlaylistAlbumBtn.disabled = false;
-      applyPlaylistAlbumBtn.textContent = "プレイリスト名をAlbumに適用";
-    }
-  });
-}
-
 if (playlistCreateToggle && playlistCreateForm) {
   playlistCreateToggle.addEventListener("click", () => {
     const isOpen = playlistCreateForm.classList.toggle("is-open");
