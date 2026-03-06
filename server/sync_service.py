@@ -78,9 +78,10 @@ def sync_playlist_with_remote(playlist_id: str) -> dict:
     missing_urls = [url for url in entry_urls if url not in existing_urls]
     added_tracks = []
     errors: list[str] = []
+    playlist_name = playlist.get("name")
     for url in missing_urls:
         try:
-            tracks, _ = ingest_from_url(url, playlist_id)
+            tracks, _ = ingest_from_url(url, playlist_id, playlist_name)
             added_tracks.extend(tracks)
         except Exception as exc:
             errors.append(f"{url}: {exc}")
