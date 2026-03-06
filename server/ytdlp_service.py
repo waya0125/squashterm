@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import subprocess
 from dataclasses import asdict
@@ -13,6 +14,9 @@ from paths import MEDIA_DIR
 # yt-dlp 2026以降はJS runtimeが必要（YouTube signature解決のため）
 # node.jsが利用可能な場合に使用する
 _YTDLP_JS_FLAGS = ["--js-runtimes", "node", "--remote-components", "ejs:github"]
+
+# docker ブランチ: YTDLP_API_URL が設定されていれば ytdlp-core-api 経由で処理
+_YTDLP_API_URL = os.getenv("YTDLP_API_URL", "").rstrip("/")
 
 
 def is_single_video_url(url: str) -> bool:
@@ -112,6 +116,10 @@ def parse_progress(line: str) -> float | None:
 
 
 def iter_ytdlp_events(url: str, playlist_id: str | None = None, no_playlist: bool = False):
+    if _YTDLP_API_URL:
+        from ytdlp_api_service import iter_events_via_api
+        yield from iter_events_via_api(url, playlist_id, no_playlist)
+        return
     command = build_ytdlp_command(url, no_playlist)
     process = subprocess.Popen(
         command,
@@ -164,6 +172,9 @@ def iter_ytdlp_events(url: str, playlist_id: str | None = None, no_playlist: boo
 def ingest_from_url(
     url: str, playlist_id: str | None = None
 ) -> tuple[list[Track], str]:
+    if _YTDLP_API_URL:
+        from ytdlp_api_service import ingest_from_url_via_api
+        return ingest_from_url_via_api(url, playlist_id)
     infos, log_output = download_with_ytdlp(url)
     tracks = store_downloaded_tracks(infos, url, playlist_id)
     return tracks, log_output

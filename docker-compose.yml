@@ -19,6 +19,8 @@ services:
       - ./.git:/app/.git:ro
     environment:
       - PYTHONUNBUFFERED=1
+      # docker ブランチ限定: ytdlp-core-api 経由で IP 制限をバイパス
+      - YTDLP_API_URL=http://ytdlp-core-api:8000
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]
@@ -26,3 +28,11 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    networks:
+      - default
+      - ytdlp-network
+
+networks:
+  default:
+  ytdlp-network:
+    external: true

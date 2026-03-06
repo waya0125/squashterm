@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 from dataclasses import asdict
 from datetime import datetime, timezone, timedelta
@@ -21,6 +22,10 @@ JST = timezone(timedelta(hours=9))
 
 
 def fetch_flat_playlist_entries(url: str) -> list[dict]:
+    api_url = os.getenv("YTDLP_API_URL", "").rstrip("/")
+    if api_url:
+        from ytdlp_api_service import fetch_playlist_entries_via_api
+        return fetch_playlist_entries_via_api(url)
     command = ["yt-dlp", "--flat-playlist", "--print-json", url]
     result = subprocess.run(
         command,
