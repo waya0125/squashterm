@@ -1672,7 +1672,7 @@ input[type="file"] {
   display: none;
   position: fixed;
   inset: 0;
-  background: #121212;
+  background: rgba(0, 0, 0, 0.82);
   z-index: 200;
   overflow: hidden;
 }
@@ -1681,12 +1681,28 @@ input[type="file"] {
   display: flex;
 }
 
+/* ぼかし背景レイヤー（アルバムアートをJSで設定） */
+.mobile-player-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-size: cover;
+  background-position: center;
+  filter: blur(40px);
+  transform: scale(1.15);
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+/* コンテンツはbgより前面 */
 .mobile-player-content {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   width: 100%;
   height: 100%;
-  padding: env(safe-area-inset-top, 16px) 28px env(safe-area-inset-bottom, 28px) 28px;
+  padding: env(safe-area-inset-top, 16px) 44px env(safe-area-inset-bottom, 28px) 44px;
   box-sizing: border-box;
   overflow: hidden;
 }
@@ -1701,7 +1717,7 @@ input[type="file"] {
 }
 
 .mobile-player-close {
-  color: #b3b3b3;
+  color: rgba(255, 255, 255, 0.7);
   width: 40px;
   height: 40px;
   background: none;
@@ -1721,7 +1737,7 @@ input[type="file"] {
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #b3b3b3;
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .mobile-player-header-space {
@@ -1739,7 +1755,7 @@ input[type="file"] {
 }
 
 .mobile-player-cover {
-  width: min(calc(100% - 0px), 300px);
+  width: min(100%, 300px);
   aspect-ratio: 1 / 1;
   object-fit: cover;
   border-radius: 8px;
@@ -1751,7 +1767,7 @@ input[type="file"] {
 /* トラック情報 + ハート */
 .mobile-player-info-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
   flex-shrink: 0;
   margin-bottom: 10px;
@@ -1763,23 +1779,47 @@ input[type="file"] {
   overflow: hidden;
 }
 
+/* タイトル・アーティスト・アルバム: 左寄せ・1行・マーキースクロール */
+.mobile-player-info h2,
+.mobile-player-info p {
+  display: block;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  margin: 0 0 3px 0;
+}
+
 .mobile-player-info h2 {
   font-size: 20px;
   font-weight: 700;
   color: #fff;
-  margin: 0 0 4px 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  margin-bottom: 4px;
 }
 
 .mobile-player-info p {
   font-size: 14px;
-  color: #b3b3b3;
-  margin: 0;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.mobile-player-info p.mobile-player-album {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.45);
+  margin-bottom: 0;
+}
+
+/* scroll-text: JS が inner span に付ける */
+.mobile-player-info .scroll-text {
+  display: inline-block;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+}
+
+.mobile-player-info .scroll-text.is-overflowing {
+  animation: marquee-scroll var(--scroll-duration, 8s) linear infinite;
+}
+
+.mobile-player-info-row .is-favorite {
+  flex-shrink: 0;
+  margin-top: 4px;
 }
 
 .mobile-player-info-row .is-favorite svg {
@@ -1804,7 +1844,7 @@ input[type="file"] {
   display: flex;
   justify-content: space-between;
   font-size: 12px;
-  color: #b3b3b3;
+  color: rgba(255, 255, 255, 0.45);
 }
 
 /* メインコントロール: shuffle prev play next loop */
@@ -1819,7 +1859,7 @@ input[type="file"] {
 .mobile-player-controls .icon-button {
   width: 44px;
   height: 44px;
-  color: #b3b3b3;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .mobile-player-controls .icon-button:hover {
@@ -1847,7 +1887,6 @@ input[type="file"] {
 
 .mobile-player-controls .is-primary:hover {
   background: #e0e0e0;
-  color: #000;
 }
 
 .mobile-player-controls .is-primary svg {
@@ -1877,10 +1916,12 @@ input[type="file"] {
   align-items: center;
   gap: 10px;
   flex-shrink: 0;
+  margin-top: 16px;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .mobile-player-volume .icon-button {
-  color: #b3b3b3;
+  color: rgba(255, 255, 255, 0.7);
   width: 32px;
   height: 32px;
   flex-shrink: 0;
@@ -1898,7 +1939,7 @@ input[type="file"] {
 .mobile-player-volume-ios-note {
   flex: 1;
   font-size: 11px;
-  color: #b3b3b3;
+  color: rgba(255, 255, 255, 0.45);
   text-align: center;
 }
 

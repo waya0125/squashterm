@@ -2925,10 +2925,12 @@ const isMobileDevice = () => window.innerWidth <= 768;
 
 // モバイルプレイヤー要素
 const mobilePlayerOverlay      = document.getElementById("mobile-player-overlay");
+const mobilePlayerBg           = document.getElementById("mobile-player-bg");
 const mobilePlayerClose        = document.getElementById("mobile-player-close");
 const mobilePlayerCover        = document.getElementById("mobile-player-cover");
 const mobilePlayerTitle        = document.getElementById("mobile-player-title");
 const mobilePlayerArtist       = document.getElementById("mobile-player-artist");
+const mobilePlayerAlbum        = document.getElementById("mobile-player-album");
 const mobilePlayerProgressSlider = document.getElementById("mobile-player-progress-slider");
 const mobilePlayerCurrentTime  = document.getElementById("mobile-player-current-time");
 const mobilePlayerDuration     = document.getElementById("mobile-player-duration");
@@ -2949,16 +2951,64 @@ const mobilePlayerOpenSource   = document.getElementById("mobile-player-open-sou
 const mobilePlayerEditInfo     = document.getElementById("mobile-player-edit-info");
 const mobilePlayerDeleteTrack  = document.getElementById("mobile-player-delete-track");
 
+// テキストをcontainerをクリアしてspan.scroll-textで包む
+const _mobileSetScrollText = (container, text) => {
+  if (!container) return;
+  container.innerHTML = "";
+  const span = document.createElement("span");
+  span.className = "scroll-text";
+  span.textContent = text || "--";
+  container.appendChild(span);
+};
+
+// はみ出し検出 → シームレスmarqueeループ適用
+const _mobileApplyMarquee = () => {
+  const GAP = 64;
+  const SPEED = 50; // px/s
+  requestAnimationFrame(() => {
+    [mobilePlayerTitle, mobilePlayerArtist, mobilePlayerAlbum].forEach((el) => {
+      if (!el) return;
+      const span = el.querySelector(".scroll-text");
+      if (!span) return;
+      span.classList.remove("is-overflowing");
+      span.style.removeProperty("--overflow-width");
+      span.style.removeProperty("--scroll-duration");
+      const singleWidth = span.scrollWidth;
+      if (singleWidth <= el.clientWidth) return;
+      // シームレスループ: テキスト [空白] テキスト
+      const txt = span.textContent;
+      span.textContent = "";
+      span.appendChild(document.createTextNode(txt));
+      const gap = document.createElement("span");
+      gap.style.cssText = `display:inline-block;width:${GAP}px`;
+      span.appendChild(gap);
+      span.appendChild(document.createTextNode(txt));
+      const dist = singleWidth + GAP;
+      span.style.setProperty("--overflow-width", `-${dist}px`);
+      span.style.setProperty("--scroll-duration", `${(dist / SPEED).toFixed(1)}s`);
+      span.classList.add("is-overflowing");
+    });
+  });
+};
+
 const updateMobilePlayerUI = () => {
   const track = state.tracks[playerState.currentIndex];
   if (!track) return;
 
+  // アルバムアートとぼかし背景
   if (mobilePlayerCover) {
     mobilePlayerCover.src = track.cover || "";
     mobilePlayerCover.alt = track.title || "";
   }
-  if (mobilePlayerTitle)  mobilePlayerTitle.textContent  = track.title  || "--";
-  if (mobilePlayerArtist) mobilePlayerArtist.textContent = track.artist || "--";
+  if (mobilePlayerBg && track.cover) {
+    mobilePlayerBg.style.backgroundImage = `url('${track.cover.replace(/'/g, "\\'")}')`;
+  }
+
+  // テキスト (スクロール対応)
+  _mobileSetScrollText(mobilePlayerTitle,  track.title  || "--");
+  _mobileSetScrollText(mobilePlayerArtist, track.artist || "--");
+  _mobileSetScrollText(mobilePlayerAlbum,  track.album  || "Unknown Album");
+  _mobileApplyMarquee();
 
   // 再生/一時停止ボタン同期
   if (mobilePlayerToggle) {

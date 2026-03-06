@@ -988,6 +988,8 @@
 
     <!-- Spotify風モバイル専用全画面プレイヤー -->
     <section class="mobile-player-overlay" id="mobile-player-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Now Playing">
+      <!-- ぼかし背景（アルバムアートをJSで設定） -->
+      <div class="mobile-player-bg" id="mobile-player-bg" aria-hidden="true"></div>
       <div class="mobile-player-content">
 
         <!-- ヘッダー: 閉じる（chevron-down）-->
@@ -1009,8 +1011,9 @@
         <!-- トラック情報 + ハート -->
         <div class="mobile-player-info-row">
           <div class="mobile-player-info">
-            <h2 class="scroll-text" id="mobile-player-title">--</h2>
-            <p class="scroll-text" id="mobile-player-artist">--</p>
+            <h2 id="mobile-player-title">--</h2>
+            <p id="mobile-player-artist">--</p>
+            <p class="mobile-player-album" id="mobile-player-album">--</p>
           </div>
           <button class="icon-button is-favorite" type="button" id="mobile-player-favorite" aria-label="お気に入りに追加" aria-pressed="false">
             <svg viewBox="0 0 24 24" aria-hidden="true">
