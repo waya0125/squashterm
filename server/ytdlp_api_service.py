@@ -375,8 +375,10 @@ def batch_download_playlist_via_api(
 def resolve_soundcloud_source_urls() -> dict:
     """ライブラリ内の SoundCloud API URL を /api/info 経由で正規ページ URL に修正する。
 
+    修正後、変更されたトラックを otomad-core-api に再登録する。
+
     Returns:
-        {"resolved": int, "skipped": int, "failed": int}
+        {"resolved": int, "skipped": int, "failed": int, "otomad_synced": int}
     """
     from library_service import load_library, save_library, _is_soundcloud_api_url
 
@@ -385,6 +387,7 @@ def resolve_soundcloud_source_urls() -> dict:
     resolved = 0
     skipped = 0
     failed = 0
+    resolved_tracks: list[dict] = []
 
     for track in tracks:
         raw_url = track.get("source_url") or ""
@@ -402,6 +405,7 @@ def resolve_soundcloud_source_urls() -> dict:
             page_url = info.get("webpage_url")
             if page_url and page_url.startswith("https://soundcloud.com"):
                 track["source_url"] = page_url
+                resolved_tracks.append(track)
                 resolved += 1
             else:
                 failed += 1
@@ -411,4 +415,18 @@ def resolve_soundcloud_source_urls() -> dict:
     if resolved:
         save_library(data)
 
-    return {"resolved": resolved, "skipped": skipped, "failed": failed}
+    # 修正済みトラックを otomad-core-api に再登録して URL を上書きする
+    otomad_synced = 0
+    if resolved_tracks:
+        try:
+            from otomad_service import ingest_to_otomad
+            for track in resolved_tracks:
+                try:
+                    ingest_to_otomad(track)
+                    otomad_synced += 1
+                except Exception:
+                    pass
+        except ImportError:
+            pass
+
+    return {"resolved": resolved, "skipped": skipped, "failed": failed, "otomad_synced": otomad_synced}
