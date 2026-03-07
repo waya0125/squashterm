@@ -76,14 +76,31 @@ def sync_playlist_with_remote(playlist_id: str) -> dict:
     if not auto_sync_url:
         raise RuntimeError("Auto sync URL is missing")
     entries = fetch_flat_playlist_entries(auto_sync_url)
-    entry_urls = []
+
+    existing_urls = collect_playlist_source_urls(playlist, data)
+
+    # SoundCloud flat extraction returns only api-v2 URLs (no title/permalink_url).
+    # Fall back to track ID comparison: library track ids use "yt_{sc_track_id}" format.
+    existing_track_ids: set[str] = set()
+    _track_map = {t["id"]: t for t in data.get("tracks", [])}
+    for tid in playlist.get("track_ids", []):
+        if tid.startswith("yt_"):
+            existing_track_ids.add(tid[3:])
+
+    missing_urls: list[str] = []
     for entry in entries:
         candidate = entry_to_source_url(entry)
         normalized = normalize_source_url(candidate)
-        if normalized:
-            entry_urls.append(normalized)
-    existing_urls = collect_playlist_source_urls(playlist, data)
-    missing_urls = [url for url in entry_urls if url not in existing_urls]
+        if normalized and normalized in existing_urls:
+            continue
+        sc_id = str(entry.get("id") or "")
+        if sc_id and sc_id in existing_track_ids:
+            continue
+        # Use api-v2 URL directly if no proper source URL was derived
+        entry_url = normalized or entry.get("url") or entry.get("webpage_url")
+        if entry_url:
+            missing_urls.append(entry_url)
+
     added_tracks = []
     errors: list[str] = []
     playlist_name = playlist.get("name")
