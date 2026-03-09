@@ -1276,6 +1276,14 @@ input[type="file"] {
   overflow-y: auto;
 }
 
+.share-dialog-body input {
+  width: 100%;
+}
+
+.share-dialog-body .primary {
+  width: 100%;
+}
+
 .modal-form {
   display: grid;
   gap: 12px;

@@ -768,6 +768,28 @@
       </div>
     </div>
 
+    <div
+      class="modal-overlay"
+      id="share-dialog"
+      aria-hidden="true"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3>共有リンク</h3>
+          <button type="button" class="icon-button" id="share-dialog-close" aria-label="閉じる">
+            <span class="icon">✕</span>
+          </button>
+        </div>
+        <div class="modal-body share-dialog-body">
+          <p>ボタンを押してリンクをコピーしてください。</p>
+          <input type="text" id="share-dialog-url" readonly />
+          <button type="button" class="primary" id="share-dialog-copy">リンクをコピー</button>
+        </div>
+      </div>
+    </div>
+
     <div class="mini-player" id="mini-player" aria-hidden="true">
       <div class="mini-info">
         <img class="mini-cover" id="mini-cover" src="" alt="" />

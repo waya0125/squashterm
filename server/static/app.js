@@ -130,6 +130,10 @@ const trackEditTitle = document.getElementById("track-edit-title");
 const trackEditArtist = document.getElementById("track-edit-artist");
 const trackEditAlbum = document.getElementById("track-edit-album");
 const trackEditSourceUrl = document.getElementById("track-edit-source-url");
+const shareDialog = document.getElementById("share-dialog");
+const shareDialogUrl = document.getElementById("share-dialog-url");
+const shareDialogCopy = document.getElementById("share-dialog-copy");
+const shareDialogClose = document.getElementById("share-dialog-close");
 
 const state = {
   tracks: [],
@@ -250,6 +254,42 @@ const showConfirmDialog = ({ title, message, showFileOption = false, buttons }) 
     dialog.classList.add("is-open");
     dialog.setAttribute("aria-hidden", "false");
   });
+};
+
+const closeShareDialog = () => {
+  if (!shareDialog) {
+    return;
+  }
+  shareDialog.classList.remove("is-open");
+  shareDialog.setAttribute("aria-hidden", "true");
+};
+
+const showShareDialog = (shareUrl) => {
+  if (!shareDialog || !shareDialogUrl) {
+    window.prompt("共有リンクをコピーしてください", shareUrl);
+    return;
+  }
+  shareDialogUrl.value = shareUrl;
+  shareDialog.classList.add("is-open");
+  shareDialog.setAttribute("aria-hidden", "false");
+};
+
+const copyShareUrl = async () => {
+  const shareUrl = shareDialogUrl?.value?.trim();
+  if (!shareUrl) {
+    return;
+  }
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(shareUrl);
+      appendImportLog("共有リンクをコピーしました。", { append: true });
+      closeShareDialog();
+      return;
+    }
+  } catch (error) {
+    console.error(error);
+  }
+  window.prompt("共有リンクをコピーしてください", shareUrl);
 };
 
 const formatFileDetails = (track) => {
@@ -2731,7 +2771,7 @@ if (playerOpenSource) {
 }
 
 if (playerShareTrack) {
-  playerShareTrack.addEventListener("click", async () => {
+  playerShareTrack.addEventListener("click", () => {
     const track = state.tracks[playerState.currentIndex];
     if (!track) {
       return;
@@ -2741,21 +2781,26 @@ if (playerShareTrack) {
       appendImportLog("共有リンクを作成できませんでした。", { append: true });
       return;
     }
-    try {
-      if (navigator.share) {
-        await navigator.share({
-          title: track.title,
-          text: `${track.title} / ${track.artist}`,
-          url: shareUrl,
-        });
-      } else if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(shareUrl);
-        appendImportLog("共有リンクをクリップボードにコピーしました。", { append: true });
-      } else {
-        window.prompt("共有リンクをコピーしてください", shareUrl);
-      }
-    } catch (error) {
-      console.error(error);
+    showShareDialog(shareUrl);
+  });
+}
+
+if (shareDialogCopy) {
+  shareDialogCopy.addEventListener("click", () => {
+    copyShareUrl();
+  });
+}
+
+if (shareDialogClose) {
+  shareDialogClose.addEventListener("click", () => {
+    closeShareDialog();
+  });
+}
+
+if (shareDialog) {
+  shareDialog.addEventListener("click", (event) => {
+    if (event.target === shareDialog) {
+      closeShareDialog();
     }
   });
 }
