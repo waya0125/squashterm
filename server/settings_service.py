@@ -13,6 +13,7 @@ DEFAULT_SETTINGS = {
     "app": {
         "name": "SquashTerm",
         "api": "FastAPI",
+        "base_url": "",
     },
     "device": "Raspberry Pi (prototype)",
     "storage": {
@@ -140,8 +141,12 @@ def build_settings_payload(repo_root: Path) -> dict:
     used_gb = storage.get("used_gb", 0)
     total_gb = storage.get("total_gb", 0)
     percent = int((used_gb / total_gb) * 100) if total_gb else 0
+    app_settings = settings.get("app", {})
     return {
         "version": get_dynamic_version(repo_root),
+        "app": {
+            "base_url": app_settings.get("base_url", ""),
+        },
         "storage": {
             "used_gb": used_gb,
             "total_gb": total_gb,
@@ -228,3 +233,16 @@ def get_dynamic_version(repo_root: Path) -> dict:
             "api": f"FastAPI {fastapi.__version__}",
             "build": "unknown"
         }
+
+
+def set_base_url(base_url: str) -> dict:
+    """アプリケーションの共有用ベースURLを更新する。"""
+    settings = load_settings(DEFAULT_SETTINGS)
+    app_settings = settings.get("app", {})
+    app_settings["base_url"] = base_url
+    settings["app"] = app_settings
+    SETTINGS_PATH.write_text(
+        json.dumps(settings, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    return {"success": True, "base_url": base_url}
