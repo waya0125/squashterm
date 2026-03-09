@@ -153,7 +153,7 @@ def render_share_page(track_id: str, request: Request):
     t = escape(track.title or "不明")
     artist = escape(track.artist or "不明")
     album = escape(track.album or "不明")
-    desc = escape(f"{track.title or '不明'} / {track.artist or '不明'} · {track.album or '不明'}")
+    desc = escape(f"{track.artist or '不明'} · {track.album or '不明'}")
     img = escape(abs_cover)
     url = escape(canonical)
     src_url = escape(track.source_url or "")
