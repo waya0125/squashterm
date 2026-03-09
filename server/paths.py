@@ -15,3 +15,4 @@ VERSION_PATH = CONFIG_DIR / "version.json"
 DEFAULT_COVER = "/static/images/cover-rise-up.svg"
 AUTO_SYNC_POLL_SECONDS = 60
 AUTO_SYNC_LOCK = threading.Lock()
+LIBRARY_WRITE_LOCK = threading.Lock()

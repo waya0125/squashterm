@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
+import tempfile
+import threading
 import uuid
 from dataclasses import asdict
 from datetime import datetime
@@ -15,7 +18,7 @@ from media_utils import (
     save_cover_from_id3,
 )
 from models import Track
-from paths import DEFAULT_COVER, LIBRARY_PATH, MEDIA_DIR
+from paths import DEFAULT_COVER, LIBRARY_PATH, LIBRARY_WRITE_LOCK, MEDIA_DIR
 
 
 def ensure_data_dirs() -> None:
@@ -153,7 +156,27 @@ def load_library() -> dict:
 
 
 def save_library(data: dict) -> None:
-    LIBRARY_PATH.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    """ライブラリを JSON ファイルに書き込む。
+
+    tempfile + os.replace() でアトミック書き込みを行い、
+    書き込み中のクラッシュによる JSON 破損を防止する。
+    LIBRARY_WRITE_LOCK で同時書き込みを直列化する。
+    """
+    serialized = json.dumps(data, ensure_ascii=False, indent=2)
+    with LIBRARY_WRITE_LOCK:
+        fd, tmp_path = tempfile.mkstemp(
+            dir=LIBRARY_PATH.parent, prefix=".library_tmp_", suffix=".json"
+        )
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                f.write(serialized)
+            os.replace(tmp_path, LIBRARY_PATH)
+        except Exception:
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
+            raise
 
 
 def remove_media_asset(path_value: str | None) -> None:
