@@ -6,10 +6,11 @@ import threading
 import uuid
 from dataclasses import asdict
 from datetime import datetime
+from html import escape
 from pathlib import Path
 
 from fastapi import FastAPI, File, Form, HTTPException, Query, Response, UploadFile
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 import uvicorn
 
@@ -119,9 +120,65 @@ def get_track_share_url(track_id: str, base_url: str | None = Query(default=None
     if normalized_base_url and not normalized_base_url.startswith(("http://", "https://")):
         raise HTTPException(status_code=400, detail="Invalid base_url")
 
-    track_path = f"/?track={track.id}"
+    track_path = f"/share/track/{track.id}"
     share_url = f"{normalized_base_url}{track_path}" if normalized_base_url else track_path
     return {"track_id": track.id, "share_url": share_url}
+
+
+@app.get("/share/track/{track_id}", response_class=HTMLResponse)
+def render_share_track_page(track_id: str):
+    tracks = fetch_tracks()
+    track = next((item for item in tracks if item.id == track_id), None)
+    if track is None:
+        raise HTTPException(status_code=404, detail="Track not found")
+
+    title = escape(track.title or "楽曲")
+    artist = escape(track.artist or "不明")
+    album = escape(track.album or "不明")
+    description = escape(f"{track.title or '楽曲'} / {track.artist or '不明'} ・ {track.album or '不明'}")
+    settings = load_settings(DEFAULT_SETTINGS)
+    app_settings = settings.get("app", {})
+    configured_base_url = str(app_settings.get("base_url", "")).strip().rstrip("/")
+    relative_cover_url = track.cover or "/static/images/icon.png"
+    cover_url = (
+        f"{configured_base_url}{relative_cover_url}"
+        if configured_base_url and relative_cover_url.startswith("/")
+        else relative_cover_url
+    )
+    canonical_url = (
+        f"{configured_base_url}/share/track/{track.id}"
+        if configured_base_url
+        else f"/share/track/{track.id}"
+    )
+    cover_url = escape(cover_url)
+    canonical_url = escape(canonical_url)
+
+    return f"""<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title} - SquashTerm</title>
+    <meta property="og:type" content="music.song" />
+    <meta property="og:site_name" content="SquashTerm" />
+    <meta property="og:title" content="{title}" />
+    <meta property="og:description" content="{description}" />
+    <meta property="og:image" content="{cover_url}" />
+    <meta property="og:url" content="{canonical_url}" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="{title}" />
+    <meta name="twitter:description" content="{description}" />
+    <meta name="twitter:image" content="{cover_url}" />
+  </head>
+  <body>
+    <main>
+      <h1>{title}</h1>
+      <p>{artist}</p>
+      <p>{album}</p>
+      <p><a href="/?track={track.id}">アプリで開く</a></p>
+    </main>
+  </body>
+</html>"""
 
 
 @app.put("/api/settings/base-url")
