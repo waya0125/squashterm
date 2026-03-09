@@ -1255,15 +1255,18 @@ input[type="file"] {
   color: currentColor;
 }
 
-.player-volume-control {
+/* ─── docker 固有: 音量コントロール共通スタイル ─── */
+.volume-control {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
 }
 
-#player-volume-slider {
-  width: 100px;
+.volume-slider {
+  width: 72px;
   height: 4px;
+  accent-color: #93c5fd;
   background: rgba(148, 163, 184, 0.3);
   border-radius: 2px;
   outline: none;
@@ -1271,9 +1274,10 @@ input[type="file"] {
   appearance: none;
   margin: 0;
   align-self: center;
+  cursor: pointer;
 }
 
-#player-volume-slider::-webkit-slider-thumb {
+.volume-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
   width: 12px;
@@ -1284,7 +1288,7 @@ input[type="file"] {
   margin-top: -4px;
 }
 
-#player-volume-slider::-moz-range-thumb {
+.volume-slider::-moz-range-thumb {
   width: 12px;
   height: 12px;
   background: #93c5fd;
@@ -1293,60 +1297,14 @@ input[type="file"] {
   border: none;
 }
 
-#player-volume-slider::-webkit-slider-runnable-track {
+.volume-slider::-webkit-slider-runnable-track {
   width: 100%;
   height: 4px;
   background: rgba(148, 163, 184, 0.3);
   border-radius: 2px;
 }
 
-#player-volume-slider::-moz-range-track {
-  width: 100%;
-  height: 4px;
-  background: rgba(148, 163, 184, 0.3);
-  border-radius: 2px;
-}
-
-.mini-volume-slider {
-  width: 100px;
-  height: 4px;
-  background: rgba(148, 163, 184, 0.3);
-  border-radius: 2px;
-  outline: none;
-  -webkit-appearance: none;
-  appearance: none;
-  margin: 0 4px 0 0;
-  align-self: center;
-}
-
-.mini-volume-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 10px;
-  height: 10px;
-  background: #93c5fd;
-  border-radius: 50%;
-  cursor: pointer;
-  margin-top: -3px;
-}
-
-.mini-volume-slider::-moz-range-thumb {
-  width: 10px;
-  height: 10px;
-  background: #93c5fd;
-  border-radius: 50%;
-  cursor: pointer;
-  border: none;
-}
-
-.mini-volume-slider::-webkit-slider-runnable-track {
-  width: 100%;
-  height: 4px;
-  background: rgba(148, 163, 184, 0.3);
-  border-radius: 2px;
-}
-
-.mini-volume-slider::-moz-range-track {
+.volume-slider::-moz-range-track {
   width: 100%;
   height: 4px;
   background: rgba(148, 163, 184, 0.3);
@@ -2158,13 +2116,10 @@ input[type="file"] {
 }
 
 /* 音量 + メニュー */
+/* mobile-player-volume: .volume-control / .volume-slider の上書き */
 .mobile-player-volume {
-  display: flex;
-  align-items: center;
   gap: 10px;
-  flex-shrink: 0;
 }
-
 
 .mobile-player-volume .icon-button {
   color: rgba(255, 255, 255, 0.7);
@@ -2177,8 +2132,9 @@ input[type="file"] {
   color: #fff;
 }
 
-.mobile-player-volume input[type="range"] {
+.mobile-player-volume .volume-slider {
   flex: 1;
+  width: auto;
   accent-color: #1db954;
 }
 

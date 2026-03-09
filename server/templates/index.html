@@ -579,7 +579,7 @@
                 <span class="sr-only">お気に入りに追加</span>
               </button>
             </div>
-            <div class="player-volume-control">
+            <div class="volume-control">
               <button
                 class="icon-button"
                 type="button"
@@ -604,6 +604,7 @@
                 max="100"
                 value="100"
                 id="player-volume-slider"
+                class="volume-slider"
                 aria-label="音量調整"
               />
             </div>
@@ -832,6 +833,7 @@
         </div>
       </div>
       <div class="mini-controls">
+        <div class="volume-control">
         <button
           class="icon-button"
           type="button"
@@ -856,9 +858,10 @@
           max="100"
           value="100"
           id="mini-volume-slider"
-          class="mini-volume-slider"
+          class="volume-slider"
           aria-label="音量調整"
         />
+        </div>
         <button class="icon-button" type="button" id="mini-prev" aria-label="前へ">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <rect x="4" y="5" width="3" height="14" rx="1.5" />
@@ -1128,13 +1131,13 @@
         </div>
 
         <!-- 音量 + メニュー -->
-        <div class="mobile-player-volume">
+        <div class="mobile-player-volume volume-control">
           <button class="icon-button" type="button" id="mobile-player-volume-toggle" aria-label="ミュート切り替え">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M11 5L6 9H2v6h4l5 4V5zM15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </button>
-          <input type="range" min="0" max="100" value="100" id="mobile-player-volume-slider" aria-label="音量調整"/>
+          <input type="range" min="0" max="100" value="100" id="mobile-player-volume-slider" class="volume-slider" aria-label="音量調整"/>
           <p class="mobile-player-volume-ios-note" id="mobile-player-volume-ios-note" hidden></p>
           <div class="mobile-player-menu-wrapper">
             <button class="icon-button mobile-player-menu-toggle" type="button" id="mobile-player-menu-toggle" aria-label="メニュー">
