@@ -391,11 +391,12 @@
               </div>
               <div class="card">
                 <h4>UIテーマ</h4>
-                <p style="font-size:13px;color:#94a3b8;margin:0 0 12px;">Spotify 風の見た目に切り替えます。URL に <code>?ui=spotify</code> を付けても切り替えられます。</p>
-                <button class="secondary" type="button" id="sp-theme-toggle-btn" aria-pressed="false">
-                  <span class="sp-toggle-dot"></span>
-                  <span class="sp-toggle-label">Spotify風UIをオン</span>
-                </button>
+                <p style="font-size:13px;color:#94a3b8;margin:0 0 4px;">テーマを選択します。URL に <code>?ui=spotify-dark</code> / <code>?ui=spotify-light</code> でも切り替え可能です。</p>
+                <select id="sp-theme-select">
+                  <option value="default">デフォルト（元のスタイル）</option>
+                  <option value="spotify-dark">Spotify 風 ダーク</option>
+                  <option value="spotify-light">Spotify 風 ライト</option>
+                </select>
               </div>
             </div>
           </section>
@@ -1065,6 +1066,7 @@
         <div class="sp-track-info">
           <span class="sp-title" id="sp-title">--</span>
           <span class="sp-artist" id="sp-artist">--</span>
+          <span class="sp-format-label" id="sp-format-label"></span>
         </div>
         <button class="sp-icon-btn" type="button" id="sp-favorite" aria-label="お気に入りに追加" aria-pressed="false">
           <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -1127,12 +1129,6 @@
 
       <!-- 右: 音量・その他 -->
       <div class="sp-extras">
-        <button class="sp-icon-btn" type="button" id="sp-expand" aria-label="画面を開く">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M8 4H4v4M16 4h4v4M20 16v4h-4M4 16v4h4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" />
-          </svg>
-          <span class="sr-only">画面を開く</span>
-        </button>
         <button class="sp-icon-btn" type="button" id="sp-volume-toggle" aria-label="ミュート切り替え">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M11 5L6 9H2v6h4l5 4V5zM15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
@@ -1140,6 +1136,12 @@
           <span class="sr-only">音量</span>
         </button>
         <input type="range" class="sp-volume-slider" id="sp-volume-slider" min="0" max="100" value="100" aria-label="音量調整" />
+        <button class="sp-icon-btn" type="button" id="sp-expand" aria-label="画面を開く">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M8 4H4v4M16 4h4v4M20 16v4h-4M4 16v4h4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" />
+          </svg>
+          <span class="sr-only">画面を開く</span>
+        </button>
       </div>
     </div>
     <section class="mobile-player-overlay" id="mobile-player-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Now Playing">
