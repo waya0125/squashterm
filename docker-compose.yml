@@ -13,8 +13,6 @@ services:
       # データ永続化用のボリューム
       - /mnt/hdd01/docker_data/squashterm/data:/app/server/data
       - ./config:/app/server/config
-      # 開発時のコード変更を反映（オプション）
-      - ./server:/app/server
       # git情報をコンテナから参照可能にする（バージョン自動取得用）
       - ./.git:/app/.git:ro
     environment:

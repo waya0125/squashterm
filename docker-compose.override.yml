@@ -1,0 +1,13 @@
+# 開発用オーバーライド設定
+#
+# このファイルは `docker compose up` 実行時に自動的に docker-compose.yml へ
+# マージされます。ホストの ./server をコンテナにマウントすることで、
+# コードを編集するたびにコンテナ再ビルド不要でリアルタイム反映されます。
+#
+# 本番 / CI では override を無視して起動してください:
+#   docker compose -f docker-compose.yml up
+
+services:
+  app:
+    volumes:
+      - ./server:/app/server
