@@ -67,6 +67,8 @@ const settingsStorageBar = document.getElementById("settings-storage-bar");
 const settingsStorageText = document.getElementById("settings-storage-text");
 const settingsPlaybackOptions = document.getElementById("settings-playback-options");
 const systemInfoList = document.getElementById("system-info-list");
+const settingsBaseUrlInput = document.getElementById("settings-base-url");
+const settingsBaseUrlSave = document.getElementById("settings-base-url-save");
 
 const audioPlayer = document.getElementById("audio-player");
 const playerOverlay = document.getElementById("player-overlay");
@@ -90,6 +92,7 @@ const playerMenuPanel = document.getElementById("player-menu-panel");
 const playerDownload = document.getElementById("player-download");
 const playerAddPlaylist = document.getElementById("player-add-playlist");
 const playerOpenSource = document.getElementById("player-open-source");
+const playerShareTrack = document.getElementById("player-share-track");
 const playerEditInfo = document.getElementById("player-edit-info");
 const playerDeleteTrack = document.getElementById("player-delete-track");
 const playerSeek = document.getElementById("player-seek");
@@ -1446,6 +1449,9 @@ const updatePlayerMenuButtons = () => {
   if (playerAddPlaylist) {
     playerAddPlaylist.disabled = !track;
   }
+  if (playerShareTrack) {
+    playerShareTrack.disabled = !track;
+  }
   if (playerDeleteTrack) {
     playerDeleteTrack.disabled = !track;
   }
@@ -1608,6 +1614,21 @@ const activateTab = (tabName) => {
   targetPanel.classList.add("is-active");
 };
 
+const getConfiguredBaseUrl = () => {
+  const value = settingsBaseUrlInput?.value?.trim() || "";
+  return value.replace(/\/$/, "");
+};
+
+const buildShareUrl = (track) => {
+  if (!track?.id) {
+    return null;
+  }
+  const configuredBaseUrl = getConfiguredBaseUrl();
+  const fallbackBaseUrl = `${window.location.origin}${window.location.pathname}`.replace(/\/$/, "");
+  const rootUrl = configuredBaseUrl || fallbackBaseUrl;
+  return `${rootUrl}/?track=${encodeURIComponent(track.id)}`;
+};
+
 const renderSettings = (settings) => {
   if (settingsVersionList) {
     const version = settings?.version || {};
@@ -1630,6 +1651,9 @@ const renderSettings = (settings) => {
         </div>
       </li>
     `;
+  }
+  if (settingsBaseUrlInput) {
+    settingsBaseUrlInput.value = settings?.app?.base_url || "";
   }
   if (settingsPlaybackOptions) {
     const options = settings?.playback_options || [];
@@ -2160,6 +2184,16 @@ const init = async () => {
     }
     renderSettings(settings);
     renderSystem(system);
+
+    const query = new URLSearchParams(window.location.search);
+    const sharedTrackId = query.get("track");
+    if (sharedTrackId) {
+      const sharedTrackIndex = state.tracks.findIndex((track) => String(track.id) === String(sharedTrackId));
+      if (sharedTrackIndex >= 0) {
+        setTrackByIndex(sharedTrackIndex, false);
+        openPlayerOverlay();
+      }
+    }
     
     const savedLoopMode = localStorage.getItem("loopMode");
     if (savedLoopMode && ["off", "playlist", "track"].includes(savedLoopMode)) {
@@ -2222,6 +2256,18 @@ if (playlistConcurrencyInput) {
     const value = parseInt(playlistConcurrencyInput.value, 10);
     if (value >= 1 && value <= 20) {
       localStorage.setItem("playlistConcurrency", value.toString());
+    }
+  });
+}
+
+if (settingsBaseUrlSave) {
+  settingsBaseUrlSave.addEventListener("click", async () => {
+    const baseUrl = settingsBaseUrlInput?.value?.trim() || "";
+    try {
+      await requestJson("/api/settings/base-url", { base_url: baseUrl }, "PUT");
+      appendImportLog("ベースURLを保存しました。", { append: true });
+    } catch (error) {
+      appendImportLog(`ベースURLの保存に失敗しました: ${error.message}`, { append: true });
     }
   });
 }
@@ -2730,6 +2776,36 @@ if (playerOpenSource) {
       return;
     }
     window.open(track.source_url, "_blank", "noopener");
+  });
+}
+
+if (playerShareTrack) {
+  playerShareTrack.addEventListener("click", async () => {
+    const track = state.tracks[playerState.currentIndex];
+    if (!track) {
+      return;
+    }
+    const shareUrl = buildShareUrl(track);
+    if (!shareUrl) {
+      appendImportLog("共有リンクを作成できませんでした。", { append: true });
+      return;
+    }
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: track.title,
+          text: `${track.title} / ${track.artist}`,
+          url: shareUrl,
+        });
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+        appendImportLog("共有リンクをクリップボードにコピーしました。", { append: true });
+      } else {
+        window.prompt("共有リンクをコピーしてください", shareUrl);
+      }
+    } catch (error) {
+      console.error(error);
+    }
   });
 }
 

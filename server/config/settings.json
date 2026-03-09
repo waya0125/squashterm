@@ -1,7 +1,8 @@
 {
   "app": {
     "name": "SquashTerm",
-    "api": "FastAPI"
+    "api": "FastAPI",
+    "base_url": ""
   },
   "device": "Raspberry Pi (prototype)",
   "storage": {

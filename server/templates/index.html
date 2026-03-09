@@ -3,13 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#1d1d1d" />
+    <meta name="theme-color" content="#111111" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="SquashTerm" />
-    <link rel="manifest" href="/static/manifest.json" />
-    <link rel="apple-touch-icon" href="/static/images/icon-180.png" />
     <title>SquashTerm</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/static/images/icon.png" />
+    <link rel="manifest" href="/static/manifest.webmanifest" />
     <link rel="stylesheet" href="/static/styles.css" />
   </head>
   <body>
@@ -362,6 +363,15 @@
                   <small>プレイリストを複数曲同時にダウンロードする際の並列度（1-20）</small>
                 </label>
               </div>
+              <div class="card">
+                <h4>アプリケーションURL</h4>
+                <label>
+                  <span>共有リンクに利用するベースURL</span>
+                  <input type="url" id="settings-base-url" placeholder="https://example.com" />
+                  <small>未指定の場合は現在開いているURLを使用します。</small>
+                </label>
+                <button class="secondary" type="button" id="settings-base-url-save">ベースURLを保存</button>
+              </div>
             </div>
           </section>
         </main>
@@ -635,6 +645,15 @@
                     <path d="M9 12h6" stroke="currentColor" stroke-width="2" />
                   </svg>
                   <span>ソース URLを開く</span>
+                </button>
+                <button type="button" role="menuitem" id="player-share-track" class="player-menu-action">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="18" cy="5" r="3" />
+                    <circle cx="6" cy="12" r="3" />
+                    <circle cx="18" cy="19" r="3" />
+                    <path d="M8.7 10.9l6.6-3.8M8.7 13.1l6.6 3.8" fill="none" stroke="currentColor" stroke-width="2" />
+                  </svg>
+                  <span>曲リンクを共有</span>
                 </button>
                 <button type="button" role="menuitem" id="player-edit-info" class="player-menu-action">
                   <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -1112,5 +1131,14 @@
     </section>
 
     <script src="/static/app.js"></script>
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("/static/sw.js").catch((error) => {
+            console.warn("Service Worker registration failed:", error);
+          });
+        });
+      }
+    </script>
   </body>
 </html>

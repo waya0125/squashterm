@@ -8,7 +8,7 @@ from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
 
-from fastapi import FastAPI, File, Form, HTTPException, Response, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Query, Response, UploadFile
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 import uvicorn
@@ -46,6 +46,7 @@ from settings_service import (
     build_version_label,
     ensure_version_file,
     load_settings,
+    set_base_url,
     update_playback_option,
 )
 from sync_service import auto_sync_worker, sync_playlist_with_remote
@@ -91,6 +92,47 @@ async def read_index():
     if not TEMPLATE_PATH.exists():
         raise HTTPException(status_code=404, detail="Index template not found")
     return FileResponse(TEMPLATE_PATH)
+
+
+@app.get("/favicon.ico")
+def get_favicon():
+    favicon_path = STATIC_DIR / "images" / "icon.png"
+    if not favicon_path.exists():
+        raise HTTPException(status_code=404, detail="Favicon not found")
+    return FileResponse(favicon_path)
+
+
+@app.get("/api/share/track/{track_id}")
+def get_track_share_url(track_id: str, base_url: str | None = Query(default=None)):
+    tracks = fetch_tracks()
+    track = next((item for item in tracks if item.id == track_id), None)
+    if track is None:
+        raise HTTPException(status_code=404, detail="Track not found")
+
+    raw_base_url = (base_url or "").strip()
+    if not raw_base_url:
+        settings = load_settings(DEFAULT_SETTINGS)
+        app_settings = settings.get("app", {})
+        raw_base_url = str(app_settings.get("base_url", "")).strip()
+
+    normalized_base_url = raw_base_url.rstrip("/")
+    if normalized_base_url and not normalized_base_url.startswith(("http://", "https://")):
+        raise HTTPException(status_code=400, detail="Invalid base_url")
+
+    track_path = f"/?track={track.id}"
+    share_url = f"{normalized_base_url}{track_path}" if normalized_base_url else track_path
+    return {"track_id": track.id, "share_url": share_url}
+
+
+@app.put("/api/settings/base-url")
+def update_base_url(payload: dict):
+    base_url = payload.get("base_url", "")
+    if base_url is None:
+        base_url = ""
+    base_url = str(base_url).strip()
+    if base_url and not base_url.startswith(("http://", "https://")):
+        raise HTTPException(status_code=400, detail="base_url must start with http:// or https://")
+    return set_base_url(base_url)
 
 
 @app.get("/api/library")
