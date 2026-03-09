@@ -280,6 +280,7 @@ def _build_share_html(
       <p class="redirect-note" id="note"><span id="sec">8</span> 秒後に自動でアプリを開きます</p>
     </div>
     <script>
+      /* app_url は生 URL のまま渡す: href は escape() 済み、JS は json.dumps() でエスケープ */
       const appUrl = {json.dumps(app_url)};
       let t = 8;
       const el = document.getElementById("sec");
