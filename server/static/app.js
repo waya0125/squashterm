@@ -1692,7 +1692,7 @@ const buildShareUrl = (track) => {
   const configuredBaseUrl = getConfiguredBaseUrl();
   const fallbackBaseUrl = window.location.origin;
   const rootUrl = configuredBaseUrl || fallbackBaseUrl;
-  return `${rootUrl}/?id=${encodeURIComponent(track.id)}`;
+  return `${rootUrl}/share/${encodeURIComponent(track.id)}`;
 };
 
 const renderSettings = (settings) => {
