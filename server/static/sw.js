@@ -1,4 +1,4 @@
-const cacheName = "squashterm-v1";
+const cacheName = "squashterm-v2"; // v2: 古いキャッシュ (v1) を強制削除
 const staticAssets = [
   "/",
   "/static/styles.css",
@@ -10,14 +10,21 @@ const staticAssets = [
 ];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(cacheName).then((cache) => cache.addAll(staticAssets)));
+  // 1 ファイルでも失敗しても SW インストール自体はブロックしない
+  event.waitUntil(
+    caches.open(cacheName).then((cache) =>
+      Promise.allSettled(staticAssets.map((url) => cache.add(url)))
+    )
+  );
+  // 旧 SW を待たずにすぐ有効化
+  self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(keys.filter((key) => key !== cacheName).map((key) => caches.delete(key)))
-    )
+    ).then(() => self.clients.claim())
   );
 });
 
