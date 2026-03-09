@@ -3101,6 +3101,7 @@ if (mobilePlayerMenuPanel) {
   const mobilePlayerDownload = document.getElementById("mobile-player-download");
   const mobilePlayerAddPlaylist = document.getElementById("mobile-player-add-playlist");
   const mobilePlayerOpenSource = document.getElementById("mobile-player-open-source");
+  const mobilePlayerShareTrack = document.getElementById("mobile-player-share-track");
   const mobilePlayerEditInfo = document.getElementById("mobile-player-edit-info");
   const mobilePlayerDeleteTrack = document.getElementById("mobile-player-delete-track");
 
@@ -3115,6 +3116,10 @@ if (mobilePlayerMenuPanel) {
   if (mobilePlayerOpenSource) mobilePlayerOpenSource.addEventListener("click", () => {
     closeMobilePlayerMenu();
     document.getElementById("player-open-source")?.click();
+  });
+  if (mobilePlayerShareTrack) mobilePlayerShareTrack.addEventListener("click", () => {
+    closeMobilePlayerMenu();
+    document.getElementById("player-share-track")?.click();
   });
   if (mobilePlayerEditInfo) mobilePlayerEditInfo.addEventListener("click", () => {
     closeMobilePlayerMenu();
