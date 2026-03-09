@@ -14,9 +14,10 @@ from paths import MEDIA_DIR
 def is_single_video_url(url: str) -> bool:
     """URLが単体動画かプレイリストかを判定"""
     parsed = urlparse(url)
-    
+    hostname = (parsed.hostname or "").lower()
+
     # YouTube判定
-    if "youtube.com" in parsed.netloc or "youtu.be" in parsed.netloc:
+    if hostname in {"youtube.com", "www.youtube.com", "youtu.be", "m.youtube.com"}:
         query_params = parse_qs(parsed.query)
         # v=パラメータがあれば単体動画（--no-playlist適用）
         if "v" in query_params:
@@ -25,12 +26,12 @@ def is_single_video_url(url: str) -> bool:
         if "/playlist" in parsed.path or "list" in query_params:
             return False
         return True
-    
+
     # SoundCloud判定
-    if "soundcloud.com" in parsed.netloc:
+    if hostname in {"soundcloud.com", "www.soundcloud.com"}:
         # /sets/を含むならプレイリスト、それ以外は単体
         return "/sets/" not in parsed.path
-    
+
     # デフォルトは単体扱い
     return True
 
