@@ -55,7 +55,7 @@ def parse_track_from_info(info: dict, source_url: str | None = None, playlist_na
         id=f"yt_{info.get('id', uuid.uuid4().hex)}",
         title=info.get("track") or info.get("title") or "Unknown Title",
         artist=info.get("artist") or info.get("uploader") or "Unknown Artist",
-        album=info.get("album") or playlist_name or info.get("playlist_title") or info.get("playlist") or "Unknown Album",
+        album=info.get("album") or (playlist_name.strip() if playlist_name and playlist_name.strip() else None) or info.get("playlist_title") or info.get("playlist") or "Unknown Album",
         cover=DEFAULT_COVER,
         duration=format_duration(info.get("duration")),
         bpm=int(info.get("bpm") or 0),
@@ -602,6 +602,10 @@ def apply_album_from_source_playlists(
             track = track_map.get(eid)
             if track is None:
                 continue
+            current_album = (track.get("album") or "").strip()
+            if current_album and current_album != "Unknown Album":
+                skipped += 1
+                continue
             track["album"] = playlist_title
             matched += 1
             updated += 1
@@ -615,7 +619,8 @@ def apply_album_from_source_playlists(
             "unmatched": unmatched,
         })
 
-    save_library(data)
+    if updated > 0:
+        save_library(data)
     return {"updated": updated, "skipped": skipped, "details": details}
 
 
