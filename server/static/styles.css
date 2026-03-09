@@ -105,10 +105,11 @@ body {
   display: none;
 }
 
-.mobile-sticky-title {
-  margin: 0;
-  font-size: 20px;
-  line-height: 1.2;
+.mobile-sticky-logo {
+  height: 40px;
+  width: auto;
+  max-width: 180px;
+  object-fit: contain;
 }
 
 .app-logo {
@@ -1425,13 +1426,15 @@ input[type="file"] {
   }
 
   .mobile-sticky-header {
-    position: sticky;
+    position: fixed;
     top: 0;
+    left: 0;
+    right: 0;
     z-index: 110;
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: calc(8px + env(safe-area-inset-top)) 0 8px;
+    padding: calc(8px + env(safe-area-inset-top)) 12px 8px;
     background: rgba(29, 29, 29, 0.92);
     backdrop-filter: blur(10px);
   }
@@ -1467,8 +1470,9 @@ input[type="file"] {
     display: block;
   }
 
-  .mobile-sticky-title {
-    font-size: 18px;
+  .mobile-sticky-logo {
+    height: 36px;
+    max-width: 160px;
   }
   .nav-menu {
     flex-direction: column;
@@ -1497,6 +1501,7 @@ input[type="file"] {
   }
 
   .content {
+    padding-top: calc(64px + env(safe-area-inset-top));
     padding-bottom: 120px;
     overflow: visible;
   }
@@ -1585,7 +1590,6 @@ input[type="file"] {
   }
 
   .mobile-sticky-header {
-    margin: -12px -12px 0;
     padding: calc(8px + env(safe-area-inset-top)) 12px 8px;
   }
 
