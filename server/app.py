@@ -12,7 +12,7 @@ from urllib.parse import quote
 
 from html import escape
 
-from fastapi import FastAPI, File, Form, HTTPException, Query, Response, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Query, Request, Response, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 import uvicorn
@@ -134,7 +134,7 @@ def get_track_share_url(track_id: str, base_url: str | None = Query(default=None
 
 
 @app.get("/share/{track_id}", response_class=HTMLResponse)
-def render_share_page(track_id: str):
+def render_share_page(track_id: str, request: Request):
     """OGP ランディングページ。クローラーには meta タグを返し、人間には 8 秒後にアプリへリダイレクトする。"""
     tracks = fetch_tracks()
     track = next((t for t in tracks if t.id == track_id), None)
@@ -142,7 +142,8 @@ def render_share_page(track_id: str):
         raise HTTPException(status_code=404, detail="Track not found")
 
     settings = load_settings(DEFAULT_SETTINGS)
-    base_url = str(settings.get("app", {}).get("base_url", "")).strip().rstrip("/")
+    configured_base = str(settings.get("app", {}).get("base_url", "")).strip().rstrip("/")
+    base_url = _resolve_base_url(request, configured_base)
 
     relative_cover = track.cover or "/static/images/icon.png"
     abs_cover = f"{base_url}{relative_cover}" if base_url and relative_cover.startswith("/") else relative_cover
@@ -159,6 +160,21 @@ def render_share_page(track_id: str):
     app_url_esc = escape(app_url)
 
     return _build_share_html(t, artist, album, desc, img, url, app_url_esc, src_url)
+
+
+def _resolve_base_url(request: Request, settings_base_url: str) -> str:
+    """base_url を解決する。設定値が空の場合はリクエストのプロキシヘッダーから自動検出する。
+
+    優先順位: 設定値 > X-Forwarded-Proto + Host > request.base_url
+    Cloudflare / nginx などのリバースプロキシ環境でも絶対 URL を生成できる。
+    """
+    if settings_base_url:
+        return settings_base_url
+    proto = request.headers.get("x-forwarded-proto", "").split(",")[0].strip()
+    host = request.headers.get("x-forwarded-host") or request.headers.get("host", "")
+    if proto and host:
+        return f"{proto}://{host}"
+    return str(request.base_url).rstrip("/")
 
 
 def _build_share_html(
