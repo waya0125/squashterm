@@ -67,6 +67,7 @@ body.theme-spotify .layout {
   gap: 0;
   height: 100%;
   min-height: 0;              /* calc(100vh-48px) のデフォルト min-height を無効化 */
+  overflow: hidden;            /* グリッド行が内容に合わせて拡張しないよう clip */
   grid-template-columns: var(--sp-sidebar-w) 1fr;
 }
 
@@ -115,8 +116,8 @@ body.theme-spotify .content {
   color: var(--sp-text);
   height: 100%;
   overflow-y: auto;
-  padding-bottom: 24px;
-  /* 固定プレイヤーバーは .app の外（fixed）なので padding 不要 */
+  /* 再生バー（90px）の高さ分だけ末尾に余白を確保してコンテンツが隠れないようにする */
+  padding-bottom: var(--sp-player-h, 90px);
 }
 
 /* ---- ナビゲーションボタン ---- */
