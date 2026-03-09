@@ -4,7 +4,6 @@ import json
 import os
 import shutil
 import tempfile
-import threading
 import uuid
 from dataclasses import asdict
 from datetime import datetime
