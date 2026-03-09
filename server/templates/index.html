@@ -12,6 +12,7 @@
     <link rel="apple-touch-icon" href="/static/images/icon.png" />
     <link rel="manifest" href="/static/manifest.webmanifest" />
     <link rel="stylesheet" href="/static/styles.css" />
+    <link rel="stylesheet" href="/static/spotify-ui.css" />
   </head>
   <body>
     <div class="app">
@@ -387,6 +388,14 @@
                   <small>未指定の場合は現在開いているURLを使用します。</small>
                 </label>
                 <button class="secondary" type="button" id="settings-base-url-save">ベースURLを保存</button>
+              </div>
+              <div class="card">
+                <h4>UIテーマ</h4>
+                <p style="font-size:13px;color:#94a3b8;margin:0 0 12px;">Spotify 風の見た目に切り替えます。URL に <code>?ui=spotify</code> を付けても切り替えられます。</p>
+                <button class="secondary" type="button" id="sp-theme-toggle-btn" aria-pressed="false">
+                  <span class="sp-toggle-dot"></span>
+                  <span class="sp-toggle-label">Spotify風UIをオン</span>
+                </button>
               </div>
             </div>
           </section>
@@ -1048,7 +1057,91 @@
 
     <audio id="audio-player"></audio>
 
-    <!-- Spotify風モバイル専用全画面プレイヤー -->
+    <!-- Spotify 風プレイヤーバー（#sp-player-bar）: theme-spotify のときに #mini-player と入れ替わる -->
+    <div id="sp-player-bar" aria-hidden="true" role="region" aria-label="Now Playing">
+      <!-- 左: 再生中の曲情報 -->
+      <div class="sp-now-playing">
+        <img class="sp-cover" id="sp-cover" src="" alt="" />
+        <div class="sp-track-info">
+          <span class="sp-title" id="sp-title">--</span>
+          <span class="sp-artist" id="sp-artist">--</span>
+        </div>
+        <button class="sp-icon-btn" type="button" id="sp-favorite" aria-label="お気に入りに追加" aria-pressed="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 20.3l-1.4-1.3c-4.5-4-7.1-6.4-7.1-9.6 0-2.1 1.6-3.7 3.7-3.7 1.4 0 2.7.7 3.4 1.8.8-1.1 2-1.8 3.4-1.8 2.1 0 3.7 1.6 3.7 3.7 0 3.2-2.6 5.6-7.1 9.6L12 20.3z" />
+          </svg>
+          <span class="sr-only">お気に入り</span>
+        </button>
+      </div>
+
+      <!-- 中央: コントロール + プログレスバー -->
+      <div class="sp-controls">
+        <div class="sp-control-btns">
+          <button class="sp-icon-btn" type="button" id="sp-shuffle" aria-label="シャッフル: オフ" aria-pressed="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <span class="sr-only">シャッフル</span>
+          </button>
+          <button class="sp-icon-btn" type="button" id="sp-prev" aria-label="前へ">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="4" y="5" width="3" height="14" rx="1.5" />
+              <polygon points="20,5 10,12 20,19" />
+            </svg>
+            <span class="sr-only">前へ</span>
+          </button>
+          <button class="sp-icon-btn sp-play-btn" type="button" id="sp-toggle" aria-label="再生">
+            <svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true">
+              <polygon points="8,5 19,12 8,19" />
+            </svg>
+            <svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="7" y="5" width="4" height="14" rx="1.5" />
+              <rect x="13" y="5" width="4" height="14" rx="1.5" />
+            </svg>
+            <span class="sr-only">再生</span>
+          </button>
+          <button class="sp-icon-btn" type="button" id="sp-next" aria-label="次へ">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <polygon points="4,5 14,12 4,19" />
+              <rect x="17" y="5" width="3" height="14" rx="1.5" />
+            </svg>
+            <span class="sr-only">次へ</span>
+          </button>
+          <button class="sp-icon-btn" type="button" id="sp-loop" aria-label="ループ: オフ" aria-pressed="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 12a6 6 0 0 1 10-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+              <polyline points="14,4 14,8 10,8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              <path d="M20 12a6 6 0 0 1-10 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+              <polyline points="10,20 10,16 14,16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <span class="sp-loop-label" aria-hidden="true">OFF</span>
+            <span class="sr-only">ループ</span>
+          </button>
+        </div>
+        <div class="sp-progress">
+          <span class="sp-time" id="sp-current">0:00</span>
+          <input type="range" class="sp-seek" id="sp-seek" min="0" max="100" value="0" step="0.1" aria-label="再生位置" />
+          <span class="sp-time" id="sp-duration">0:00</span>
+        </div>
+      </div>
+
+      <!-- 右: 音量・その他 -->
+      <div class="sp-extras">
+        <button class="sp-icon-btn" type="button" id="sp-expand" aria-label="画面を開く">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M8 4H4v4M16 4h4v4M20 16v4h-4M4 16v4h4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" />
+          </svg>
+          <span class="sr-only">画面を開く</span>
+        </button>
+        <button class="sp-icon-btn" type="button" id="sp-volume-toggle" aria-label="ミュート切り替え">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M11 5L6 9H2v6h4l5 4V5zM15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          <span class="sr-only">音量</span>
+        </button>
+        <input type="range" class="sp-volume-slider" id="sp-volume-slider" min="0" max="100" value="100" aria-label="音量調整" />
+      </div>
+    </div>
     <section class="mobile-player-overlay" id="mobile-player-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Now Playing">
       <!-- ぼかし背景（アルバムアートをJSで設定） -->
       <div class="mobile-player-bg" id="mobile-player-bg" aria-hidden="true"></div>
@@ -1178,6 +1271,7 @@
     </section>
 
     <script src="/static/app.js"></script>
+    <script src="/static/spotify-ui.js"></script>
     <script>
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
