@@ -1,5 +1,5 @@
 /* ====================================================================
-   spotify-ui.css — Spotify 風 UI テーマ パッチ v2
+   spotify-ui.css — Spotify 風 UI テーマ パッチ v3
    body.theme-spotify が付与されているときのみ有効
    ==================================================================== */
 
@@ -46,29 +46,38 @@ body.theme-spotify.theme-light {
   --sp-btn-hover: #121212;
 }
 
-/* ---- グローバル ---- */
+/* ==================================================================
+   グローバル・レイアウト（Spotify 風独立スクロール）
+   ================================================================== */
+
 body.theme-spotify {
   background: var(--sp-bg);
+  height: 100vh;
+  overflow: hidden;
 }
 
 body.theme-spotify .app {
   padding: 0;
   background: var(--sp-bg);
+  height: calc(100vh - var(--sp-player-h, 90px));
+  overflow: hidden;
 }
 
 body.theme-spotify .layout {
   gap: 0;
-  min-height: 100vh;
+  height: 100%;
+  overflow: hidden;
   grid-template-columns: var(--sp-sidebar-w) 1fr;
 }
 
-/* ---- サイドバー ---- */
+/* ---- サイドバー（左）独立スクロール ---- */
 body.theme-spotify .sidebar {
   background: var(--sp-sidebar);
   border-radius: 0;
   padding: 16px 8px 24px;
   gap: 4px;
-  height: calc(100vh - var(--sp-player-h, 90px));
+  height: 100%;
+  position: relative;
   top: 0;
   overflow-y: auto;
   scrollbar-width: thin;
@@ -100,6 +109,16 @@ body.theme-spotify .brand .app-logo {
   border-radius: 6px;
 }
 
+/* ---- メインコンテンツ（右）独立スクロール ---- */
+body.theme-spotify .content {
+  background: var(--sp-bg);
+  color: var(--sp-text);
+  height: 100%;
+  overflow-y: auto;
+  padding-bottom: 24px;
+  /* 固定プレイヤーバーは .app の外（fixed）なので padding 不要 */
+}
+
 /* ---- ナビゲーションボタン ---- */
 body.theme-spotify .nav-button {
   width: 100%;
@@ -117,11 +136,15 @@ body.theme-spotify .nav-button {
   text-align: left;
   transition: color 0.15s ease, background-color 0.15s ease;
   flex-shrink: 0;
+  /* 青 hover を上書き */
+  box-shadow: none !important;
+  outline: none !important;
 }
 
 body.theme-spotify .nav-button:hover {
   color: var(--sp-btn-hover);
-  background: var(--sp-hover);
+  background: var(--sp-hover) !important;
+  transform: none;
 }
 
 body.theme-spotify .nav-button.is-active {
@@ -136,15 +159,7 @@ body.theme-spotify .nav-icon {
   height: 20px;
 }
 
-/* ---- メインコンテンツエリア ---- */
-body.theme-spotify .content {
-  background: var(--sp-bg);
-  color: var(--sp-text);
-  padding-bottom: calc(var(--sp-player-h) + 24px);
-  min-height: 100vh;
-  overflow-y: auto;
-}
-
+/* ---- パネル ---- */
 body.theme-spotify .panel {
   padding: 24px 28px;
 }
@@ -173,7 +188,58 @@ body.theme-spotify .card h4 {
   color: var(--sp-text);
 }
 
-/* ---- プレイヤーオーバーレイ ---- */
+/* ==================================================================
+   青色ブラー・box-shadow・フォーカスリング 全消去
+   ================================================================== */
+
+/* icon-button の青 hover 上書き */
+body.theme-spotify .icon-button:hover {
+  background: var(--sp-hover) !important;
+  color: var(--sp-text) !important;
+  transform: none !important;
+}
+
+body.theme-spotify .icon-button.is-active {
+  background: rgba(29, 185, 84, 0.2) !important;
+  color: var(--sp-accent) !important;
+}
+
+body.theme-spotify .icon-button.is-loop {
+  background: rgba(29, 185, 84, 0.15) !important;
+  color: var(--sp-accent) !important;
+}
+
+/* フォーカス時の box-shadow / outline 消去 */
+body.theme-spotify button:focus,
+body.theme-spotify button:focus-visible,
+body.theme-spotify button:focus-within,
+body.theme-spotify input:focus,
+body.theme-spotify input:focus-visible,
+body.theme-spotify select:focus,
+body.theme-spotify select:focus-visible {
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* range input の枠・アウトライン全消去 */
+body.theme-spotify input[type="range"],
+body.theme-spotify input[type="range"]:focus,
+body.theme-spotify input[type="range"]:focus-visible {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* 選択ハイライト */
+body.theme-spotify ::selection {
+  background: rgba(29, 185, 84, 0.25);
+  color: var(--sp-text);
+}
+
+/* ==================================================================
+   プレイヤーオーバーレイ
+   ================================================================== */
+
 body.theme-spotify .player-overlay {
   background: linear-gradient(to bottom, #2c2c2c 0%, var(--sp-bg) 60%);
 }
@@ -192,15 +258,16 @@ body.theme-spotify .player-cover {
 }
 
 body.theme-spotify .player-controls .icon-button.is-primary {
-  background: var(--sp-play-btn-bg);
-  color: var(--sp-play-btn-fg);
+  background: var(--sp-play-btn-bg) !important;
+  color: var(--sp-play-btn-fg) !important;
   border-radius: 50%;
   width: 48px;
   height: 48px;
 }
 
 body.theme-spotify .player-controls .icon-button.is-primary:hover {
-  transform: scale(1.05);
+  transform: scale(1.05) !important;
+  background: var(--sp-play-btn-bg) !important;
 }
 
 body.theme-spotify .player-controls .icon-button.is-active,
@@ -208,7 +275,10 @@ body.theme-spotify .player-controls .icon-button[aria-pressed="true"] {
   color: var(--sp-accent);
 }
 
-/* ---- Spotify プレイヤーバー ---- */
+/* ==================================================================
+   Spotify プレイヤーバー #sp-player-bar
+   ================================================================== */
+
 #sp-player-bar {
   display: none;
   position: fixed;
@@ -255,39 +325,64 @@ body.theme-spotify #mini-player {
 
 .sp-track-info {
   min-width: 0;
+  flex: 1;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  flex: 1;
+}
+
+/* ---- タイトル・アーティスト（テキストスクロール）---- */
+.sp-title,
+.sp-artist {
+  display: block;
+  white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
+  position: relative;
 }
 
 .sp-title {
   color: var(--sp-text, #fff);
   font-size: 14px;
   font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: block;
 }
 
 .sp-artist {
   color: var(--sp-text-muted, #b3b3b3);
   font-size: 12px;
-  white-space: nowrap;
+}
+
+/* marquee 中は overflow hidden にしてスクロールコンテナとして機能させる */
+.sp-title.sp-scrolling,
+.sp-artist.sp-scrolling {
+  text-overflow: clip;
   overflow: hidden;
-  text-overflow: ellipsis;
-  display: block;
+}
+
+/* 内部スクロール用ラッパー */
+.sp-marquee-inner {
+  display: inline-flex;
+  white-space: nowrap;
+  will-change: transform;
+}
+
+.sp-scrolling .sp-marquee-inner {
+  animation: sp-marquee var(--sp-scroll-dur, 12s) linear infinite;
+}
+
+@keyframes sp-marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(var(--sp-scroll-dist, -200px)); }
 }
 
 .sp-format-label {
+  display: block;
   color: var(--sp-text-muted, #b3b3b3);
   font-size: 10px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  display: block;
   opacity: 0.7;
   letter-spacing: 0.02em;
 }
@@ -308,8 +403,8 @@ body.theme-spotify #mini-player {
   transition: color 0.15s ease, transform 0.1s ease;
   padding: 0;
   outline: none !important;
-  -webkit-tap-highlight-color: transparent;
   box-shadow: none !important;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .sp-icon-btn:hover {
@@ -329,7 +424,7 @@ body.theme-spotify #mini-player {
   display: block;
 }
 
-/* SVG fill — rect/polygon は currentColor で塗る。fill="none" の path は明示的に none のまま */
+/* SVG fill: rect/polygon は currentColor */
 .sp-icon-btn svg rect,
 .sp-icon-btn svg polygon {
   fill: currentColor;
@@ -339,6 +434,7 @@ body.theme-spotify #mini-player {
   fill: currentColor;
 }
 
+/* アクティブ状態 */
 .sp-icon-btn.is-active,
 .sp-icon-btn[aria-pressed="true"],
 .sp-icon-btn.is-loop {
@@ -349,7 +445,7 @@ body.theme-spotify #mini-player {
 .sp-icon-btn.is-playing svg.icon-play  { display: none; }
 .sp-icon-btn:not(.is-playing) svg.icon-pause { display: none; }
 
-/* ---- プレイボタン（丸い）---- */
+/* ---- プレイボタン（白い丸）---- */
 .sp-play-btn {
   width: 36px;
   height: 36px;
@@ -367,7 +463,16 @@ body.theme-spotify #mini-player {
   height: 18px !important;
 }
 
-/* ループボタン: アイコン + ラベルを縦積み */
+/* ---- 音量ボタン: 通常=白、hover=緑 ---- */
+.sp-vol-btn {
+  color: var(--sp-text, #fff) !important;
+}
+
+.sp-vol-btn:hover {
+  color: var(--sp-accent, #1db954) !important;
+}
+
+/* ---- ループボタン ---- */
 #sp-loop {
   flex-direction: column;
   gap: 1px;
@@ -416,7 +521,10 @@ body.theme-spotify #mini-player {
   text-align: center;
 }
 
-/* ---- Range input 共通：枠・アウトライン全消去 ---- */
+/* ==================================================================
+   Range input 共通 — 枠・outline・box-shadow 全消去
+   ================================================================== */
+
 .sp-seek,
 .sp-volume-slider {
   -webkit-appearance: none;
@@ -440,13 +548,20 @@ body.theme-spotify #mini-player {
   box-shadow: none !important;
 }
 
-/* ---- シークバー ---- */
+/* ==================================================================
+   シークバー — コンテナを 20px にして thumb ズレ解消
+   ================================================================== */
+
 .sp-seek {
   flex: 1;
-  height: 4px;
+  height: 20px;   /* 十分な高さで thumb が中央に自然に収まる */
 }
 
-/* Webkit track */
+.sp-seek::-webkit-slider-container {
+  height: 20px;
+}
+
+/* Webkit track — 4px の細い棒 */
 .sp-seek::-webkit-slider-runnable-track {
   height: 4px;
   border-radius: 2px;
@@ -459,10 +574,10 @@ body.theme-spotify #mini-player {
 }
 
 .sp-seek:hover::-webkit-slider-runnable-track {
-  height: 6px;
+  height: 5px;
 }
 
-/* Webkit thumb */
+/* Webkit thumb — hover 時のみ表示、ズレなし（margin-top なし） */
 .sp-seek::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 12px;
@@ -470,7 +585,6 @@ body.theme-spotify #mini-player {
   border-radius: 50%;
   background: var(--sp-thumb, #fff);
   cursor: pointer;
-  margin-top: -4px;
   opacity: 0;
   transition: opacity 0.15s ease;
 }
@@ -485,7 +599,6 @@ body.theme-spotify #mini-player {
   border-radius: 2px;
   background: var(--sp-track-bg, #535353);
   border: none;
-  outline: none;
 }
 
 .sp-seek::-moz-range-progress {
@@ -501,17 +614,19 @@ body.theme-spotify #mini-player {
   background: var(--sp-thumb, #fff);
   border: none;
   opacity: 0;
-  transition: opacity 0.15s ease;
 }
 
 .sp-seek:hover::-moz-range-thumb {
   opacity: 1;
 }
 
-/* ---- 音量スライダー（サム常時表示）---- */
+/* ==================================================================
+   音量スライダー — thumb 常時表示
+   ================================================================== */
+
 .sp-volume-slider {
   width: 90px;
-  height: 4px;
+  height: 20px;
 }
 
 /* Webkit track */
@@ -523,10 +638,10 @@ body.theme-spotify #mini-player {
 }
 
 .sp-volume-slider:hover::-webkit-slider-runnable-track {
-  height: 6px;
+  height: 5px;
 }
 
-/* Webkit thumb — 音量は常時表示 */
+/* Webkit thumb — 常時表示 */
 .sp-volume-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 12px;
@@ -534,11 +649,6 @@ body.theme-spotify #mini-player {
   border-radius: 50%;
   background: var(--sp-thumb, #fff);
   cursor: pointer;
-  margin-top: -4px;
-}
-
-.sp-volume-slider:hover::-webkit-slider-thumb {
-  margin-top: -3px;
 }
 
 /* Firefox */
@@ -579,25 +689,100 @@ body.theme-spotify #mini-player {
   width: 100%;
   margin-top: 8px;
   outline: none;
+  box-shadow: none;
 }
 
 #sp-theme-select:hover {
   border-color: var(--sp-text-muted, #b3b3b3);
 }
 
-/* ---- フォーカス・選択の青ブラー消去 ---- */
-body.theme-spotify input[type="range"] {
-  outline: none !important;
+/* ==================================================================
+   モバイルプレイヤー — Spotify テーマ時のスタイル合わせ
+   ================================================================== */
+
+/* accent color & button hover */
+body.theme-spotify .mobile-player-controls .icon-button:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1) !important;
+  transform: none !important;
+}
+
+body.theme-spotify .mobile-player-controls .icon-button.is-active,
+body.theme-spotify .mobile-player-controls .icon-button.is-loop {
+  color: var(--sp-accent, #1db954);
+  background: transparent !important;
+}
+
+body.theme-spotify .mobile-player-controls .is-primary {
+  background: #fff !important;
+  color: #000 !important;
+}
+
+body.theme-spotify .mobile-player-controls .is-primary:hover {
+  background: #f0f0f0 !important;
+  transform: scale(1.04) !important;
+}
+
+/* range input スタイル統一 */
+body.theme-spotify .mobile-player-progress input[type="range"],
+body.theme-spotify .mobile-player-volume .volume-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
   border: none !important;
+  outline: none !important;
   box-shadow: none !important;
 }
 
-body.theme-spotify ::selection {
-  background: rgba(29, 185, 84, 0.25);
-  color: var(--sp-text);
+body.theme-spotify .mobile-player-progress input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(
+    to right,
+    #fff var(--seek-pct, 0%),
+    rgba(255, 255, 255, 0.3) var(--seek-pct, 0%)
+  );
 }
 
-/* ---- モバイルでは Spotify プレイヤーバーを非表示 ---- */
+body.theme-spotify .mobile-player-progress input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+  margin-top: -5px;
+}
+
+body.theme-spotify .mobile-player-volume .volume-slider::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+body.theme-spotify .mobile-player-volume .volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+  margin-top: -5px;
+}
+
+body.theme-spotify .mobile-player-volume .icon-button {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+body.theme-spotify .mobile-player-volume .icon-button:hover {
+  color: #fff;
+  background: transparent !important;
+}
+
+/* ==================================================================
+   モバイル表示では Spotify プレイヤーバーを非表示
+   ================================================================== */
+
 @media (max-width: 768px) {
   #sp-player-bar {
     display: none !important;

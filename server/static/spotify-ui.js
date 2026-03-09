@@ -1,14 +1,12 @@
 /**
- * spotify-ui.js — Spotify 風 UI テーマ パッチ v2
- * body.theme-spotify クラスの付与/除去 + Spotify プレイヤーバーの状態同期
+ * spotify-ui.js — Spotify 風 UI テーマ パッチ v3
  */
 (function () {
   "use strict";
 
-  const THEME_KEY = "squashterm_ui_theme";
+  var THEME_KEY = "squashterm_ui_theme";
 
-  /** テーマ名 → body に付与するクラスリスト */
-  const THEME_CLASSES = {
+  var THEME_CLASSES = {
     "default":       [],
     "spotify-dark":  ["theme-spotify"],
     "spotify-light": ["theme-spotify", "theme-light"],
@@ -19,17 +17,18 @@
   // ================================================================
 
   function applyTheme(theme) {
-    // 全テーマクラスを一旦除去
     document.body.classList.remove("theme-spotify", "theme-light");
-    // 新テーマのクラスを付与
-    const classes = THEME_CLASSES[theme] || [];
+    var classes = THEME_CLASSES[theme] || [];
     classes.forEach(function (cls) { document.body.classList.add(cls); });
     updateThemeSelect();
     syncSpBarVisibility();
+    if (document.body.classList.contains("theme-spotify")) {
+      setTimeout(syncAll, 80);
+    }
   }
 
   function updateThemeSelect() {
-    const sel = document.getElementById("sp-theme-select");
+    var sel = document.getElementById("sp-theme-select");
     if (!sel) return;
     sel.value = localStorage.getItem(THEME_KEY) || "default";
   }
@@ -39,25 +38,21 @@
   // ================================================================
 
   function init() {
-    // URL param (?ui=spotify-dark / ?ui=spotify-light / ?ui=default) を処理
-    // 旧 ?ui=spotify も spotify-dark として受け入れる
-    const params = new URLSearchParams(location.search);
+    var params = new URLSearchParams(location.search);
     if (params.has("ui")) {
-      let val = params.get("ui");
+      var val = params.get("ui");
       if (val === "spotify") val = "spotify-dark";
       localStorage.setItem(THEME_KEY, val);
       params.delete("ui");
-      const newUrl = params.toString()
+      var newUrl = params.toString()
         ? location.pathname + "?" + params.toString()
         : location.pathname;
       history.replaceState(null, "", newUrl);
     }
 
-    // localStorage からテーマを適用
     applyTheme(localStorage.getItem(THEME_KEY) || "default");
 
-    // セレクトボックスにイベントリスナー
-    const sel = document.getElementById("sp-theme-select");
+    var sel = document.getElementById("sp-theme-select");
     if (sel) {
       sel.addEventListener("change", function () {
         localStorage.setItem(THEME_KEY, sel.value);
@@ -65,7 +60,6 @@
       });
     }
 
-    // Spotify プレイヤーバー初期化
     initSpBar();
   }
 
@@ -80,11 +74,11 @@
   // ================================================================
 
   function initSpBar() {
-    const spBar = document.getElementById("sp-player-bar");
+    var spBar = document.getElementById("sp-player-bar");
     if (!spBar) return;
 
-    // --- ボタンを既存 mini-player ボタンへ委譲 ---
-    const btnDelegates = {
+    // --- ボタン委譲 ---
+    var delegates = {
       "sp-toggle":        "mini-toggle",
       "sp-prev":          "mini-prev",
       "sp-next":          "mini-next",
@@ -95,10 +89,9 @@
       "sp-volume-toggle": "mini-volume-toggle",
     };
 
-    Object.keys(btnDelegates).forEach(function (spId) {
-      const origId = btnDelegates[spId];
-      const spBtn = document.getElementById(spId);
-      const orig  = document.getElementById(origId);
+    Object.keys(delegates).forEach(function (spId) {
+      var spBtn = document.getElementById(spId);
+      var orig  = document.getElementById(delegates[spId]);
       if (spBtn && orig) {
         spBtn.addEventListener("click", function (e) {
           e.preventDefault();
@@ -107,9 +100,9 @@
       }
     });
 
-    // --- シークバー委譲（sp-seek → mini-seek） ---
-    const spSeek   = document.getElementById("sp-seek");
-    const miniSeek = document.getElementById("mini-seek");
+    // --- シークバー委譲 ---
+    var spSeek   = document.getElementById("sp-seek");
+    var miniSeek = document.getElementById("mini-seek");
     if (spSeek && miniSeek) {
       spSeek.addEventListener("input", function () {
         miniSeek.value = spSeek.value;
@@ -118,9 +111,9 @@
       });
     }
 
-    // --- 音量スライダー相互委譲 ---
-    const spVol   = document.getElementById("sp-volume-slider");
-    const miniVol = document.getElementById("mini-volume-slider");
+    // --- 音量スライダー双方向同期 ---
+    var spVol   = document.getElementById("sp-volume-slider");
+    var miniVol = document.getElementById("mini-volume-slider");
     if (spVol && miniVol) {
       spVol.addEventListener("input", function () {
         miniVol.value = spVol.value;
@@ -131,8 +124,8 @@
       });
     }
 
-    // --- audio イベント（シーク・再生状態同期）---
-    const audio = document.getElementById("audio-player");
+    // --- audio イベント ---
+    var audio = document.getElementById("audio-player");
     if (audio) {
       audio.addEventListener("timeupdate",     syncTimeAndSeek);
       audio.addEventListener("durationchange", syncTimeAndSeek);
@@ -141,14 +134,16 @@
       audio.addEventListener("ended",          syncPlayPause);
     }
 
-    // --- MutationObserver: テキスト同期 ---
-    observeText("mini-title",    "sp-title");
-    observeText("mini-artist",   "sp-artist");
-    observeText("player-format", "sp-format-label");
+    // --- テキスト同期（MutationObserver）---
+    observeText("mini-title",    "sp-title",  true);   // marquee 対応
+    observeText("mini-artist",   "sp-artist", true);   // marquee 対応
+    observeText("mini-current",  "sp-current",  false);
+    observeText("mini-duration", "sp-duration", false);
+    observeText("player-format", "sp-format-label", false);
 
-    // --- MutationObserver: カバー画像 ---
-    const miniCover = document.getElementById("mini-cover");
-    const spCover   = document.getElementById("sp-cover");
+    // --- カバー画像同期 ---
+    var miniCover = document.getElementById("mini-cover");
+    var spCover   = document.getElementById("sp-cover");
     if (miniCover && spCover) {
       new MutationObserver(function () {
         spCover.src = miniCover.src;
@@ -156,52 +151,103 @@
       }).observe(miniCover, { attributes: true, attributeFilter: ["src", "alt"] });
     }
 
-    // --- MutationObserver: mini-player の表示/非表示 ---
-    const miniPlayer = document.getElementById("mini-player");
+    // --- mini-player 表示/非表示監視 ---
+    var miniPlayer = document.getElementById("mini-player");
     if (miniPlayer) {
       new MutationObserver(syncSpBarVisibility)
         .observe(miniPlayer, { attributes: true, attributeFilter: ["aria-hidden"] });
     }
 
-    // --- MutationObserver: ボタン状態 ---
+    // --- ボタン属性同期 ---
     observeButtonAttrs("mini-toggle",   "sp-toggle",   ["aria-label", "class"]);
     observeButtonAttrs("mini-loop",     "sp-loop",     ["aria-label", "aria-pressed", "class"]);
     observeButtonAttrs("mini-shuffle",  "sp-shuffle",  ["aria-label", "aria-pressed", "class"]);
     observeButtonAttrs("mini-favorite", "sp-favorite", ["aria-label", "aria-pressed", "class"]);
 
-    // --- MutationObserver: ループラベル文字 ---
-    const miniLoop = document.getElementById("mini-loop");
-    const spLoop   = document.getElementById("sp-loop");
+    // --- ループラベル ---
+    var miniLoop = document.getElementById("mini-loop");
+    var spLoop   = document.getElementById("sp-loop");
     if (miniLoop && spLoop) {
       new MutationObserver(function () {
-        const srcLabel = miniLoop.querySelector(".loop-label");
-        const dstLabel = spLoop.querySelector(".sp-loop-label");
+        var srcLabel = miniLoop.querySelector(".loop-label");
+        var dstLabel = spLoop.querySelector(".sp-loop-label");
         if (srcLabel && dstLabel) dstLabel.textContent = srcLabel.textContent;
       }).observe(miniLoop, { childList: true, subtree: true, characterData: true });
     }
 
-    // 初回フル同期
     setTimeout(syncAll, 120);
   }
 
   // ================================================================
-  // MutationObserver ヘルパー: テキスト同期
+  // テキスト同期 + オプションで marquee セットアップ
   // ================================================================
-  function observeText(srcId, dstId) {
-    const src = document.getElementById(srcId);
-    const dst = document.getElementById(dstId);
+
+  function observeText(srcId, dstId, withMarquee) {
+    var src = document.getElementById(srcId);
+    var dst = document.getElementById(dstId);
     if (!src || !dst) return;
     new MutationObserver(function () {
-      dst.textContent = src.textContent;
+      var text = src.textContent;
+      dst.dataset.rawText = text;
+      if (withMarquee) {
+        setupMarquee(dst, text);
+      } else {
+        dst.textContent = text;
+      }
     }).observe(src, { childList: true, characterData: true, subtree: true });
   }
 
   // ================================================================
-  // MutationObserver ヘルパー: ボタン aria 属性・クラス同期
+  // marquee スクロールセットアップ
   // ================================================================
+
+  function setupMarquee(el, text) {
+    if (!el) return;
+
+    // リセット
+    el.classList.remove("sp-scrolling");
+    el.innerHTML = "";
+    el.textContent = text;
+
+    // 遅延して幅を測定（レイアウト安定後）
+    setTimeout(function () {
+      var scrollW = el.scrollWidth;
+      var clientW = el.offsetWidth;
+      if (scrollW <= clientW + 2) return; // 収まる場合はそのまま
+
+      var gap   = 48;
+      var speed = 50; // px/s
+      var dist  = scrollW + gap;
+      var dur   = dist / speed;
+
+      // 2つのコピーを並べた内部ラッパーを作成
+      var inner = document.createElement("span");
+      inner.className = "sp-marquee-inner";
+      inner.style.setProperty("--sp-scroll-dist", "-" + dist + "px");
+      inner.style.setProperty("--sp-scroll-dur",  dur + "s");
+
+      var copy1 = document.createElement("span");
+      copy1.textContent = text;
+      var copy2 = document.createElement("span");
+      copy2.textContent = text;
+      copy2.style.paddingLeft = gap + "px";
+
+      inner.appendChild(copy1);
+      inner.appendChild(copy2);
+
+      el.innerHTML = "";
+      el.appendChild(inner);
+      el.classList.add("sp-scrolling");
+    }, 50);
+  }
+
+  // ================================================================
+  // ボタン属性同期
+  // ================================================================
+
   function observeButtonAttrs(srcId, dstId, attrs) {
-    const src = document.getElementById(srcId);
-    const dst = document.getElementById(dstId);
+    var src = document.getElementById(srcId);
+    var dst = document.getElementById(dstId);
     if (!src || !dst) return;
 
     function sync() {
@@ -221,16 +267,12 @@
   }
 
   // ================================================================
-  // 同期: シークバーと時間表示
+  // シーク・時間同期
   // ================================================================
-  function syncTimeAndSeek() {
-    var miniCurrent  = document.getElementById("mini-current");
-    var miniDuration = document.getElementById("mini-duration");
-    var spCurrent    = document.getElementById("sp-current");
-    var spDuration   = document.getElementById("sp-duration");
 
-    if (spCurrent  && miniCurrent)  spCurrent.textContent  = miniCurrent.textContent;
-    if (spDuration && miniDuration) spDuration.textContent = miniDuration.textContent;
+  function syncTimeAndSeek() {
+    syncText("mini-current",  "sp-current");
+    syncText("mini-duration", "sp-duration");
 
     var spSeek   = document.getElementById("sp-seek");
     var miniSeek = document.getElementById("mini-seek");
@@ -241,9 +283,16 @@
     }
   }
 
+  function syncText(srcId, dstId) {
+    var src = document.getElementById(srcId);
+    var dst = document.getElementById(dstId);
+    if (src && dst) dst.textContent = src.textContent;
+  }
+
   // ================================================================
-  // 同期: 再生/一時停止状態
+  // 再生/停止状態同期
   // ================================================================
+
   function syncPlayPause() {
     var audio    = document.getElementById("audio-player");
     var spToggle = document.getElementById("sp-toggle");
@@ -254,8 +303,9 @@
   }
 
   // ================================================================
-  // 同期: Spotify バーの表示/非表示
+  // Spotify バー表示/非表示を mini-player に合わせる
   // ================================================================
+
   function syncSpBarVisibility() {
     var miniPlayer = document.getElementById("mini-player");
     var spBar      = document.getElementById("sp-player-bar");
@@ -265,23 +315,32 @@
   }
 
   // ================================================================
-  // 全項目フル同期（初回 + テーマ切り替え時）
+  // 全項目フル同期
   // ================================================================
+
   function syncAll() {
-    // テキスト
+    // プレーンテキスト
     [
-      ["mini-title",    "sp-title"],
-      ["mini-artist",   "sp-artist"],
       ["mini-current",  "sp-current"],
       ["mini-duration", "sp-duration"],
       ["player-format", "sp-format-label"],
-    ].forEach(function (pair) {
-      var src = document.getElementById(pair[0]);
-      var dst = document.getElementById(pair[1]);
-      if (src && dst) dst.textContent = src.textContent;
+    ].forEach(function (p) { syncText(p[0], p[1]); });
+
+    // marquee 対応テキスト
+    [
+      ["mini-title",  "sp-title"],
+      ["mini-artist", "sp-artist"],
+    ].forEach(function (p) {
+      var src = document.getElementById(p[0]);
+      var dst = document.getElementById(p[1]);
+      if (src && dst) {
+        var text = src.textContent;
+        dst.dataset.rawText = text;
+        setupMarquee(dst, text);
+      }
     });
 
-    // カバー画像
+    // カバー
     var miniCover = document.getElementById("mini-cover");
     var spCover   = document.getElementById("sp-cover");
     if (miniCover && spCover) {
@@ -291,11 +350,7 @@
 
     // シーク・時間
     syncTimeAndSeek();
-
-    // 再生状態
     syncPlayPause();
-
-    // 表示/非表示
     syncSpBarVisibility();
 
     // 音量
@@ -309,9 +364,9 @@
       ["mini-loop",     "sp-loop"],
       ["mini-shuffle",  "sp-shuffle"],
       ["mini-favorite", "sp-favorite"],
-    ].forEach(function (pair) {
-      var src = document.getElementById(pair[0]);
-      var dst = document.getElementById(pair[1]);
+    ].forEach(function (p) {
+      var src = document.getElementById(p[0]);
+      var dst = document.getElementById(p[1]);
       if (!src || !dst) return;
       dst.setAttribute("aria-label",   src.getAttribute("aria-label")   || "");
       dst.setAttribute("aria-pressed", src.getAttribute("aria-pressed") || "false");
@@ -329,13 +384,13 @@
       if (srcLabel && dstLabel) dstLabel.textContent = srcLabel.textContent;
     }
 
-    // テーマセレクト表示
     updateThemeSelect();
   }
 
   // ================================================================
-  // ユーティリティ: シークバーのグラデーション CSS 変数を更新
+  // シークバーのグラデーション CSS 変数を更新
   // ================================================================
+
   function updateSeekCss(input) {
     var max = parseFloat(input.max) || 100;
     var val = parseFloat(input.value) || 0;

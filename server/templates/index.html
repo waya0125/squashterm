@@ -1068,12 +1068,6 @@
           <span class="sp-artist" id="sp-artist">--</span>
           <span class="sp-format-label" id="sp-format-label"></span>
         </div>
-        <button class="sp-icon-btn" type="button" id="sp-favorite" aria-label="お気に入りに追加" aria-pressed="false">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M12 20.3l-1.4-1.3c-4.5-4-7.1-6.4-7.1-9.6 0-2.1 1.6-3.7 3.7-3.7 1.4 0 2.7.7 3.4 1.8.8-1.1 2-1.8 3.4-1.8 2.1 0 3.7 1.6 3.7 3.7 0 3.2-2.6 5.6-7.1 9.6L12 20.3z" />
-          </svg>
-          <span class="sr-only">お気に入り</span>
-        </button>
       </div>
 
       <!-- 中央: コントロール + プログレスバー -->
@@ -1129,13 +1123,31 @@
 
       <!-- 右: 音量・その他 -->
       <div class="sp-extras">
-        <button class="sp-icon-btn" type="button" id="sp-volume-toggle" aria-label="ミュート切り替え">
+        <!-- 次に再生（キュー）ボタン — 機能は後日実装 -->
+        <button class="sp-icon-btn" type="button" id="sp-queue" aria-label="次の再生リスト" title="次に再生（準備中）" disabled style="opacity:.4;cursor:default">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3 6h18M3 12h12M3 18h8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M18 11v6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="18" cy="19" r="2" fill="currentColor"/>
+          </svg>
+          <span class="sr-only">次の再生リスト</span>
+        </button>
+        <!-- ❤ お気に入り -->
+        <button class="sp-icon-btn" type="button" id="sp-favorite" aria-label="お気に入りに追加" aria-pressed="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 20.3l-1.4-1.3c-4.5-4-7.1-6.4-7.1-9.6 0-2.1 1.6-3.7 3.7-3.7 1.4 0 2.7.7 3.4 1.8.8-1.1 2-1.8 3.4-1.8 2.1 0 3.7 1.6 3.7 3.7 0 3.2-2.6 5.6-7.1 9.6L12 20.3z" />
+          </svg>
+          <span class="sr-only">お気に入り</span>
+        </button>
+        <!-- 音量 -->
+        <button class="sp-icon-btn sp-vol-btn" type="button" id="sp-volume-toggle" aria-label="ミュート切り替え">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M11 5L6 9H2v6h4l5 4V5zM15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
           <span class="sr-only">音量</span>
         </button>
         <input type="range" class="sp-volume-slider" id="sp-volume-slider" min="0" max="100" value="100" aria-label="音量調整" />
+        <!-- 全画面（右端）-->
         <button class="sp-icon-btn" type="button" id="sp-expand" aria-label="画面を開く">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M8 4H4v4M16 4h4v4M20 16v4h-4M4 16v4h4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" />
