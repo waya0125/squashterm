@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import quote
 
 from fastapi import FastAPI, File, Form, HTTPException, Query, Response, UploadFile
 from fastapi.responses import FileResponse, StreamingResponse
@@ -123,9 +124,11 @@ def get_track_share_url(track_id: str, base_url: str | None = Query(default=None
     if normalized_base_url and not normalized_base_url.startswith(("http://", "https://")):
         raise HTTPException(status_code=400, detail="Invalid base_url")
 
-    track_path = f"/?track={track.id}"
+    track_path = f"/?id={quote(str(track.id))}"
     share_url = f"{normalized_base_url}{track_path}" if normalized_base_url else track_path
     return {"track_id": track.id, "share_url": share_url}
+
+
 
 
 @app.put("/api/settings/base-url")
