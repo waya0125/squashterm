@@ -1652,7 +1652,7 @@ const buildShareUrl = (track) => {
   const configuredBaseUrl = getConfiguredBaseUrl();
   const fallbackBaseUrl = window.location.origin;
   const rootUrl = configuredBaseUrl || fallbackBaseUrl;
-  return `${rootUrl}/share/${encodeURIComponent(track.id)}`;
+  return `${rootUrl}/?id=${encodeURIComponent(track.id)}`;
 };
 
 const renderSettings = (settings) => {
@@ -2212,7 +2212,7 @@ const init = async () => {
     renderSystem(system);
 
     const query = new URLSearchParams(window.location.search);
-    const sharedTrackId = query.get("track");
+    const sharedTrackId = query.get("id");
     if (sharedTrackId) {
       const sharedTrackIndex = state.tracks.findIndex((track) => String(track.id) === String(sharedTrackId));
       if (sharedTrackIndex >= 0) {
