@@ -1650,9 +1650,9 @@ const buildShareUrl = (track) => {
     return null;
   }
   const configuredBaseUrl = getConfiguredBaseUrl();
-  const fallbackBaseUrl = `${window.location.origin}${window.location.pathname}`.replace(/\/$/, "");
+  const fallbackBaseUrl = window.location.origin;
   const rootUrl = configuredBaseUrl || fallbackBaseUrl;
-  return `${rootUrl}/share/track/${encodeURIComponent(track.id)}`;
+  return `${rootUrl}/share/${encodeURIComponent(track.id)}`;
 };
 
 const renderSettings = (settings) => {

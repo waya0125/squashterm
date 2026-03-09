@@ -1427,11 +1427,11 @@ input[type="file"] {
 
   .app-header {
     position: sticky;
-    top: env(safe-area-inset-top);
-    z-index: 80;
+    top: 0;
+    z-index: 110;
     justify-content: flex-start;
     gap: 12px;
-    padding: 8px 0;
+    padding: calc(8px + env(safe-area-inset-top)) 0 8px;
     background: rgba(29, 29, 29, 0.92);
     backdrop-filter: blur(10px);
   }
@@ -1588,6 +1588,11 @@ input[type="file"] {
 @media (max-width: 600px) {
   .app {
     padding: 12px;
+  }
+
+  .app-header {
+    margin: -12px -12px 0;
+    padding: calc(8px + env(safe-area-inset-top)) 12px 8px;
   }
 
   .sidebar {

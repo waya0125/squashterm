@@ -120,11 +120,12 @@ def get_track_share_url(track_id: str, base_url: str | None = Query(default=None
     if normalized_base_url and not normalized_base_url.startswith(("http://", "https://")):
         raise HTTPException(status_code=400, detail="Invalid base_url")
 
-    track_path = f"/share/track/{track.id}"
+    track_path = f"/share/{track.id}"
     share_url = f"{normalized_base_url}{track_path}" if normalized_base_url else track_path
     return {"track_id": track.id, "share_url": share_url}
 
 
+@app.get("/share/{track_id}", response_class=HTMLResponse)
 @app.get("/share/track/{track_id}", response_class=HTMLResponse)
 def render_share_track_page(track_id: str):
     tracks = fetch_tracks()
@@ -146,9 +147,9 @@ def render_share_track_page(track_id: str):
         else relative_cover_url
     )
     canonical_url = (
-        f"{configured_base_url}/share/track/{track.id}"
+        f"{configured_base_url}/share/{track.id}"
         if configured_base_url
-        else f"/share/track/{track.id}"
+        else f"/share/{track.id}"
     )
     cover_url = escape(cover_url)
     canonical_url = escape(canonical_url)
