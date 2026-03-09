@@ -1180,6 +1180,10 @@
     <script src="/static/app.js"></script>
     <script>
       if ("serviceWorker" in navigator) {
+        // 既存の SW を即座に強制更新（古い v1 キャッシュ＋main.js 問題を解消）
+        navigator.serviceWorker.getRegistrations().then(function (regs) {
+          regs.forEach(function (reg) { reg.update(); });
+        });
         window.addEventListener("load", () => {
           navigator.serviceWorker.register("/static/sw.js").catch((error) => {
             console.warn("Service Worker registration failed:", error);
