@@ -1,0 +1,21 @@
+{
+  "name": "SquashTerm",
+  "short_name": "SquashTerm",
+  "description": "ローカル音楽ライブラリを管理・再生するアプリ",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#111111",
+  "theme_color": "#111111",
+  "icons": [
+    {
+      "src": "/static/images/icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/images/icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

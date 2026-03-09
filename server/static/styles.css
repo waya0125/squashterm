@@ -189,6 +189,10 @@ body {
   flex-wrap: wrap;
 }
 
+#settings-base-url {
+  width: 100%;
+}
+
 .search-input {
   min-width: 200px;
 }
@@ -1537,7 +1541,16 @@ input[type="file"] {
   }
 
   .content {
-    padding-bottom: 220px;
+    padding-bottom: 240px;
+  }
+
+  .panel-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .panel-actions {
+    width: 100%;
   }
   
   .media-grid {
@@ -1584,7 +1597,13 @@ input[type="file"] {
 
 @media (max-width: 600px) {
   .app {
-    padding: 16px;
+    padding: 12px;
+  }
+
+  .sidebar {
+    left: 10px;
+    right: 10px;
+    bottom: max(10px, env(safe-area-inset-bottom));
   }
 
   .panel {
@@ -1626,8 +1645,8 @@ input[type="file"] {
 
   .media-list-header,
   .media-list-row {
-    grid-template-columns: 20px 40px 1.4fr 1fr 60px;
-    gap: 8px;
+    grid-template-columns: 20px 40px 1fr 0.9fr 54px;
+    gap: 6px;
   }
 
   .settings-version-item {
