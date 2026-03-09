@@ -1,5 +1,7 @@
 const tabs = document.querySelectorAll(".nav-button");
 const panels = document.querySelectorAll(".panel");
+const sidebar = document.getElementById("sidebar");
+const mobileNavToggle = document.getElementById("mobile-nav-toggle");
 
 // プレイヤーオーバーレイを閉じた時に戻るタブを記録する
 let previousActiveTab = null;
@@ -98,8 +100,6 @@ const playerDeleteTrack = document.getElementById("player-delete-track");
 const playerSeek = document.getElementById("player-seek");
 const playerCurrent = document.getElementById("player-current");
 const playerDuration = document.getElementById("player-duration");
-const playerVolumeToggle = document.getElementById("player-volume-toggle");
-const playerVolumeSlider = document.getElementById("player-volume-slider");
 
 const miniPlayer = document.getElementById("mini-player");
 const miniCover = document.getElementById("mini-cover");
@@ -118,8 +118,6 @@ const miniExpand = document.getElementById("mini-expand");
 const miniSeek = document.getElementById("mini-seek");
 const miniCurrent = document.getElementById("mini-current");
 const miniDuration = document.getElementById("mini-duration");
-const miniVolumeToggle = document.getElementById("mini-volume-toggle");
-const miniVolumeSlider = document.getElementById("mini-volume-slider");
 
 const playlistModal = document.getElementById("playlist-modal");
 const playlistModalList = document.getElementById("playlist-modal-list");
@@ -132,6 +130,10 @@ const trackEditTitle = document.getElementById("track-edit-title");
 const trackEditArtist = document.getElementById("track-edit-artist");
 const trackEditAlbum = document.getElementById("track-edit-album");
 const trackEditSourceUrl = document.getElementById("track-edit-source-url");
+const shareDialog = document.getElementById("share-dialog");
+const shareDialogUrl = document.getElementById("share-dialog-url");
+const shareDialogCopy = document.getElementById("share-dialog-copy");
+const shareDialogClose = document.getElementById("share-dialog-close");
 
 const state = {
   tracks: [],
@@ -166,9 +168,16 @@ const searchState = {
 
 const supportsMediaSession = "mediaSession" in navigator;
 
+const closeMobileSidebar = () => {
+  if (!sidebar) {
+    return;
+  }
+  sidebar.classList.remove("is-open");
+  mobileNavToggle?.setAttribute("aria-expanded", "false");
+};
+
 tabs.forEach((tab) => {
   tab.addEventListener("click", () => {
-    // data-tabのないボタン（プレイヤーボタン等）はタブ切り替えをスキップ
     if (!tab.dataset.tab) return;
     tabs.forEach((button) => button.classList.remove("is-active"));
     panels.forEach((panel) => panel.classList.remove("is-active"));
@@ -177,8 +186,27 @@ tabs.forEach((tab) => {
     if (target) {
       target.classList.add("is-active");
     }
+    closeMobileSidebar();
   });
 });
+
+if (mobileNavToggle && sidebar) {
+  mobileNavToggle.addEventListener("click", () => {
+    const willOpen = !sidebar.classList.contains("is-open");
+    sidebar.classList.toggle("is-open", willOpen);
+    mobileNavToggle.setAttribute("aria-expanded", String(willOpen));
+  });
+
+  document.addEventListener("click", (event) => {
+    if (!sidebar.classList.contains("is-open")) {
+      return;
+    }
+    if (sidebar.contains(event.target) || mobileNavToggle.contains(event.target)) {
+      return;
+    }
+    closeMobileSidebar();
+  });
+}
 
 const formatTime = (seconds) => {
   if (!Number.isFinite(seconds)) {
@@ -226,6 +254,42 @@ const showConfirmDialog = ({ title, message, showFileOption = false, buttons }) 
     dialog.classList.add("is-open");
     dialog.setAttribute("aria-hidden", "false");
   });
+};
+
+const closeShareDialog = () => {
+  if (!shareDialog) {
+    return;
+  }
+  shareDialog.classList.remove("is-open");
+  shareDialog.setAttribute("aria-hidden", "true");
+};
+
+const showShareDialog = (shareUrl) => {
+  if (!shareDialog || !shareDialogUrl) {
+    window.prompt("共有リンクをコピーしてください", shareUrl);
+    return;
+  }
+  shareDialogUrl.value = shareUrl;
+  shareDialog.classList.add("is-open");
+  shareDialog.setAttribute("aria-hidden", "false");
+};
+
+const copyShareUrl = async () => {
+  const shareUrl = shareDialogUrl?.value?.trim();
+  if (!shareUrl) {
+    return;
+  }
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(shareUrl);
+      appendImportLog("共有リンクをコピーしました。", { append: true });
+      closeShareDialog();
+      return;
+    }
+  } catch (error) {
+    console.error(error);
+  }
+  window.prompt("共有リンクをコピーしてください", shareUrl);
 };
 
 const formatFileDetails = (track) => {
@@ -459,6 +523,7 @@ const updatePlayerUI = () => {
       miniPlayer.classList.remove("is-active");
       miniPlayer.setAttribute("aria-hidden", "true");
     }
+    document.body?.classList.remove("has-mini-player");
     if (playerSeek) {
       playerSeek.value = 0;
     }
@@ -517,6 +582,7 @@ const updatePlayerUI = () => {
     miniPlayer.classList.add("is-active");
     miniPlayer.setAttribute("aria-hidden", "false");
   }
+  document.body?.classList.add("has-mini-player");
   updatePlayerButtons();
   updateMediaSessionMetadata(track);
   updateMediaPlayingIndicator();
@@ -1624,9 +1690,9 @@ const buildShareUrl = (track) => {
     return null;
   }
   const configuredBaseUrl = getConfiguredBaseUrl();
-  const fallbackBaseUrl = `${window.location.origin}${window.location.pathname}`.replace(/\/$/, "");
+  const fallbackBaseUrl = window.location.origin;
   const rootUrl = configuredBaseUrl || fallbackBaseUrl;
-  return `${rootUrl}/?track=${encodeURIComponent(track.id)}`;
+  return `${rootUrl}/?id=${encodeURIComponent(track.id)}`;
 };
 
 const renderSettings = (settings) => {
@@ -2186,7 +2252,7 @@ const init = async () => {
     renderSystem(system);
 
     const query = new URLSearchParams(window.location.search);
-    const sharedTrackId = query.get("track");
+    const sharedTrackId = query.get("id");
     if (sharedTrackId) {
       const sharedTrackIndex = state.tracks.findIndex((track) => String(track.id) === String(sharedTrackId));
       if (sharedTrackIndex >= 0) {
@@ -2541,81 +2607,6 @@ if (playerSeek && audioPlayer) {
   });
 }
 
-if (playerVolumeSlider && audioPlayer) {
-  playerVolumeSlider.addEventListener("input", (e) => {
-    const volume = e.target.value / 100;
-    audioPlayer.volume = volume;
-    localStorage.setItem("playerVolume", volume);
-  });
-  
-  audioPlayer.addEventListener("volumechange", () => {
-    if (playerVolumeSlider) {
-      playerVolumeSlider.value = audioPlayer.volume * 100;
-    }
-  });
-  
-  const savedVolume = localStorage.getItem("playerVolume");
-  if (savedVolume !== null) {
-    const volume = parseFloat(savedVolume);
-    playerVolumeSlider.value = volume * 100;
-    audioPlayer.volume = volume;
-  }
-}
-
-if (playerVolumeToggle && audioPlayer) {
-  let previousVolume = 1;
-  
-  playerVolumeToggle.addEventListener("click", () => {
-    if (audioPlayer.volume > 0) {
-      previousVolume = audioPlayer.volume;
-      audioPlayer.volume = 0;
-      if (playerVolumeSlider) playerVolumeSlider.value = 0;
-    } else {
-      const volume = previousVolume > 0 ? previousVolume : 1;
-      audioPlayer.volume = volume;
-      if (playerVolumeSlider) playerVolumeSlider.value = volume * 100;
-      localStorage.setItem("playerVolume", volume);
-    }
-  });
-}
-
-if (miniVolumeSlider && audioPlayer) {
-  miniVolumeSlider.addEventListener("input", (e) => {
-    const volume = e.target.value / 100;
-    audioPlayer.volume = volume;
-    localStorage.setItem("playerVolume", volume);
-  });
-  
-  audioPlayer.addEventListener("volumechange", () => {
-    if (miniVolumeSlider) {
-      miniVolumeSlider.value = audioPlayer.volume * 100;
-    }
-  });
-  
-  const savedVolume = localStorage.getItem("playerVolume");
-  if (savedVolume !== null) {
-    const volume = parseFloat(savedVolume);
-    miniVolumeSlider.value = volume * 100;
-  }
-}
-
-if (miniVolumeToggle && audioPlayer) {
-  let miniPreviousVolume = 1;
-  
-  miniVolumeToggle.addEventListener("click", () => {
-    if (audioPlayer.volume > 0) {
-      miniPreviousVolume = audioPlayer.volume;
-      audioPlayer.volume = 0;
-      if (miniVolumeSlider) miniVolumeSlider.value = 0;
-    } else {
-      const volume = miniPreviousVolume > 0 ? miniPreviousVolume : 1;
-      audioPlayer.volume = volume;
-      if (miniVolumeSlider) miniVolumeSlider.value = volume * 100;
-      localStorage.setItem("playerVolume", volume);
-    }
-  });
-}
-
 if (miniSeek && audioPlayer) {
   miniSeek.addEventListener("input", (event) => {
     const value = Number(event.target.value);
@@ -2780,7 +2771,7 @@ if (playerOpenSource) {
 }
 
 if (playerShareTrack) {
-  playerShareTrack.addEventListener("click", async () => {
+  playerShareTrack.addEventListener("click", () => {
     const track = state.tracks[playerState.currentIndex];
     if (!track) {
       return;
@@ -2790,21 +2781,26 @@ if (playerShareTrack) {
       appendImportLog("共有リンクを作成できませんでした。", { append: true });
       return;
     }
-    try {
-      if (navigator.share) {
-        await navigator.share({
-          title: track.title,
-          text: `${track.title} / ${track.artist}`,
-          url: shareUrl,
-        });
-      } else if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(shareUrl);
-        appendImportLog("共有リンクをクリップボードにコピーしました。", { append: true });
-      } else {
-        window.prompt("共有リンクをコピーしてください", shareUrl);
-      }
-    } catch (error) {
-      console.error(error);
+    showShareDialog(shareUrl);
+  });
+}
+
+if (shareDialogCopy) {
+  shareDialogCopy.addEventListener("click", () => {
+    copyShareUrl();
+  });
+}
+
+if (shareDialogClose) {
+  shareDialogClose.addEventListener("click", () => {
+    closeShareDialog();
+  });
+}
+
+if (shareDialog) {
+  shareDialog.addEventListener("click", (event) => {
+    if (event.target === shareDialog) {
+      closeShareDialog();
     }
   });
 }
