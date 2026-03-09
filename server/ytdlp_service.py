@@ -28,7 +28,7 @@ def is_single_video_url(url: str) -> bool:
         return True
 
     # SoundCloud判定
-    if hostname in {"soundcloud.com", "www.soundcloud.com"}:
+    if hostname in {"soundcloud.com", "www.soundcloud.com", "m.soundcloud.com"}:
         # /sets/を含むならプレイリスト、それ以外は単体
         return "/sets/" not in parsed.path
 
