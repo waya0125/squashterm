@@ -39,7 +39,39 @@ upstream  → main  → docker   （変更の流れ）
 2. `upstream` → `main` へマージ（通常 fast-forward または merge commit）
 3. `main` → `docker` へマージ（Dockerビルド用）
 
-## cherry-pick
+## upstream PR 作成ルール
+
+upstream (ibuto/squashterm) へ PR を出す際は以下を必ず守ること。
+
+### ブランチの起点
+- **PR ブランチは必ず `upstream` リモート（ibuto/squashterm main）から切ること**
+- `main` や `docker` ブランチをベースにすると、独自コミットが混入して事故になる
+
+```bash
+# 正しい手順
+git checkout -b feature/xxx origin/main   # origin = ibuto/squashterm
+git cherry-pick <commit1> <commit2> ...   # 必要なコミットだけを選ぶ
+```
+
+### PR 前のダブルチェック（必須）
+```bash
+# upstream main との差分コミット数・内容を確認
+git log --oneline origin/main..HEAD
+
+# 変更ファイルの確認
+git diff --stat origin/main..HEAD
+```
+
+**確認ポイント:**
+1. コミット数が想定通りか（余計な過去コミットが混入していないか）
+2. 変更ファイルが意図したものだけか（Docker固有ファイル・独自機能が含まれていないか）
+3. `python3 -m compileall server -q` / `node --check server/static/app.js` が通るか
+
+> PR を作成する前に上記を確認し、**コミット数・ファイル数が想定通りであることを確認してから `gh pr create` を実行すること。**
+
+---
+
+
 
 都度、一時ブランチを作成して実施する。
 
