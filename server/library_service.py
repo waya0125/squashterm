@@ -595,28 +595,32 @@ def apply_album_from_source_playlists(
 
         entries = pdata.get("entries") or []
         matched = 0
+        album_protected = 0
+        not_found = 0
         for entry in entries:
             eid = (entry or {}).get("id")
             if not eid:
                 continue
             track = track_map.get(eid)
             if track is None:
+                not_found += 1
                 continue
             current_album = (track.get("album") or "").strip()
             if current_album and current_album != "Unknown Album":
-                skipped += 1
+                # 手動設定済みのAlbumは上書きしない
+                album_protected += 1
                 continue
             track["album"] = playlist_title
             matched += 1
             updated += 1
 
-        unmatched = len(entries) - matched
-        skipped += unmatched
+        skipped += album_protected + not_found
         details.append({
             "url": url,
             "album_name": playlist_title,
             "matched": matched,
-            "unmatched": unmatched,
+            "not_found": not_found,
+            "album_protected": album_protected,
         })
 
     if updated > 0:
