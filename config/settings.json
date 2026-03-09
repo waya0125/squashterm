@@ -3,7 +3,8 @@
     "name": "SquashTerm",
     "version": "0.1.0",
     "api": "FastAPI",
-    "build": "2024.11.18"
+    "build": "2024.11.18",
+    "base_url": ""
   },
   "device": "Raspberry Pi (prototype)",
   "storage": {
