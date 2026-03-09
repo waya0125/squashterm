@@ -72,7 +72,6 @@ class ThreadPoolDownloadQueue(DownloadQueue):
                 "completed": 0,
                 "failed": 0,
                 "results": [],
-                "futures": [],
                 "done_at": None,
             }
             self._purge_expired_tasks()
@@ -103,6 +102,12 @@ class ThreadPoolDownloadQueue(DownloadQueue):
                 with self._tasks_lock:
                     self._active_tasks[task_id]["completed"] += 1
                     self._active_tasks[task_id]["results"].append(result)
+                    if (
+                        self._active_tasks[task_id]["completed"]
+                        + self._active_tasks[task_id]["failed"]
+                        >= total
+                    ):
+                        self._active_tasks[task_id]["done_at"] = time.monotonic()
 
                 if progress_callback:
                     progress_callback(task, result)
@@ -111,24 +116,19 @@ class ThreadPoolDownloadQueue(DownloadQueue):
             except Exception as exc:
                 with self._tasks_lock:
                     self._active_tasks[task_id]["failed"] += 1
+                    if (
+                        self._active_tasks[task_id]["completed"]
+                        + self._active_tasks[task_id]["failed"]
+                        >= total
+                    ):
+                        self._active_tasks[task_id]["done_at"] = time.monotonic()
                 if progress_callback:
                     progress_callback(task, {"error": str(exc)})
                 return {"error": str(exc)}
         
         # 各エントリを非同期にサブミット
-        def _on_all_done():
-            # 全 Future 完了後に done_at を記録
-            for f in self._active_tasks[task_id]["futures"]:
-                f.result(timeout=None)
-            with self._tasks_lock:
-                if task_id in self._active_tasks:
-                    self._active_tasks[task_id]["done_at"] = time.monotonic()
-
         for idx, entry in enumerate(entries):
-            future = self._executor.submit(process_entry, entry, idx)
-            self._active_tasks[task_id]["futures"].append(future)
-
-        self._executor.submit(_on_all_done)
+            self._executor.submit(process_entry, entry, idx)
         return task_id
     
     def get_status(self, task_id: str) -> dict:
