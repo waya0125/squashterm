@@ -47,9 +47,11 @@ def parse_track_from_info(info: dict, source_url: str | None = None) -> Track:
     resolved_source_url = source_url
     # SoundCloud の場合、permalink_url が正規ページ URL なので優先する
     permalink = info.get("permalink_url")
-    if isinstance(permalink, str) and permalink.startswith("https://soundcloud.com"):
-        resolved_source_url = permalink
-    elif not resolved_source_url or _is_soundcloud_api_url(resolved_source_url or ""):
+    if isinstance(permalink, str):
+        parsed_pl = urlparse(permalink)
+        if parsed_pl.hostname in {"soundcloud.com", "www.soundcloud.com"}:
+            resolved_source_url = permalink
+    if not resolved_source_url or _is_soundcloud_api_url(resolved_source_url or ""):
         resolved_source_url = info.get("webpage_url") or info.get("original_url") or resolved_source_url
     bitrate_value = info.get("abr") or info.get("tbr")
     bitrate_kbps = None
@@ -93,12 +95,13 @@ def parse_positive_int(value: int | str | None) -> int | None:
 
 def _is_soundcloud_api_url(url: str) -> bool:
     """SoundCloud の内部 API URL（api.soundcloud.com / api-v2.soundcloud.com）か判定する。"""
-    try:
-        netloc = urlparse(url).netloc.lower()
-        return netloc in {"api.soundcloud.com", "api-v2.soundcloud.com"} or \
-               netloc.endswith(".api.soundcloud.com")
-    except Exception:
+    parsed = urlparse(url)
+    hostname = parsed.hostname
+    if not hostname:
         return False
+    hostname = hostname.lower()
+    return hostname in {"api.soundcloud.com", "api-v2.soundcloud.com"} or \
+           hostname.endswith(".api.soundcloud.com")
 
 
 def normalize_source_url(url: str | None) -> str | None:
@@ -135,22 +138,33 @@ def normalize_source_url(url: str | None) -> str | None:
 
 
 def entry_to_source_url(entry: dict) -> str | None:
-    # permalink_url は SoundCloud の正規ページ URL。webpage_url より優先する
+    # permalink_url は SoundCloud の正規ページ URL。他の候補より優先する
     permalink = entry.get("permalink_url")
-    if isinstance(permalink, str) and permalink.startswith("https://soundcloud.com"):
+    if isinstance(permalink, str):
+        parsed_pl = urlparse(permalink)
+        if parsed_pl.hostname in {"soundcloud.com", "www.soundcloud.com"}:
+            return permalink
+    # API URL でない候補を順に試みる
+    for candidate in (
+        entry.get("webpage_url"),
+        entry.get("original_url"),
+        entry.get("url"),
+    ):
+        if not isinstance(candidate, str) or not candidate:
+            continue
+        if _is_soundcloud_api_url(candidate):
+            # API URL はスキップして次の候補へ
+            continue
+        if candidate.startswith("http://") or candidate.startswith("https://"):
+            return candidate
+        ie_key = str(entry.get("ie_key") or "").lower()
+        if ie_key in {"youtube", "youtubeweb"}:
+            return f"https://www.youtube.com/watch?v={candidate}"
+        return candidate
+    # 全候補が API URL だった場合は permalink_url にフォールバック（あれば）
+    if isinstance(permalink, str) and permalink.startswith("http"):
         return permalink
-    url = entry.get("webpage_url") or entry.get("original_url") or entry.get("url")
-    if not isinstance(url, str) or not url:
-        return None
-    # SoundCloud API URL は正規ページ URL に置き換える
-    if _is_soundcloud_api_url(url):
-        return entry.get("permalink_url") or None
-    if url.startswith("http://") or url.startswith("https://"):
-        return url
-    ie_key = str(entry.get("ie_key") or "").lower()
-    if ie_key in {"youtube", "youtubeweb"}:
-        return f"https://www.youtube.com/watch?v={url}"
-    return url
+    return None
 
 
 def init_library() -> None:
