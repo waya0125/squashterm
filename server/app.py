@@ -4,6 +4,7 @@ import json
 import shutil
 import threading
 import uuid
+from contextlib import asynccontextmanager
 from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
@@ -56,7 +57,31 @@ from media_utils import scan_media_directory
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
-app = FastAPI(title="SquashTerm Server", version="0.1.0")
+
+@asynccontextmanager
+async def lifespan(app_: "FastAPI"):  # noqa: F841
+    # --- startup ---
+    thread = threading.Thread(target=auto_sync_worker, daemon=True)
+    thread.start()
+
+    # 自動スキャンが有効なら起動時に実行
+    settings = load_settings(DEFAULT_SETTINGS)
+    auto_scan_enabled = any(
+        opt.get("id") == "auto_scan" and opt.get("enabled")
+        for opt in settings.get("playback_options", [])
+    )
+    if auto_scan_enabled:
+        try:
+            count = scan_media_directory()
+            print(f"Auto scan: {count} files processed")
+        except Exception as e:
+            print(f"Auto scan failed: {e}")
+
+    yield
+    # --- shutdown (必要なら後処理をここに) ---
+
+
+app = FastAPI(title="SquashTerm Server", version="0.1.0", lifespan=lifespan)
 
 init_library()
 load_settings(DEFAULT_SETTINGS)
@@ -64,27 +89,6 @@ ensure_version_file()
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 app.mount("/media", StaticFiles(directory=MEDIA_DIR), name="media")
-
-
-@app.on_event("startup")
-def start_auto_sync_thread() -> None:
-    thread = threading.Thread(target=auto_sync_worker, daemon=True)
-    thread.start()
-    
-    # 自動スキャンが有効なら起動時に実行
-    settings = load_settings(DEFAULT_SETTINGS)
-    auto_scan_enabled = False
-    for option in settings.get("playback_options", []):
-        if option.get("id") == "auto_scan" and option.get("enabled"):
-            auto_scan_enabled = True
-            break
-    
-    if auto_scan_enabled:
-        try:
-            count = scan_media_directory()
-            print(f"Auto scan: {count} files processed")
-        except Exception as e:
-            print(f"Auto scan failed: {e}")
 
 
 @app.get("/")
