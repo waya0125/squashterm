@@ -66,7 +66,7 @@ body.theme-spotify .app {
 body.theme-spotify .layout {
   gap: 0;
   height: 100%;
-  overflow: hidden;
+  min-height: 0;              /* calc(100vh-48px) のデフォルト min-height を無効化 */
   grid-template-columns: var(--sp-sidebar-w) 1fr;
 }
 
@@ -472,6 +472,12 @@ body.theme-spotify #mini-player {
   color: var(--sp-accent, #1db954) !important;
 }
 
+/* ---- ミュート状態: 半透明でグレー ---- */
+.sp-vol-btn.is-muted {
+  color: var(--sp-text-muted, #b3b3b3) !important;
+  opacity: 0.55;
+}
+
 /* ---- ループボタン ---- */
 #sp-loop {
   flex-direction: column;
@@ -577,7 +583,7 @@ body.theme-spotify #mini-player {
   height: 5px;
 }
 
-/* Webkit thumb — hover 時のみ表示、ズレなし（margin-top なし） */
+/* Webkit thumb — hover 時のみ表示、margin-top で 4px track の中央に固定 */
 .sp-seek::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 12px;
@@ -587,6 +593,7 @@ body.theme-spotify #mini-player {
   cursor: pointer;
   opacity: 0;
   transition: opacity 0.15s ease;
+  margin-top: -4px; /* (4px track - 12px thumb) / 2 = -4px */
 }
 
 .sp-seek:hover::-webkit-slider-thumb {
@@ -629,19 +636,28 @@ body.theme-spotify #mini-player {
   height: 20px;
 }
 
-/* Webkit track */
+/* Webkit track — fill gradient で塗りつぶし表示 */
 .sp-volume-slider::-webkit-slider-runnable-track {
   height: 4px;
   border-radius: 2px;
-  background: var(--sp-track-bg, #535353);
+  background: linear-gradient(
+    to right,
+    var(--sp-track-fill, #fff) var(--vol-pct, 0%),
+    var(--sp-track-bg, #535353) var(--vol-pct, 0%)
+  );
   cursor: pointer;
 }
 
 .sp-volume-slider:hover::-webkit-slider-runnable-track {
   height: 5px;
+  background: linear-gradient(
+    to right,
+    var(--sp-accent, #1db954) var(--vol-pct, 0%),
+    var(--sp-track-bg, #535353) var(--vol-pct, 0%)
+  );
 }
 
-/* Webkit thumb — 常時表示 */
+/* Webkit thumb — hover 時のみ表示 */
 .sp-volume-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 12px;
@@ -649,6 +665,13 @@ body.theme-spotify #mini-player {
   border-radius: 50%;
   background: var(--sp-thumb, #fff);
   cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  margin-top: -4px; /* center on 4px track */
+}
+
+.sp-volume-slider:hover::-webkit-slider-thumb {
+  opacity: 1;
 }
 
 /* Firefox */
@@ -659,12 +682,23 @@ body.theme-spotify #mini-player {
   border: none;
 }
 
+.sp-volume-slider::-moz-range-progress {
+  height: 4px;
+  background: var(--sp-track-fill, #fff);
+  border-radius: 2px;
+}
+
 .sp-volume-slider::-moz-range-thumb {
   width: 12px;
   height: 12px;
   border-radius: 50%;
   background: var(--sp-thumb, #fff);
   border: none;
+  opacity: 0;
+}
+
+.sp-volume-slider:hover::-moz-range-thumb {
+  opacity: 1;
 }
 
 /* ---- エクストラ（右カラム）---- */

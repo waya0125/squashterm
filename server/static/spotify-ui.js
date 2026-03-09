@@ -1,5 +1,5 @@
 /**
- * spotify-ui.js — Spotify 風 UI テーマ パッチ v3
+ * spotify-ui.js — Spotify 風 UI テーマ パッチ v4
  */
 (function () {
   "use strict";
@@ -12,6 +12,9 @@
     "spotify-light": ["theme-spotify", "theme-light"],
   };
 
+  // marquee キャンセル用タイマーマップ
+  var _marqueeTimers = {};
+
   // ================================================================
   // テーマ適用
   // ================================================================
@@ -23,7 +26,7 @@
     updateThemeSelect();
     syncSpBarVisibility();
     if (document.body.classList.contains("theme-spotify")) {
-      setTimeout(syncAll, 80);
+      setTimeout(syncAll, 100);
     }
   }
 
@@ -77,16 +80,17 @@
     var spBar = document.getElementById("sp-player-bar");
     if (!spBar) return;
 
-    // --- ボタン委譲 ---
+    var audio = document.getElementById("audio-player");
+
+    // --- 再生系ボタン委譲（mini-player 経由） ---
     var delegates = {
-      "sp-toggle":        "mini-toggle",
-      "sp-prev":          "mini-prev",
-      "sp-next":          "mini-next",
-      "sp-shuffle":       "mini-shuffle",
-      "sp-loop":          "mini-loop",
-      "sp-favorite":      "mini-favorite",
-      "sp-expand":        "mini-expand",
-      "sp-volume-toggle": "mini-volume-toggle",
+      "sp-toggle":   "mini-toggle",
+      "sp-prev":     "mini-prev",
+      "sp-next":     "mini-next",
+      "sp-shuffle":  "mini-shuffle",
+      "sp-loop":     "mini-loop",
+      "sp-favorite": "mini-favorite",
+      "sp-expand":   "mini-expand",
     };
 
     Object.keys(delegates).forEach(function (spId) {
@@ -111,32 +115,55 @@
       });
     }
 
-    // --- 音量スライダー双方向同期 ---
-    var spVol   = document.getElementById("sp-volume-slider");
-    var miniVol = document.getElementById("mini-volume-slider");
-    if (spVol && miniVol) {
+    // --- 音量スライダー（直接 audio 制御） ---
+    var spVol    = document.getElementById("sp-volume-slider");
+    var mobileVol = document.getElementById("mobile-player-volume-slider");
+    if (spVol && audio) {
+      // 初期値を audio.volume から設定
+      spVol.value = Math.round(audio.volume * 100);
+      updateVolumeCss(spVol);
+
       spVol.addEventListener("input", function () {
-        miniVol.value = spVol.value;
-        miniVol.dispatchEvent(new Event("input", { bubbles: true }));
+        audio.volume = spVol.value / 100;
+        if (mobileVol) mobileVol.value = spVol.value;
+        updateVolumeCss(spVol);
       });
-      miniVol.addEventListener("input", function () {
-        spVol.value = miniVol.value;
+    }
+
+    // mobile-player-volume-slider の変化にも追従
+    if (mobileVol && spVol) {
+      mobileVol.addEventListener("input", function () {
+        spVol.value = mobileVol.value;
+        updateVolumeCss(spVol);
+      });
+    }
+
+    // --- 音量トグル（直接ミュート制御） ---
+    var spVolToggle = document.getElementById("sp-volume-toggle");
+    if (spVolToggle && audio) {
+      spVolToggle.addEventListener("click", function (e) {
+        e.preventDefault();
+        audio.muted = !audio.muted;
+        syncMuteState();
       });
     }
 
     // --- audio イベント ---
-    var audio = document.getElementById("audio-player");
     if (audio) {
       audio.addEventListener("timeupdate",     syncTimeAndSeek);
       audio.addEventListener("durationchange", syncTimeAndSeek);
       audio.addEventListener("play",           syncPlayPause);
       audio.addEventListener("pause",          syncPlayPause);
       audio.addEventListener("ended",          syncPlayPause);
+      audio.addEventListener("volumechange",   function () {
+        syncVolumeDisplay();
+        syncMuteState();
+      });
     }
 
     // --- テキスト同期（MutationObserver）---
-    observeText("mini-title",    "sp-title",  true);   // marquee 対応
-    observeText("mini-artist",   "sp-artist", true);   // marquee 対応
+    observeText("mini-title",    "sp-title",  true);
+    observeText("mini-artist",   "sp-artist", true);
     observeText("mini-current",  "sp-current",  false);
     observeText("mini-duration", "sp-duration", false);
     observeText("player-format", "sp-format-label", false);
@@ -175,7 +202,7 @@
       }).observe(miniLoop, { childList: true, subtree: true, characterData: true });
     }
 
-    setTimeout(syncAll, 120);
+    setTimeout(syncAll, 150);
   }
 
   // ================================================================
@@ -198,19 +225,31 @@
   }
 
   // ================================================================
-  // marquee スクロールセットアップ
+  // marquee スクロールセットアップ（タイマーキャンセルで競合防止）
   // ================================================================
 
   function setupMarquee(el, text) {
     if (!el) return;
 
-    // リセット
+    var elId = el.id;
+
+    // 既存の pending タイマーをキャンセル
+    if (elId && _marqueeTimers[elId]) {
+      clearTimeout(_marqueeTimers[elId]);
+      delete _marqueeTimers[elId];
+    }
+
+    // リセット（marquee 停止）
     el.classList.remove("sp-scrolling");
     el.innerHTML = "";
     el.textContent = text;
 
-    // 遅延して幅を測定（レイアウト安定後）
-    setTimeout(function () {
+    // "--" やプレースホルダーはアニメーション不要
+    if (!text || text === "--") return;
+
+    var timer = setTimeout(function () {
+      if (elId) delete _marqueeTimers[elId];
+
       var scrollW = el.scrollWidth;
       var clientW = el.offsetWidth;
       if (scrollW <= clientW + 2) return; // 収まる場合はそのまま
@@ -220,7 +259,6 @@
       var dist  = scrollW + gap;
       var dur   = dist / speed;
 
-      // 2つのコピーを並べた内部ラッパーを作成
       var inner = document.createElement("span");
       inner.className = "sp-marquee-inner";
       inner.style.setProperty("--sp-scroll-dist", "-" + dist + "px");
@@ -238,7 +276,9 @@
       el.innerHTML = "";
       el.appendChild(inner);
       el.classList.add("sp-scrolling");
-    }, 50);
+    }, 60);
+
+    if (elId) _marqueeTimers[elId] = timer;
   }
 
   // ================================================================
@@ -303,6 +343,31 @@
   }
 
   // ================================================================
+  // ミュート状態同期
+  // ================================================================
+
+  function syncMuteState() {
+    var audio       = document.getElementById("audio-player");
+    var spVolToggle = document.getElementById("sp-volume-toggle");
+    if (!spVolToggle) return;
+    var muted = audio ? (audio.muted || audio.volume === 0) : false;
+    spVolToggle.classList.toggle("is-muted", muted);
+    spVolToggle.setAttribute("aria-label", muted ? "ミュート解除" : "ミュート切り替え");
+  }
+
+  // ================================================================
+  // 音量表示同期（audio.volume → sp-volume-slider）
+  // ================================================================
+
+  function syncVolumeDisplay() {
+    var audio = document.getElementById("audio-player");
+    var spVol = document.getElementById("sp-volume-slider");
+    if (!audio || !spVol) return;
+    spVol.value = Math.round(audio.volume * 100);
+    updateVolumeCss(spVol);
+  }
+
+  // ================================================================
   // Spotify バー表示/非表示を mini-player に合わせる
   // ================================================================
 
@@ -353,10 +418,9 @@
     syncPlayPause();
     syncSpBarVisibility();
 
-    // 音量
-    var miniVol = document.getElementById("mini-volume-slider");
-    var spVol   = document.getElementById("sp-volume-slider");
-    if (miniVol && spVol) spVol.value = miniVol.value;
+    // 音量（audio.volume から直接）
+    syncVolumeDisplay();
+    syncMuteState();
 
     // ボタン状態
     [
@@ -389,12 +453,40 @@
 
   // ================================================================
   // シークバーのグラデーション CSS 変数を更新
+  // webkit ではサム幅分のオフセット補正を入れて塗りと位置を一致させる
   // ================================================================
 
   function updateSeekCss(input) {
     var max = parseFloat(input.max) || 100;
     var val = parseFloat(input.value) || 0;
-    var pct = max > 0 ? (val / max) * 100 : 0;
+    var fraction = max > 0 ? val / max : 0;
+    var thumbHalf = 6; // 12px thumb の半径
+    var w = input.offsetWidth || 200;
+    var pct;
+    if (w > thumbHalf * 2) {
+      pct = ((thumbHalf + fraction * (w - thumbHalf * 2)) / w * 100).toFixed(2);
+    } else {
+      pct = (fraction * 100).toFixed(2);
+    }
     input.style.setProperty("--seek-pct", pct + "%");
+  }
+
+  // ================================================================
+  // 音量スライダーのグラデーション CSS 変数を更新
+  // ================================================================
+
+  function updateVolumeCss(input) {
+    var max = parseFloat(input.max) || 100;
+    var val = parseFloat(input.value) || 0;
+    var fraction = max > 0 ? val / max : 0;
+    var thumbHalf = 6;
+    var w = input.offsetWidth || 90;
+    var pct;
+    if (w > thumbHalf * 2) {
+      pct = ((thumbHalf + fraction * (w - thumbHalf * 2)) / w * 100).toFixed(2);
+    } else {
+      pct = (fraction * 100).toFixed(2);
+    }
+    input.style.setProperty("--vol-pct", pct + "%");
   }
 })();
