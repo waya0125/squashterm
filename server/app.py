@@ -9,8 +9,10 @@ from datetime import datetime
 from pathlib import Path
 from urllib.parse import quote
 
+from html import escape
+
 from fastapi import FastAPI, File, Form, HTTPException, Query, Response, UploadFile
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 import uvicorn
 
@@ -120,10 +122,159 @@ def get_track_share_url(track_id: str, base_url: str | None = Query(default=None
     if normalized_base_url and not normalized_base_url.startswith(("http://", "https://")):
         raise HTTPException(status_code=400, detail="Invalid base_url")
 
-    track_path = f"/?id={quote(str(track.id))}"
+    track_path = f"/share/{quote(str(track.id))}"
     share_url = f"{normalized_base_url}{track_path}" if normalized_base_url else track_path
     return {"track_id": track.id, "share_url": share_url}
 
+
+
+
+@app.get("/share/{track_id}", response_class=HTMLResponse)
+def render_share_page(track_id: str):
+    """OGP ランディングページ。クローラーには meta タグを返し、人間には 8 秒後にアプリへリダイレクトする。"""
+    tracks = fetch_tracks()
+    track = next((t for t in tracks if t.id == track_id), None)
+    if track is None:
+        raise HTTPException(status_code=404, detail="Track not found")
+
+    settings = load_settings(DEFAULT_SETTINGS)
+    base_url = str(settings.get("app", {}).get("base_url", "")).strip().rstrip("/")
+
+    relative_cover = track.cover or "/static/images/icon.png"
+    abs_cover = f"{base_url}{relative_cover}" if base_url and relative_cover.startswith("/") else relative_cover
+    canonical = f"{base_url}/share/{quote(track.id)}" if base_url else f"/share/{quote(track.id)}"
+    app_url = f"{base_url}/?id={quote(track.id)}" if base_url else f"/?id={quote(track.id)}"
+
+    t = escape(track.title or "不明")
+    artist = escape(track.artist or "不明")
+    album = escape(track.album or "不明")
+    desc = escape(f"{track.title or '不明'} / {track.artist or '不明'} · {track.album or '不明'}")
+    img = escape(abs_cover)
+    url = escape(canonical)
+    src_url = escape(track.source_url or "")
+    app_url_esc = escape(app_url)
+
+    return _build_share_html(t, artist, album, desc, img, url, app_url_esc, src_url)
+
+
+def _build_share_html(
+    title: str,
+    artist: str,
+    album: str,
+    description: str,
+    image_url: str,
+    canonical_url: str,
+    app_url: str,
+    source_url: str,
+) -> str:
+    source_link = (
+        f'<a class="src-link" href="{source_url}" target="_blank" rel="noopener noreferrer">'
+        f"元の作品を開く ↗</a>"
+        if source_url
+        else ""
+    )
+    return f"""<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title} - SquashTerm</title>
+    <!-- OGP -->
+    <meta property="og:type" content="music.song" />
+    <meta property="og:site_name" content="SquashTerm" />
+    <meta property="og:title" content="{title}" />
+    <meta property="og:description" content="{description}" />
+    <meta property="og:image" content="{image_url}" />
+    <meta property="og:url" content="{canonical_url}" />
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="{title}" />
+    <meta name="twitter:description" content="{description}" />
+    <meta name="twitter:image" content="{image_url}" />
+    <style>
+      *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
+      body {{
+        min-height: 100dvh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #0f0f0f;
+        color: #e5e7eb;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        padding: 1rem;
+      }}
+      .card {{
+        background: #1a1a1a;
+        border: 1px solid #2d2d2d;
+        border-radius: 12px;
+        max-width: 420px;
+        width: 100%;
+        overflow: hidden;
+        box-shadow: 0 8px 32px rgba(0,0,0,.5);
+      }}
+      .cover {{
+        width: 100%;
+        aspect-ratio: 1;
+        object-fit: cover;
+        display: block;
+        background: #111;
+      }}
+      .info {{ padding: 1.25rem 1.25rem 0.75rem; }}
+      .info h1 {{ font-size: 1.2rem; font-weight: 700; line-height: 1.3; margin-bottom: 0.35rem; }}
+      .info p  {{ font-size: 0.9rem; color: #9ca3af; }}
+      .info p + p {{ margin-top: 0.15rem; }}
+      .actions {{ padding: 0.75rem 1.25rem 1.25rem; display: flex; flex-direction: column; gap: 0.6rem; }}
+      .btn-open {{
+        display: block; width: 100%;
+        background: #93c5fd; color: #0f172a;
+        border: none; border-radius: 8px;
+        padding: 0.7rem 1rem; font-size: 0.95rem; font-weight: 600;
+        cursor: pointer; text-align: center; text-decoration: none;
+        transition: opacity .15s;
+      }}
+      .btn-open:hover {{ opacity: .85; }}
+      .src-link {{
+        display: block; text-align: center;
+        color: #6b7280; font-size: 0.8rem;
+        text-decoration: none;
+      }}
+      .src-link:hover {{ color: #9ca3af; }}
+      .redirect-note {{
+        text-align: center; font-size: 0.78rem; color: #4b5563; padding: 0 1.25rem 1rem;
+      }}
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <img class="cover" src="{image_url}" alt="カバー画像" loading="lazy" />
+      <div class="info">
+        <h1>{title}</h1>
+        <p>{artist}</p>
+        <p>{album}</p>
+      </div>
+      <div class="actions">
+        <a class="btn-open" href="{app_url}">SquashTerm で開く</a>
+        {source_link}
+      </div>
+      <p class="redirect-note" id="note"><span id="sec">8</span> 秒後に自動でアプリを開きます</p>
+    </div>
+    <script>
+      const appUrl = {json.dumps(app_url)};
+      let t = 8;
+      const el = document.getElementById("sec");
+      const note = document.getElementById("note");
+      const iv = setInterval(() => {{
+        t--;
+        if (el) el.textContent = t;
+        if (t <= 0) {{
+          clearInterval(iv);
+          if (note) note.textContent = "アプリを開いています...";
+          window.location.replace(appUrl);
+        }}
+      }}, 1000);
+    </script>
+  </body>
+</html>"""
 
 
 
