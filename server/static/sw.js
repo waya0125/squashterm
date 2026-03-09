@@ -25,6 +25,13 @@ self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") {
     return;
   }
+
+  const url = new URL(event.request.url);
+  // /media/ と /api/ は常にネットワークから取得（キャッシュしない）
+  if (url.pathname.startsWith("/media/") || url.pathname.startsWith("/api/")) {
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
