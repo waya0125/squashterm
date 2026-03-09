@@ -76,6 +76,13 @@ async def lifespan(app_: "FastAPI"):  # noqa: F841
         except Exception as e:
             print(f"Auto scan failed: {e}")
 
+    # docker 固有: otomad-core-api 定期同期ワーカー
+    try:
+        from otomad_service import start_otomad_sync_worker
+        start_otomad_sync_worker()
+    except Exception:
+        pass
+
     yield
     # --- shutdown (必要なら後処理をここに) ---
 
@@ -487,15 +494,6 @@ def resolve_soundcloud_urls():
         return result
     except ImportError:
         raise HTTPException(status_code=501, detail="ytdlp_api_service not available")
-
-
-@app.on_event("startup")
-def start_otomad_worker() -> None:
-    try:
-        from otomad_service import start_otomad_sync_worker
-        start_otomad_sync_worker()
-    except Exception:
-        pass
 
 
 def run(host: str = "0.0.0.0", port: int = 8000) -> None:

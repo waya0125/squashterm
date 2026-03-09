@@ -1,0 +1,20 @@
+# Git
+.git
+
+# ドキュメント
+*.md
+docs/
+
+# スクリプト（コンテナ外でのみ使用）
+server/scripts/
+
+# Python キャッシュ
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# エディタ・OS
+.DS_Store
+.vscode/
+*.swp

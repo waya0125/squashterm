@@ -10,6 +10,7 @@ import os
 import threading
 import time
 import warnings
+from urllib.parse import urlparse
 
 import requests
 
@@ -29,18 +30,21 @@ _HEADERS = {
 def _detect_extractor(source_url: str | None, track_id: str) -> tuple[str, str]:
     """source_url とトラックIDから (extractor, extractor_id) を判定する。"""
     raw_id = track_id[3:] if track_id.startswith("yt_") else track_id
-    url = (source_url or "").lower()
-    if "soundcloud.com" in url:
+    hostname = (urlparse(source_url or "").hostname or "").lower()
+    if hostname in {"soundcloud.com", "www.soundcloud.com"}:
         return "soundcloud", raw_id
-    if "youtube.com" in url or "youtu.be" in url:
+    if hostname in {"youtube.com", "www.youtube.com", "youtu.be", "m.youtube.com"}:
         return "youtube", raw_id
-    if "nicovideo.jp" in url or "nico.ms" in url:
+    if hostname in {"nicovideo.jp", "www.nicovideo.jp", "nico.ms"}:
         return "niconico", raw_id
     return "local", track_id
 
 
-def ingest_to_otomad(track: dict) -> None:
-    """トラック1件を otomad-core-api /ingest に登録する。失敗は警告のみ。"""
+def ingest_to_otomad(track: dict, session: "requests.Session | None" = None) -> None:
+    """トラック1件を otomad-core-api /ingest に登録する。失敗は警告のみ。
+
+    session を渡すと TCP コネクションを再利用する（一括登録時の高速化）。
+    """
     if not OTOMAD_API_URL:
         return
     track_id: str = track.get("id") or ""
@@ -56,7 +60,8 @@ def ingest_to_otomad(track: dict) -> None:
         "uploader_url": "",
     }
     try:
-        resp = requests.post(
+        poster = session or requests
+        resp = poster.post(
             f"{OTOMAD_API_URL}/ingest",
             json=payload,
             headers=_HEADERS,
@@ -75,12 +80,14 @@ def sync_local_tracks_to_otomad() -> int:
     data = load_library()
     tracks = data.get("tracks", [])
     count = 0
-    for track in tracks:
-        try:
-            ingest_to_otomad(track)
-            count += 1
-        except Exception:
-            pass
+    with requests.Session() as session:
+        session.headers.update(_HEADERS)
+        for track in tracks:
+            try:
+                ingest_to_otomad(track, session)
+                count += 1
+            except Exception:
+                pass
     print(f"[otomad_service] sync complete: {count} tracks ingested")
     return count
 

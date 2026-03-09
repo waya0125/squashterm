@@ -6,4 +6,3 @@ requests
 uvicorn[standard]
 yt-dlp
 redis
-certifi

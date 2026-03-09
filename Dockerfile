@@ -11,7 +11,7 @@ ENV GIT_BRANCH=${GIT_BRANCH}
 ENV BUILD_DATE=${BUILD_DATE}
 
 # システムの依存関係をインストール
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     curl \
     nodejs \
@@ -19,16 +19,13 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/* \
     && git config --global --add safe.directory /app
 
-# yt-dlpをインストール
-RUN pip install --upgrade pip
-RUN pip install yt-dlp
-
 # 作業ディレクトリを設定
 WORKDIR /app
 
 # Pythonの依存関係をコピーしてインストール
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --upgrade pip --no-cache-dir \
+    && pip install --no-cache-dir -r requirements.txt
 
 # アプリケーションのコードをコピー
 COPY server/ ./server/
