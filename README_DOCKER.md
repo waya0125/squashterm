@@ -147,11 +147,14 @@ cd /docker/waya-squashterm && docker compose up -d
 
 ## 起動・運用コマンド
 
+### 開発モード（デフォルト）
+
 ```bash
-# 通常起動（コード変更はボリュームマウントで即時反映）
+# 通常起動 — docker-compose.override.yml が自動マージされる
+# ./server がコンテナへマウントされ、コード変更が即時反映される
 docker compose up -d
 
-# Dockerfile / docker-compose.yml 変更後
+# Dockerfile 変更後
 docker compose build && docker compose up -d
 
 # ログ確認
@@ -161,8 +164,28 @@ docker compose logs -f
 docker compose down
 ```
 
-> `./server:/app/server` ボリュームマウント済みのため、  
+> `docker compose up` は `docker-compose.override.yml` を自動読み込みします。  
+> override.yml に `./server:/app/server` マウントが定義されているため、  
 > Python・JS・CSS の変更は再ビルド不要（`docker compose up -d` 再起動のみ）。
+
+### 本番 / CI モード
+
+```bash
+# override を無視してイメージ内に焼き込まれたコードのみ使用する
+docker compose -f docker-compose.yml up -d
+```
+
+> このモードではホストの `./server` は参照されません。  
+> コードを変更した場合は `docker compose build` でイメージを再ビルドしてください。
+
+### dev / prod の違いまとめ
+
+| | 開発モード | 本番 / CI モード |
+|---|---|---|
+| 起動コマンド | `docker compose up` | `docker compose -f docker-compose.yml up` |
+| override.yml | **自動マージ** | 無視 |
+| `./server` マウント | あり（ホストコード優先） | なし（イメージ内コード使用） |
+| コード変更の反映 | 再起動のみで即時反映 | 要再ビルド (`docker compose build`) |
 
 ---
 
