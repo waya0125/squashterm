@@ -153,9 +153,8 @@ def render_share_page(track_id: str, request: Request):
     img = escape(abs_cover)
     url = escape(canonical)
     src_url = escape(track.source_url or "")
-    app_url_esc = escape(app_url)
 
-    return _build_share_html(t, artist, album, desc, img, url, app_url_esc, src_url)
+    return _build_share_html(t, artist, album, desc, img, url, app_url, src_url)
 
 
 def _resolve_base_url(request: Request, settings_base_url: str) -> str:
@@ -166,7 +165,9 @@ def _resolve_base_url(request: Request, settings_base_url: str) -> str:
     """
     if settings_base_url:
         return settings_base_url
-    proto = request.headers.get("x-forwarded-proto", "").split(",")[0].strip()
+    proto = request.headers.get("x-forwarded-proto", "").split(",")[0].strip().lower()
+    if proto not in ("http", "https"):
+        proto = ""
     host = request.headers.get("x-forwarded-host") or request.headers.get("host", "")
     if proto and host:
         return f"{proto}://{host}"
@@ -269,7 +270,7 @@ def _build_share_html(
         <p>{album}</p>
       </div>
       <div class="actions">
-        <a class="btn-open" href="{app_url}">SquashTerm で開く</a>
+        <a class="btn-open" href="{escape(app_url)}">SquashTerm で開く</a>
         {source_link}
       </div>
       <p class="redirect-note" id="note"><span id="sec">8</span> 秒後に自動でアプリを開きます</p>
