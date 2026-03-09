@@ -1427,7 +1427,7 @@ input[type="file"] {
 
   .app-header {
     position: sticky;
-    top: 0;
+    top: env(safe-area-inset-top);
     z-index: 80;
     justify-content: flex-start;
     gap: 12px;
@@ -1504,6 +1504,7 @@ input[type="file"] {
 
   .content {
     padding-bottom: 120px;
+    overflow: visible;
   }
 
   .panel-header {
@@ -1544,6 +1545,10 @@ input[type="file"] {
 
   .mini-controls {
     justify-content: flex-start;
+  }
+
+  body.has-mini-player #panel-media {
+    padding-bottom: 132px;
   }
 
   .player-overlay-open .sidebar {

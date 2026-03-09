@@ -483,6 +483,7 @@ const updatePlayerUI = () => {
       miniPlayer.classList.remove("is-active");
       miniPlayer.setAttribute("aria-hidden", "true");
     }
+    document.body?.classList.remove("has-mini-player");
     if (playerSeek) {
       playerSeek.value = 0;
     }
@@ -541,6 +542,7 @@ const updatePlayerUI = () => {
     miniPlayer.classList.add("is-active");
     miniPlayer.setAttribute("aria-hidden", "false");
   }
+  document.body?.classList.add("has-mini-player");
   updatePlayerButtons();
   updateMediaSessionMetadata(track);
   updateMediaPlayingIndicator();
