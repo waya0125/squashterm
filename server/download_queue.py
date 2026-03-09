@@ -135,10 +135,13 @@ class ThreadPoolDownloadQueue(DownloadQueue):
         """タスクの進捗状況を取得"""
         with self._tasks_lock:
             task_data = self._active_tasks.get(task_id, {})
+            total = task_data.get("total", 0)
+            completed = task_data.get("completed", 0)
+            failed = task_data.get("failed", 0)
         return {
-            "total": task_data.get("total", 0),
-            "completed": task_data.get("completed", 0),
-            "failed": task_data.get("failed", 0),
+            "total": total,
+            "completed": completed,
+            "failed": failed,
         }
 
     def _purge_expired_tasks(self) -> None:
