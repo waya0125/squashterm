@@ -43,7 +43,7 @@ def parse_year(info: dict) -> int:
     return 0
 
 
-def parse_track_from_info(info: dict, source_url: str | None = None) -> Track:
+def parse_track_from_info(info: dict, source_url: str | None = None, playlist_name: str | None = None) -> Track:
     resolved_source_url = source_url
     if not resolved_source_url:
         resolved_source_url = info.get("webpage_url") or info.get("original_url")
@@ -55,7 +55,7 @@ def parse_track_from_info(info: dict, source_url: str | None = None) -> Track:
         id=f"yt_{info.get('id', uuid.uuid4().hex)}",
         title=info.get("track") or info.get("title") or "Unknown Title",
         artist=info.get("artist") or info.get("uploader") or "Unknown Artist",
-        album=info.get("album") or "Unknown Album",
+        album=info.get("album") or (playlist_name.strip() if playlist_name and playlist_name.strip() else None) or info.get("playlist_title") or info.get("playlist") or "Unknown Album",
         cover=DEFAULT_COVER,
         duration=format_duration(info.get("duration")),
         bpm=int(info.get("bpm") or 0),
@@ -248,14 +248,14 @@ def append_tracks_to_playlist(playlist_id: str | None, track_ids: list[str]) -> 
 
 
 def store_downloaded_tracks(
-    infos: list[dict], source_url: str | None = None, playlist_id: str | None = None
+    infos: list[dict], source_url: str | None = None, playlist_id: str | None = None, playlist_name: str | None = None
 ) -> list[Track]:
     stored_tracks: list[Track] = []
     data = load_library()
     tracks = data.setdefault("tracks", [])
     track_map = {track["id"]: track for track in tracks}
     for info in infos:
-        track = parse_track_from_info(info, source_url)
+        track = parse_track_from_info(info, source_url, playlist_name)
         resolved_cover = resolve_thumbnail_path(info)
         if resolved_cover:
             track.cover = resolved_cover
@@ -436,6 +436,8 @@ def batch_download_playlist(url: str, playlist_id: str | None, concurrency: int)
     if not entries:
         raise RuntimeError("Playlist is empty or could not be fetched")
     
+    playlist_title = entries[0].get("playlist_title") or entries[0].get("playlist")
+    
     # 並列ダウンロードキューを作成
     queue = ThreadPoolDownloadQueue(max_workers=concurrency)
     
@@ -448,7 +450,7 @@ def batch_download_playlist(url: str, playlist_id: str | None, concurrency: int)
         from ytdlp_service import download_with_ytdlp
         try:
             infos, _ = download_with_ytdlp(entry_url, no_playlist=True)
-            tracks = store_downloaded_tracks(infos, entry_url, playlist_id)
+            tracks = store_downloaded_tracks(infos, entry_url, playlist_id, playlist_title)
             return {"success": True, "tracks": tracks}
         except Exception as e:
             return {"success": False, "error": str(e)}
@@ -504,3 +506,125 @@ def batch_download_playlist(url: str, playlist_id: str | None, concurrency: int)
         "failed": failed_count,
         "tracks": [asdict(track) for track in results],
     }
+
+
+def apply_playlist_album_names() -> dict:
+    """既存楽曲のうち album が未設定のものに、所属プレイリスト名を遡及適用する。
+
+    album が "Unknown Album"（またはそれと等価の空値）の楽曲のみを対象とし、
+    ユーザーが手動で設定した album 値は変更しない。
+
+    Returns:
+        {"updated": int, "skipped": int}
+    """
+    data = load_library()
+    tracks = data.get("tracks", [])
+    playlists = data.get("playlists", [])
+
+    # track_id → track_entry の参照マップ
+    track_map = {t["id"]: t for t in tracks}
+
+    updated = 0
+    skipped = 0
+
+    for playlist in playlists:
+        playlist_name = playlist.get("name", "").strip()
+        if not playlist_name:
+            continue
+        for track_id in playlist.get("track_ids", []):
+            track = track_map.get(track_id)
+            if not track:
+                continue
+            current_album = (track.get("album") or "").strip()
+            if current_album and current_album != "Unknown Album":
+                skipped += 1
+                continue
+            track["album"] = playlist_name
+            updated += 1
+
+    if updated:
+        save_library(data)
+
+    return {"updated": updated, "skipped": skipped}
+
+
+def apply_album_from_source_playlists(
+    playlist_defs: list[dict],
+) -> dict:
+    """プレイリストURLに含まれる動画IDとライブラリトラックをマッチし、Album名を遡及設定する。
+
+    Args:
+        playlist_defs: [{"url": "...", "album_name": "..."}] のリスト。
+                       album_name 省略時はyt-dlpが返す playlist_title を使用。
+
+    Returns:
+        {"updated": N, "skipped": M, "details": [...]}
+    """
+    import subprocess
+
+    data = load_library()
+    tracks = data.get("tracks", [])
+    track_map: dict[str, dict] = {t["id"][3:]: t for t in tracks if t.get("id", "").startswith("yt_")}
+
+    updated = 0
+    skipped = 0
+    details: list[dict] = []
+
+    for pdef in playlist_defs:
+        url = pdef.get("url", "")
+        forced_name: str | None = pdef.get("album_name")
+        if not url:
+            continue
+        try:
+            # --dump-single-json でプレイリストタイトルとエントリを一括取得
+            result = subprocess.run(
+                ["yt-dlp", "--flat-playlist", "--dump-single-json", url],
+                capture_output=True, text=True, check=False,
+            )
+            if result.returncode != 0:
+                raise RuntimeError(result.stderr.strip() or "yt-dlp failed")
+            pdata = json.loads(result.stdout)
+        except Exception as e:
+            details.append({"url": url, "error": str(e)})
+            continue
+
+        # playlist_title を自動検出（forced_name 優先）
+        playlist_title: str | None = forced_name or pdata.get("title") or pdata.get("playlist_title")
+        if not playlist_title:
+            playlist_title = url
+
+        entries = pdata.get("entries") or []
+        matched = 0
+        album_protected = 0
+        not_found = 0
+        for entry in entries:
+            eid = (entry or {}).get("id")
+            if not eid:
+                continue
+            track = track_map.get(eid)
+            if track is None:
+                not_found += 1
+                continue
+            current_album = (track.get("album") or "").strip()
+            if current_album and current_album != "Unknown Album":
+                # 手動設定済みのAlbumは上書きしない
+                album_protected += 1
+                continue
+            track["album"] = playlist_title
+            matched += 1
+            updated += 1
+
+        skipped += album_protected + not_found
+        details.append({
+            "url": url,
+            "album_name": playlist_title,
+            "matched": matched,
+            "not_found": not_found,
+            "album_protected": album_protected,
+        })
+
+    if updated > 0:
+        save_library(data)
+    return {"updated": updated, "skipped": skipped, "details": details}
+
+

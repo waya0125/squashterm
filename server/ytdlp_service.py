@@ -156,8 +156,8 @@ def iter_ytdlp_events(url: str, playlist_id: str | None = None, no_playlist: boo
 
 
 def ingest_from_url(
-    url: str, playlist_id: str | None = None
+    url: str, playlist_id: str | None = None, playlist_name: str | None = None
 ) -> tuple[list[Track], str]:
     infos, log_output = download_with_ytdlp(url)
-    tracks = store_downloaded_tracks(infos, url, playlist_id)
+    tracks = store_downloaded_tracks(infos, url, playlist_id, playlist_name)
     return tracks, log_output

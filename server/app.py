@@ -19,6 +19,7 @@ import uvicorn
 from library_service import (
     append_track_record,
     append_tracks_to_playlist,
+    apply_playlist_album_names,
     batch_download_playlist,
     build_upload_track,
     ensure_data_dirs,
@@ -472,6 +473,16 @@ def get_settings():
     return build_settings_payload(REPO_ROOT)
 
 
+@app.post("/api/library/apply-playlist-album-names")
+def api_apply_playlist_album_names():
+    """既存楽曲のうち album 未設定のものに所属プレイリスト名を遡及適用する。"""
+    try:
+        result = apply_playlist_album_names()
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.put("/api/settings/playback-options")
 def update_playback_options(payload: dict):
     """再生設定を更新"""
@@ -599,6 +610,34 @@ async def upload_track(
     append_track_record(track, file_path)
     append_tracks_to_playlist(playlist_id, [track.id])
     return asdict(track)
+
+
+# ---------------------------------------------------------------------------
+# Maintenance endpoints
+# ---------------------------------------------------------------------------
+
+@app.post("/api/maintenance/apply-album-from-source-playlists")
+def apply_album_from_playlists(payload: dict | list[dict]):
+    """プレイリストURLに基づきトラックのAlbumを遡及設定する (one-shot)。
+
+    Body (推奨):
+      {"playlists": [{"url": "...", "album_name": "..."}, ...]}
+
+    互換性のため、ルート配列形式も受け付けます:
+      [{"url": "...", "album_name": "..."}, ...]
+
+    album_name は省略可（yt-dlp の playlist_title を自動使用）。
+    """
+    from library_service import apply_album_from_source_playlists
+
+    if isinstance(payload, dict):
+        playlists = payload.get("playlists", [])
+        if not isinstance(playlists, list):
+            raise HTTPException(status_code=400, detail="'playlists' field must be a list")
+    else:
+        playlists = payload
+
+    return apply_album_from_source_playlists(playlists)
 
 
 def run(host: str = "0.0.0.0", port: int = 8000) -> None:
