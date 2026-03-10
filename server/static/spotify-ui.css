@@ -827,3 +827,798 @@ body.theme-spotify .mobile-player-volume .icon-button:hover {
     grid-template-columns: 1fr;
   }
 }
+
+/* ==================================================================
+   Phase 2: コンテンツパネル — Spotify スタイル パッチ
+   全て body.theme-spotify スコープ。既存 HTML/JS は変更なし。
+   ================================================================== */
+
+/* ------------------------------------------------------------------ */
+/* 全パネル共通: 背景・パネルヘッダー                                    */
+/* ------------------------------------------------------------------ */
+
+body.theme-spotify .panel {
+  padding: 0;
+}
+
+body.theme-spotify .panel-header {
+  padding: 24px 28px 16px;
+  border-bottom: 1px solid var(--sp-border);
+  margin-bottom: 0;
+}
+
+body.theme-spotify .panel-header h3 {
+  font-size: 28px;
+  font-weight: 700;
+}
+
+body.theme-spotify .panel-actions {
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* 検索入力 */
+body.theme-spotify .search-input {
+  background: #2a2a2a;
+  border: none;
+  border-radius: 500px;
+  color: var(--sp-text);
+  padding: 8px 16px;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+body.theme-spotify .search-input:focus {
+  background: #333;
+  box-shadow: 0 0 0 2px var(--sp-accent) !important;
+  outline: none !important;
+}
+
+body.theme-spotify .search-input::placeholder {
+  color: var(--sp-text-muted);
+}
+
+/* パネルヘッダーのボタン類 */
+body.theme-spotify .panel-header button.primary,
+body.theme-spotify .panel-header .panel-actions button.primary {
+  background: var(--sp-accent);
+  color: #000;
+  font-weight: 700;
+  border-radius: 500px;
+  border: none;
+  padding: 8px 20px;
+}
+
+body.theme-spotify .panel-header button.primary:hover {
+  background: #1ed760;
+  transform: none;
+}
+
+body.theme-spotify .panel-header button.secondary,
+body.theme-spotify .panel-header .panel-actions button.secondary {
+  background: transparent;
+  border: 1px solid #727272;
+  color: var(--sp-text);
+  border-radius: 500px;
+  padding: 7px 19px;
+}
+
+body.theme-spotify .panel-header button.secondary:hover {
+  border-color: var(--sp-text);
+  transform: none;
+}
+
+/* 空状態 */
+body.theme-spotify .empty-state {
+  margin: 24px 28px;
+  background: var(--sp-card);
+  border-color: var(--sp-border);
+  color: #727272;
+  border-radius: 8px;
+}
+
+/* ------------------------------------------------------------------ */
+/* panel-media: メディアライブラリ                                       */
+/* ------------------------------------------------------------------ */
+
+body.theme-spotify .media-grid {
+  padding: 16px 28px;
+  gap: 12px;
+}
+
+/* グリッドカード */
+body.theme-spotify .media-card {
+  background: var(--sp-card);
+  border-radius: 8px;
+  padding: 16px;
+  gap: 8px;
+  box-shadow: none;
+  position: relative;
+  transition: background 0.2s ease;
+  cursor: pointer;
+}
+
+body.theme-spotify .media-card:hover {
+  background: var(--sp-hover);
+}
+
+body.theme-spotify .media-card img {
+  border-radius: 4px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  transition: filter 0.2s ease;
+}
+
+body.theme-spotify .media-card:hover img {
+  filter: brightness(0.75);
+}
+
+/* タイトル */
+body.theme-spotify .media-card h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--sp-text);
+  margin: 4px 0 0;
+}
+
+/* アーティスト/アルバム */
+body.theme-spotify .media-card p {
+  font-size: 13px;
+  color: var(--sp-text-muted);
+  margin: 0;
+}
+
+/* meta (ジャンル・年・時間) */
+body.theme-spotify .media-card .media-meta {
+  font-size: 12px;
+  color: #727272;
+}
+
+/* 再生ボタン: Spotify グリーン丸ボタン */
+body.theme-spotify .play-button {
+  background: var(--sp-accent);
+  color: #000;
+  font-weight: 700;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  border: none;
+  padding: 0;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+  transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  /* カードの右下にフロート配置 */
+  position: absolute;
+  bottom: 76px; /* h3 + p×2 + meta 分上 */
+  right: 16px;
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+}
+
+body.theme-spotify .media-card:hover .play-button {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+body.theme-spotify .play-button:hover {
+  background: #1ed760;
+  transform: scale(1.06) !important;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.5);
+}
+
+body.theme-spotify .play-button.is-disabled {
+  background: #535353;
+  color: var(--sp-text-muted);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* リスト表示モード (.is-list) */
+body.theme-spotify .media-grid.is-list {
+  padding: 0 28px 24px;
+  gap: 2px;
+}
+
+body.theme-spotify .media-grid.is-list .media-card {
+  display: grid;
+  grid-template-columns: 56px 1fr 1fr 1fr auto;
+  align-items: center;
+  gap: 0 14px;
+  border-radius: 4px;
+  padding: 8px 16px;
+}
+
+body.theme-spotify .media-grid.is-list .media-card img {
+  width: 56px;
+  height: 56px;
+  border-radius: 4px;
+  aspect-ratio: 1;
+  object-fit: cover;
+  box-shadow: none;
+  filter: none;
+}
+
+body.theme-spotify .media-grid.is-list .media-card:hover img {
+  filter: none;
+}
+
+body.theme-spotify .media-grid.is-list .media-card h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+body.theme-spotify .media-grid.is-list .media-card p {
+  font-size: 13px;
+}
+
+body.theme-spotify .media-grid.is-list .media-card .media-meta {
+  text-align: right;
+  font-size: 12px;
+}
+
+/* リスト表示の再生ボタン: 通常表示 */
+body.theme-spotify .media-grid.is-list .play-button {
+  position: static;
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+  width: 32px;
+  height: 32px;
+  font-size: 12px;
+  bottom: auto;
+  right: auto;
+  box-shadow: none;
+}
+
+body.theme-spotify .media-grid.is-list .media-card:hover .play-button {
+  transform: scale(1.06);
+}
+
+/* 選択状態 */
+body.theme-spotify .media-card.is-selected {
+  background: #2a2a2a;
+  outline: 2px solid var(--sp-accent);
+}
+
+/* バルクアクションバー: sp-player-bar(90px) の上に表示 */
+body.theme-spotify .bulk-action-bar {
+  background: var(--sp-hover);
+  border-top: 1px solid #3a3a3a;
+  bottom: var(--sp-player-h, 90px);
+}
+
+body.theme-spotify #bulk-selected-count {
+  color: var(--sp-text);
+  font-weight: 600;
+}
+
+body.theme-spotify .bulk-actions button.secondary {
+  background: transparent;
+  border: 1px solid #727272;
+  color: var(--sp-text);
+  border-radius: 500px;
+}
+
+body.theme-spotify .bulk-actions button.secondary:hover {
+  border-color: var(--sp-text);
+}
+
+body.theme-spotify .bulk-actions button.danger {
+  background: transparent;
+  border: 1px solid #e53e3e;
+  color: #e53e3e;
+  border-radius: 500px;
+}
+
+/* ------------------------------------------------------------------ */
+/* panel-playlist: プレイリスト                                          */
+/* ------------------------------------------------------------------ */
+
+body.theme-spotify .playlist-layout {
+  padding: 16px 28px 24px;
+  gap: 16px;
+}
+
+/* サイドバー */
+body.theme-spotify .playlist-sidebar {
+  gap: 8px;
+}
+
+body.theme-spotify .playlist-list,
+body.theme-spotify .favorites {
+  background: #181818;
+  border-radius: 8px;
+  padding: 8px;
+  gap: 2px;
+}
+
+/* プレイリスト作成フォーム */
+body.theme-spotify .playlist-create {
+  background: var(--sp-card);
+  border-radius: 8px;
+  padding: 16px;
+  gap: 10px;
+  border: 1px solid var(--sp-border);
+}
+
+body.theme-spotify .playlist-create h4 {
+  color: var(--sp-text);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+body.theme-spotify .playlist-create input {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 4px;
+  color: var(--sp-text);
+  padding: 10px 12px;
+  font-size: 14px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+body.theme-spotify .playlist-create input:focus {
+  border-color: var(--sp-accent);
+}
+
+body.theme-spotify .playlist-create button.primary {
+  background: var(--sp-accent);
+  color: #000;
+  font-weight: 700;
+  border-radius: 500px;
+  border: none;
+  padding: 10px 24px;
+}
+
+/* プレイリストアイテム */
+body.theme-spotify .playlist-item,
+body.theme-spotify .playlist-item-main-only {
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  padding: 10px 12px;
+  gap: 10px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  border-left: 3px solid transparent;
+  width: 100%;
+  text-align: left;
+}
+
+body.theme-spotify .playlist-item:hover,
+body.theme-spotify .playlist-item-main-only:hover {
+  background: var(--sp-hover);
+}
+
+body.theme-spotify .playlist-item.is-active,
+body.theme-spotify .playlist-item-main-only.is-active {
+  background: var(--sp-hover);
+  border-left-color: var(--sp-accent);
+}
+
+body.theme-spotify .playlist-item-title {
+  color: var(--sp-text);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+body.theme-spotify .playlist-item-meta {
+  color: var(--sp-text-muted);
+  font-size: 12px;
+}
+
+body.theme-spotify .playlist-item-actions button {
+  background: transparent;
+  border: none;
+  color: var(--sp-text-muted);
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+  transition: color 0.15s ease;
+}
+
+body.theme-spotify .playlist-item-actions button:hover {
+  color: var(--sp-text);
+  background: #3a3a3a;
+}
+
+/* 検索フィールドラベル */
+body.theme-spotify .search-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+body.theme-spotify .search-field > span {
+  font-size: 12px;
+  color: var(--sp-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* プレイリスト詳細 */
+body.theme-spotify .playlist-detail {
+  background: linear-gradient(180deg, #2a2a2a 0%, var(--sp-bg) 220px);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+body.theme-spotify .playlist-detail-header {
+  padding: 24px;
+  gap: 12px;
+}
+
+body.theme-spotify .playlist-detail-header h4 {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--sp-text);
+  margin: 0 0 6px;
+}
+
+body.theme-spotify .playlist-detail-header p {
+  color: var(--sp-text-muted);
+  margin: 0;
+}
+
+body.theme-spotify .playlist-detail-body {
+  padding: 0 24px 24px;
+}
+
+/* トラックリスト行 */
+body.theme-spotify .playlist-track-header {
+  color: #727272;
+  border-bottom: 1px solid var(--sp-border);
+  padding-bottom: 8px;
+  margin-bottom: 4px;
+  letter-spacing: 0.06em;
+}
+
+body.theme-spotify .playlist-track-row {
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 12px;
+  transition: background 0.15s ease;
+}
+
+body.theme-spotify .playlist-track-row:hover {
+  background: #282828;
+  border: none;
+}
+
+/* ------------------------------------------------------------------ */
+/* panel-manage: メディア管理                                            */
+/* ------------------------------------------------------------------ */
+
+body.theme-spotify .manage-grid {
+  padding: 16px 28px 24px;
+}
+
+/* manage内 card は hover 変化なし（フォームなのでクリック対象ではない） */
+body.theme-spotify .manage-grid .card {
+  border: 1px solid var(--sp-border);
+  gap: 0;
+  padding: 20px;
+}
+
+body.theme-spotify .manage-grid .card:hover {
+  background: var(--sp-card);
+}
+
+body.theme-spotify .manage-grid .card h4 {
+  font-size: 16px;
+  font-weight: 700;
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--sp-border);
+}
+
+body.theme-spotify .manage-grid .card label span {
+  font-size: 12px;
+  color: var(--sp-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* 入力フィールド（Spotify カラー） */
+body.theme-spotify .manage-grid .card input[type="text"],
+body.theme-spotify .manage-grid .card input[type="url"],
+body.theme-spotify .manage-grid .card input[type="number"],
+body.theme-spotify .manage-grid .card input[type="file"],
+body.theme-spotify .manage-grid .card select {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 4px;
+  color: var(--sp-text);
+  padding: 10px 14px;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+body.theme-spotify .manage-grid .card input:focus,
+body.theme-spotify .manage-grid .card select:focus {
+  border-color: var(--sp-accent);
+  background: #333;
+}
+
+body.theme-spotify .manage-grid .card select option {
+  background: #181818;
+  color: var(--sp-text);
+}
+
+/* ボタン */
+body.theme-spotify .manage-grid .card button.primary {
+  background: var(--sp-accent);
+  color: #000;
+  font-weight: 700;
+  border-radius: 500px;
+  border: none;
+  margin-top: 8px;
+}
+
+body.theme-spotify .manage-grid .card button.primary:hover {
+  background: #1ed760;
+  transform: none;
+}
+
+body.theme-spotify .manage-grid .card button.secondary {
+  background: transparent;
+  border: 1px solid #727272;
+  color: var(--sp-text);
+  border-radius: 500px;
+  margin-top: 8px;
+}
+
+body.theme-spotify .manage-grid .card button.secondary:hover {
+  border-color: var(--sp-text);
+  transform: none;
+}
+
+/* ターミナル出力: 黒背景 + Spotify グリーンテキスト */
+body.theme-spotify .manage-grid .card .terminal-output {
+  background: #0a0a0a;
+  border: 1px solid var(--sp-border);
+  border-radius: 4px;
+  color: var(--sp-accent);
+  font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+/* プログレスバー */
+body.theme-spotify .manage-grid .card .progress {
+  background: #2a2a2a;
+  border-radius: 2px;
+}
+
+body.theme-spotify .manage-grid .card .progress-bar {
+  background: var(--sp-accent);
+}
+
+body.theme-spotify .manage-grid .card .import-progress-text {
+  color: var(--sp-text-muted);
+}
+
+/* チェックボックスラベル */
+body.theme-spotify .manage-grid .card .checkbox span {
+  color: var(--sp-text-muted);
+}
+
+/* ------------------------------------------------------------------ */
+/* panel-settings: 設定                                                */
+/* ------------------------------------------------------------------ */
+
+body.theme-spotify .settings-grid {
+  padding: 16px 28px 24px;
+  gap: 12px;
+}
+
+/* settings カードは hover 変化なし（フォームカード） */
+body.theme-spotify .settings-grid .card {
+  border: 1px solid var(--sp-border);
+  gap: 0;
+  padding: 20px;
+}
+
+body.theme-spotify .settings-grid .card:hover {
+  background: var(--sp-card);
+}
+
+body.theme-spotify .settings-grid .card h4 {
+  font-size: 16px;
+  font-weight: 700;
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--sp-border);
+}
+
+/* バージョン/システム情報リスト */
+body.theme-spotify .settings-grid ul li {
+  color: var(--sp-text-muted);
+  font-size: 13px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--sp-border);
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+body.theme-spotify .settings-grid ul li:last-child {
+  border-bottom: none;
+}
+
+/* ストレージバー */
+body.theme-spotify .settings-grid .progress {
+  background: #2a2a2a;
+  border-radius: 2px;
+  height: 4px;
+  margin-bottom: 6px;
+}
+
+body.theme-spotify #settings-storage-bar {
+  background: var(--sp-accent);
+  border-radius: 2px;
+}
+
+body.theme-spotify #settings-storage-text {
+  color: var(--sp-text-muted);
+  font-size: 13px;
+}
+
+/* 設定内 input / select */
+body.theme-spotify .settings-grid .card input,
+body.theme-spotify .settings-grid .card input[type="url"],
+body.theme-spotify .settings-grid .card input[type="number"],
+body.theme-spotify .settings-grid .card select,
+body.theme-spotify #sp-theme-select {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 4px;
+  color: var(--sp-text);
+  padding: 10px 14px;
+  font-size: 14px;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease;
+}
+
+body.theme-spotify .settings-grid .card input:focus,
+body.theme-spotify .settings-grid .card select:focus,
+body.theme-spotify #sp-theme-select:focus {
+  border-color: var(--sp-accent);
+  background: #333;
+}
+
+body.theme-spotify .settings-grid .card select option,
+body.theme-spotify #sp-theme-select option {
+  background: #181818;
+  color: var(--sp-text);
+}
+
+/* 設定内ボタン */
+body.theme-spotify .settings-grid .card button.secondary,
+body.theme-spotify .settings-grid .card button.primary {
+  border-radius: 500px;
+  padding: 10px 24px;
+  font-weight: 700;
+  margin-top: 12px;
+  border: none;
+}
+
+body.theme-spotify .settings-grid .card button.secondary {
+  background: transparent;
+  border: 1px solid #727272;
+  color: var(--sp-text);
+}
+
+body.theme-spotify .settings-grid .card button.secondary:hover {
+  border-color: var(--sp-text);
+  transform: none;
+}
+
+body.theme-spotify .settings-grid .card button.primary {
+  background: var(--sp-accent);
+  color: #000;
+}
+
+body.theme-spotify .settings-grid .card button.primary:hover {
+  background: #1ed760;
+  transform: none;
+}
+
+/* 再生設定 toggle ラベル */
+body.theme-spotify #settings-playback-options label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--sp-border);
+  color: var(--sp-text);
+  font-size: 14px;
+  cursor: pointer;
+  gap: 12px;
+}
+
+body.theme-spotify #settings-playback-options label:last-child {
+  border-bottom: none;
+}
+
+/* ------------------------------------------------------------------ */
+/* ライトテーマ上書き (Phase 2)                                          */
+/* ------------------------------------------------------------------ */
+
+body.theme-spotify.theme-light .media-card {
+  background: #fff;
+}
+
+body.theme-spotify.theme-light .media-card:hover {
+  background: #f0f0f0;
+}
+
+body.theme-spotify.theme-light .media-card h3 {
+  color: #000;
+}
+
+body.theme-spotify.theme-light .media-card p {
+  color: #6a6a6a;
+}
+
+body.theme-spotify.theme-light .playlist-list,
+body.theme-spotify.theme-light .favorites {
+  background: #f7f7f7;
+}
+
+body.theme-spotify.theme-light .playlist-item:hover,
+body.theme-spotify.theme-light .playlist-item-main-only:hover {
+  background: #e8e8e8;
+}
+
+body.theme-spotify.theme-light .playlist-detail {
+  background: linear-gradient(180deg, #e0e0e0 0%, #fff 220px);
+}
+
+body.theme-spotify.theme-light .manage-grid .card,
+body.theme-spotify.theme-light .settings-grid .card {
+  background: #fff;
+  border-color: #e0e0e0;
+}
+
+body.theme-spotify.theme-light .manage-grid .card:hover,
+body.theme-spotify.theme-light .settings-grid .card:hover {
+  background: #fff;
+}
+
+body.theme-spotify.theme-light .manage-grid .card input,
+body.theme-spotify.theme-light .manage-grid .card select,
+body.theme-spotify.theme-light .settings-grid .card input,
+body.theme-spotify.theme-light .settings-grid .card select,
+body.theme-spotify.theme-light .settings-grid .card input[type="url"],
+body.theme-spotify.theme-light #sp-theme-select,
+body.theme-spotify.theme-light .playlist-create input,
+body.theme-spotify.theme-light .search-input {
+  background: #f0f0f0;
+  border-color: #d0d0d0;
+  color: #000;
+}
+
+body.theme-spotify.theme-light .manage-grid .card .terminal-output {
+  background: #1a1a1a;
+}
+
+body.theme-spotify.theme-light .manage-grid .card button.secondary,
+body.theme-spotify.theme-light .settings-grid .card button.secondary,
+body.theme-spotify.theme-light .panel-header button.secondary {
+  border-color: #b0b0b0;
+  color: #333;
+}
+
+body.theme-spotify.theme-light .bulk-action-bar {
+  background: #e8e8e8;
+  border-color: #d0d0d0;
+}
