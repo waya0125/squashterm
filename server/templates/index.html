@@ -14,7 +14,14 @@
     <link rel="stylesheet" href="/static/styles.css" />
     <link rel="stylesheet" href="/static/spotify-ui.css" />
   </head>
-  <body>
+  <body><script>
+    /* FOUC 防止: body が開いた瞬間に同期実行してテーマクラスを先付与 */
+    (function(){
+      var t='';try{t=localStorage.getItem('squashterm_ui_theme')||'';}catch(e){}
+      if(t==='spotify-dark'||t==='spotify-light'){document.body.classList.add('theme-spotify');}
+      if(t==='spotify-light'){document.body.classList.add('theme-light');}
+    })();
+  </script>
     <div class="app">
       <div class="layout">
         <aside class="sidebar" id="sidebar">
