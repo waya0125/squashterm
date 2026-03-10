@@ -1,4 +1,4 @@
-const cacheName = "squashterm-v4"; // v4: Settings レイアウト・import-progress/terminal 幅修正
+const cacheName = "squashterm-v5"; // v5: Spotify プレイヤー モバイル風フルスクリーン
 const staticAssets = [
   "/",
   "/static/styles.css",
