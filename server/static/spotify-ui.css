@@ -3648,6 +3648,11 @@ body.theme-spotify .manage-grid .card .terminal-output {
   line-height: 1.6;
 }
 
+/* align-items:flex-start の影響でコンテンツ幅に縮むのを防ぐ */
+body.theme-spotify .manage-grid .card .terminal {
+  width: 100% !important;
+}
+
 /* プログレスバー */
 body.theme-spotify .manage-grid .card .progress {
   background: #2a2a2a;
@@ -3660,6 +3665,11 @@ body.theme-spotify .manage-grid .card .progress-bar {
 
 body.theme-spotify .manage-grid .card .import-progress-text {
   color: var(--sp-text-muted);
+}
+
+/* align-items:flex-start の影響でコンテンツ幅に縮むのを防ぐ */
+body.theme-spotify .manage-grid .card .import-progress {
+  width: 100% !important;
 }
 
 /* チェックボックスラベル */
