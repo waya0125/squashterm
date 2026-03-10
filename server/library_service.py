@@ -471,6 +471,7 @@ def update_playlist_sync_status(
 def batch_download_playlist(url: str, playlist_id: str | None, concurrency: int):
     """プレイリストを並列ダウンロード（download_queue使用）"""
     import os
+    import threading
     if os.getenv("YTDLP_API_URL"):
         from ytdlp_api_service import batch_download_playlist_via_api
         yield from batch_download_playlist_via_api(url, playlist_id, concurrency)
@@ -510,7 +511,10 @@ def batch_download_playlist(url: str, playlist_id: str | None, concurrency: int)
     
     completed_count = 0
     failed_count = 0
-    results = []
+    results: list = []
+    _expected = len(entries)
+    _lock = threading.Lock()
+    _callbacks_done = threading.Event()
     
     def download_single(entry_url: str, entry_id: str | None):
         """単一エントリのダウンロード"""
@@ -523,15 +527,20 @@ def batch_download_playlist(url: str, playlist_id: str | None, concurrency: int)
             return {"success": False, "error": str(e)}
     
     def progress_callback(task, result):
-        """進捗コールバック（通常関数 — generator にしてはいけない）"""
+        """進捗コールバック（通常関数 — generator にしてはいけない）
+        
+        ThreadPoolExecutor のワーカースレッドから呼ばれるため、共有変数の更新は
+        _lock で保護する。全コールバック完了時に _callbacks_done を set する。
+        """
         nonlocal completed_count, failed_count
-        if result.get("success"):
-            completed_count += 1
-            results.extend(result.get("tracks", []))
-        else:
-            failed_count += 1
-        # yield を持つと generator 関数になり download_queue から呼ばれても
-        # body が実行されず completed_count が更新されないためここには書かない
+        with _lock:
+            if result.get("success"):
+                completed_count += 1
+                results.extend(result.get("tracks", []))
+            else:
+                failed_count += 1
+            if completed_count + failed_count >= _expected:
+                _callbacks_done.set()
     
     # ダウンロード開始
     task_id = queue.enqueue_playlist(
@@ -560,14 +569,19 @@ def batch_download_playlist(url: str, playlist_id: str | None, concurrency: int)
             break
         time.sleep(1)
     
+    # キューのカウンタが total に達した後も最後のコールバックが実行中の場合があるため、
+    # 全コールバック完了を最大 30 秒待ってから最終結果を送出する
+    _callbacks_done.wait(timeout=30)
+    
     # 最終結果
-    yield {
-        "type": "complete",
-        "total": len(entries),
-        "completed": completed_count,
-        "failed": failed_count,
-        "tracks": [asdict(track) for track in results],
-    }
+    with _lock:
+        yield {
+            "type": "complete",
+            "total": _expected,
+            "completed": completed_count,
+            "failed": failed_count,
+            "tracks": [asdict(track) for track in results],
+        }
 
 
 def apply_album_from_source_playlists(
