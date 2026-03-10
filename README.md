@@ -43,3 +43,7 @@ python server/app.py
 ## 使用
 
 ブラウザで `http://localhost:8000` を開きます。
+
+## APIドキュメント
+
+- 楽曲登録API: `docs/api/library-register.md`

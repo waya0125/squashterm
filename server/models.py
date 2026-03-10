@@ -70,6 +70,24 @@ class TrackUpdate(BaseModel):
     source_url: str | None = None
 
 
+class ManualTrackMetadata(BaseModel):
+    title: str
+    artist: str
+    album: str
+    genre: str = "Unknown"
+    year: int = 0
+    duration: str = "--"
+    bpm: int = 0
+    source_url: str | None = None
+
+
+class TrackRegisterRequest(BaseModel):
+    file_path: str
+    scan_meta: bool = True
+    playlist_id: str | None = None
+    metadata: ManualTrackMetadata | None = None
+
+
 class PlaybackOptionUpdate(BaseModel):
     """再生設定の更新"""
     option_id: str

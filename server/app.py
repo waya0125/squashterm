@@ -30,6 +30,7 @@ from library_service import (
     import_local_folder,
     init_library,
     load_library,
+    parse_bool,
     parse_positive_int,
     remove_media_asset,
     save_library,
@@ -41,6 +42,8 @@ from models import (
     PlaylistBatchImportRequest,
     PlaylistCreate,
     PlaylistUpdate,
+    Track,
+    TrackRegisterRequest,
     TrackUpdate,
 )
 from paths import AUTO_SYNC_LOCK, MEDIA_DIR, STATIC_DIR, TEMPLATE_PATH
@@ -627,6 +630,63 @@ def import_local_folder_route(payload: LocalFolderImportRequest):
         raise HTTPException(status_code=400, detail="Folder not found")
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.post("/api/library/register")
+def register_track(payload: TrackRegisterRequest):
+    """既存ファイルをライブラリへ登録する。
+
+    - scan_meta=true: mutagen でメタデータを読み取って登録
+    - scan_meta=false: metadata で手動指定した値を登録
+    """
+    source_path = Path(payload.file_path).expanduser()
+    if not source_path.exists() or not source_path.is_file():
+        raise HTTPException(status_code=400, detail="file_path does not exist")
+
+    ensure_data_dirs()
+    track_id = f"local_{uuid.uuid4().hex}"
+    extension = source_path.suffix or ".mp3"
+    dest_path = MEDIA_DIR / f"{track_id}{extension}"
+    shutil.copy2(source_path, dest_path)
+
+    if payload.scan_meta:
+        track = build_upload_track(
+            dest_path,
+            track_id,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            True,
+            None,
+        )
+    else:
+        if payload.metadata is None:
+            raise HTTPException(status_code=400, detail="metadata is required when scan_meta is false")
+        manual_meta = payload.metadata
+        parsed_year = manual_meta.year if manual_meta.year and manual_meta.year > 0 else 0
+        parsed_bpm = manual_meta.bpm if manual_meta.bpm and manual_meta.bpm > 0 else 0
+        track = Track(
+            id=track_id,
+            title=manual_meta.title,
+            artist=manual_meta.artist,
+            album=manual_meta.album,
+            cover="/static/images/icon.png",
+            duration=manual_meta.duration or "--",
+            bpm=parsed_bpm,
+            genre=manual_meta.genre or "Unknown",
+            year=parsed_year,
+            file_url=f"/media/{dest_path.name}",
+            source_url=manual_meta.source_url,
+            file_format=dest_path.suffix.lstrip(".").lower() or None,
+            bitrate_kbps=None,
+        )
+
+    append_track_record(track, dest_path)
+    append_tracks_to_playlist(payload.playlist_id, [track.id])
+    return {"track": asdict(track), "scan_meta": parse_bool(payload.scan_meta, True)}
 
 
 @app.post("/api/library/upload")
