@@ -3018,6 +3018,19 @@ body.theme-spotify .mobile-player-volume .icon-button:hover {
    モバイル表示では Spotify プレイヤーバーを非表示
    ================================================================== */
 
+/* サイドバー幅を段階的に縮小して settings-grid の max-width (720px) を確保 */
+@media (max-width: 1100px) {
+  body.theme-spotify {
+    --sp-sidebar-w: 180px;
+  }
+}
+
+@media (max-width: 960px) {
+  body.theme-spotify {
+    --sp-sidebar-w: 160px;
+  }
+}
+
 @media (max-width: 768px) {
   #sp-player-bar {
     display: none !important;
@@ -3661,6 +3674,10 @@ body.theme-spotify .manage-grid .card .checkbox span {
 body.theme-spotify .settings-grid {
   padding: 16px 28px 24px;
   gap: 12px;
+  /* settings カードを一定幅に収めて右側コンテンツの中央に配置 */
+  max-width: 720px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* settings カードは hover 変化なし（フォームカード） */
@@ -3668,8 +3685,7 @@ body.theme-spotify .settings-grid .card {
   border: 1px solid var(--sp-border);
   gap: 0;
   padding: 20px;
-  /* grid コンテナ内アイテムのデフォルト配置: start にして content-width にする */
-  justify-items: start;
+  /* justify-items はデフォルト stretch のまま → progress/ul/div が全幅を確保 */
 }
 
 /* settings カードの label: flex 縦並び、全幅 */
@@ -3679,8 +3695,6 @@ body.theme-spotify .settings-grid .card > label {
   gap: 4px;
   width: 100%;
   margin-bottom: 10px;
-  justify-self: stretch; /* grid item として全幅 */
-  align-self: stretch;
 }
 
 body.theme-spotify .settings-grid .card > label > span {
@@ -3724,7 +3738,8 @@ body.theme-spotify .settings-grid ul li:last-child {
 body.theme-spotify .settings-grid .progress {
   background: #2a2a2a;
   border-radius: 2px;
-  height: 4px;
+  height: 6px;
+  width: 100%;
   margin-bottom: 6px;
 }
 
@@ -3738,7 +3753,7 @@ body.theme-spotify #settings-storage-text {
   font-size: 13px;
 }
 
-/* 設定内 input / select: justify-items: start を上書きして全幅維持 */
+/* 設定内 input / select */
 body.theme-spotify .settings-grid .card input,
 body.theme-spotify .settings-grid .card input[type="url"],
 body.theme-spotify .settings-grid .card input[type="number"],
@@ -3751,7 +3766,6 @@ body.theme-spotify #sp-theme-select {
   padding: 10px 14px;
   font-size: 14px;
   width: 100%;
-  justify-self: stretch; /* grid item として全幅 */
   box-sizing: border-box;
   transition: border-color 0.15s ease;
 }
@@ -3773,9 +3787,10 @@ body.theme-spotify #sp-theme-select option {
 body.theme-spotify .settings-grid .card button.secondary,
 body.theme-spotify .settings-grid .card button.primary {
   border-radius: 500px;
-  padding: 10px 24px;
+  padding: 8px 18px;
+  font-size: 13px;
   font-weight: 700;
-  margin-top: 12px;
+  margin-top: 6px;
   border: none;
   justify-self: start !important;
   width: auto !important;
