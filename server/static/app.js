@@ -173,6 +173,7 @@ const closeMobileSidebar = () => {
     return;
   }
   sidebar.classList.remove("is-open");
+  document.body?.classList.remove("mobile-menu-open");
   mobileNavToggle?.setAttribute("aria-expanded", "false");
 };
 
@@ -194,6 +195,7 @@ if (mobileNavToggle && sidebar) {
   mobileNavToggle.addEventListener("click", () => {
     const willOpen = !sidebar.classList.contains("is-open");
     sidebar.classList.toggle("is-open", willOpen);
+    document.body?.classList.toggle("mobile-menu-open", willOpen);
     mobileNavToggle.setAttribute("aria-expanded", String(willOpen));
   });
 
@@ -678,6 +680,30 @@ const togglePlayback = async () => {
   } else {
     audioPlayer.pause();
   }
+};
+
+const playCurrentTrack = async () => {
+  if (!audioPlayer) {
+    return;
+  }
+  if (playerState.currentIndex === -1) {
+    if (state.tracks.length > 0) {
+      setTrackByIndex(0);
+    } else {
+      return;
+    }
+  }
+  if (!audioPlayer.paused) {
+    return;
+  }
+  await audioPlayer.play();
+};
+
+const pauseCurrentTrack = () => {
+  if (!audioPlayer || audioPlayer.paused) {
+    return;
+  }
+  audioPlayer.pause();
 };
 
 const seekBySeconds = (deltaSeconds) => {
@@ -2989,22 +3015,30 @@ document.addEventListener("keydown", (event) => {
 });
 
 if (supportsMediaSession) {
-  navigator.mediaSession.setActionHandler("play", () => {
-    togglePlayback();
+  const registerMediaSessionHandler = (action, handler) => {
+    try {
+      navigator.mediaSession.setActionHandler(action, handler);
+    } catch (error) {
+      console.warn(`Unsupported media session action: ${action}`, error);
+    }
+  };
+
+  registerMediaSessionHandler("play", async () => {
+    await playCurrentTrack();
   });
-  navigator.mediaSession.setActionHandler("pause", () => {
-    togglePlayback();
+  registerMediaSessionHandler("pause", () => {
+    pauseCurrentTrack();
   });
-  navigator.mediaSession.setActionHandler("previoustrack", () => {
+  registerMediaSessionHandler("previoustrack", () => {
     playPrev();
   });
-  navigator.mediaSession.setActionHandler("nexttrack", () => {
+  registerMediaSessionHandler("nexttrack", () => {
     playNext();
   });
-  navigator.mediaSession.setActionHandler("stop", () => {
+  registerMediaSessionHandler("stop", () => {
     stopPlayback();
   });
-  navigator.mediaSession.setActionHandler("seekto", (event) => {
+  registerMediaSessionHandler("seekto", (event) => {
     if (!audioPlayer || typeof event.seekTime !== "number") {
       return;
     }

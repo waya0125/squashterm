@@ -102,6 +102,14 @@ async def read_index():
     return FileResponse(TEMPLATE_PATH)
 
 
+@app.get("/sw.js")
+def get_service_worker():
+    sw_path = STATIC_DIR / "sw.js"
+    if not sw_path.exists():
+        raise HTTPException(status_code=404, detail="Service worker not found")
+    return FileResponse(sw_path, media_type="application/javascript")
+
+
 @app.get("/favicon.ico")
 def get_favicon():
     favicon_path = STATIC_DIR / "images" / "icon.png"
