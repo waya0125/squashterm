@@ -18,9 +18,7 @@ DEFAULT_SETTINGS = {
     "device": "Raspberry Pi (prototype)",
 
     "design": {
-        "main_color": "#2563eb",
         "accent_color": "#38bdf8",
-        "font_color": "#e2e8f0",
     },
     "storage": {
         "used_gb": 3.8,
@@ -255,13 +253,11 @@ def set_base_url(base_url: str) -> dict:
     return {"success": True, "base_url": base_url}
 
 
-def set_design_settings(main_color: str, accent_color: str, font_color: str) -> dict:
+def set_design_settings(accent_color: str) -> dict:
     """デザイン設定を更新する。"""
     settings = load_settings(DEFAULT_SETTINGS)
     settings["design"] = {
-        "main_color": main_color,
         "accent_color": accent_color,
-        "font_color": font_color,
     }
     SETTINGS_PATH.write_text(
         json.dumps(settings, ensure_ascii=False, indent=2),

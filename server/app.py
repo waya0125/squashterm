@@ -333,12 +333,10 @@ def update_base_url(payload: dict):
 
 @app.put("/api/settings/design")
 def update_design_settings(payload: dict):
-    main_color = str(payload.get("main_color", "")).strip()
     accent_color = str(payload.get("accent_color", "")).strip()
-    font_color = str(payload.get("font_color", "")).strip()
-    if not main_color or not accent_color or not font_color:
-        raise HTTPException(status_code=400, detail="main_color, accent_color and font_color are required")
-    return set_design_settings(main_color, accent_color, font_color)
+    if not accent_color:
+        raise HTTPException(status_code=400, detail="accent_color is required")
+    return set_design_settings(accent_color)
 
 
 @app.post("/api/settings/design/logo")

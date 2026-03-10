@@ -71,13 +71,7 @@ const settingsPlaybackOptions = document.getElementById("settings-playback-optio
 const systemInfoList = document.getElementById("system-info-list");
 const settingsBaseUrlInput = document.getElementById("settings-base-url");
 const settingsBaseUrlSave = document.getElementById("settings-base-url-save");
-const settingsTabGeneral = document.getElementById("settings-tab-general");
-const settingsTabDesign = document.getElementById("settings-tab-design");
-const settingsPanelGeneral = document.getElementById("settings-panel-general");
-const settingsPanelDesign = document.getElementById("settings-panel-design");
-const designMainColorInput = document.getElementById("design-main-color");
 const designAccentColorInput = document.getElementById("design-accent-color");
-const designFontColorInput = document.getElementById("design-font-color");
 const designColorsSave = document.getElementById("design-colors-save");
 const designLogoFile = document.getElementById("design-logo-file");
 const designLogoSave = document.getElementById("design-logo-save");
@@ -468,34 +462,23 @@ const updateMediaViewToggle = () => {
 
 const normalizeQuery = (value) => value.trim().toLowerCase();
 
-const isYouTubeUrl = (value) => {
-  const text = String(value || "").trim();
-  if (!text) {
-    return false;
+const resolveTrackVideoUrl = (track) => {
+  if (!track) {
+    return null;
   }
-  return /(?:youtube\.com|youtu\.be)/i.test(text);
+  if (track.video_url) {
+    return track.video_url;
+  }
+  const fileUrl = String(track.file_url || "");
+  if (/\.(mp4|webm|mkv)(?:\?|$)/i.test(fileUrl)) {
+    return fileUrl;
+  }
+  return null;
 };
 
 const applyDesignTheme = (design) => {
-  const resolved = {
-    main_color: design?.main_color || "#2563eb",
-    accent_color: design?.accent_color || "#38bdf8",
-    font_color: design?.font_color || "#e2e8f0",
-  };
-  document.documentElement.style.setProperty("--theme-main-color", resolved.main_color);
-  document.documentElement.style.setProperty("--theme-accent-color", resolved.accent_color);
-  document.documentElement.style.setProperty("--theme-font-color", resolved.font_color);
-};
-
-const switchSettingsTab = (target) => {
-  if (!settingsTabGeneral || !settingsTabDesign || !settingsPanelGeneral || !settingsPanelDesign) {
-    return;
-  }
-  const isDesign = target === "design";
-  settingsTabGeneral.classList.toggle("is-active", !isDesign);
-  settingsTabDesign.classList.toggle("is-active", isDesign);
-  settingsPanelGeneral.hidden = isDesign;
-  settingsPanelDesign.hidden = !isDesign;
+  const accentColor = design?.accent_color || "#38bdf8";
+  document.documentElement.style.setProperty("--theme-accent-color", accentColor);
 };
 
 const filterTracks = (tracks, query) => {
@@ -1582,7 +1565,7 @@ const updatePlayerMenuButtons = () => {
     playerOpenSource.disabled = !hasSource;
   }
   if (playerOpenVideo) {
-    playerOpenVideo.disabled = !(track && isYouTubeUrl(track.source_url));
+    playerOpenVideo.disabled = !resolveTrackVideoUrl(track);
   }
   if (playerAddPlaylist) {
     playerAddPlaylist.disabled = !track;
@@ -1793,14 +1776,8 @@ const renderSettings = (settings) => {
   if (settingsBaseUrlInput) {
     settingsBaseUrlInput.value = settings?.app?.base_url || "";
   }
-  if (designMainColorInput) {
-    designMainColorInput.value = settings?.design?.main_color || "#2563eb";
-  }
   if (designAccentColorInput) {
     designAccentColorInput.value = settings?.design?.accent_color || "#38bdf8";
-  }
-  if (designFontColorInput) {
-    designFontColorInput.value = settings?.design?.font_color || "#e2e8f0";
   }
   applyDesignTheme(settings?.design);
   if (settingsPlaybackOptions) {
@@ -2883,11 +2860,12 @@ if (playerOpenSource) {
 if (playerOpenVideo) {
   playerOpenVideo.addEventListener("click", () => {
     const track = state.tracks[playerState.currentIndex];
-    if (!track || !isYouTubeUrl(track.source_url)) {
-      appendImportLog("YouTube 動画リンクが見つかりません。", { append: true });
+    const videoUrl = resolveTrackVideoUrl(track);
+    if (!videoUrl) {
+      appendImportLog("再生可能な保存済み動画が見つかりません。", { append: true });
       return;
     }
-    window.open(track.source_url, "_blank", "noopener");
+    window.open(videoUrl, "_blank", "noopener");
   });
 }
 
@@ -3120,24 +3098,10 @@ if (supportsMediaSession) {
 }
 
 init();
-if (settingsTabGeneral) {
-  settingsTabGeneral.addEventListener("click", () => {
-    switchSettingsTab("general");
-  });
-}
-
-if (settingsTabDesign) {
-  settingsTabDesign.addEventListener("click", () => {
-    switchSettingsTab("design");
-  });
-}
-
 if (designColorsSave) {
   designColorsSave.addEventListener("click", async () => {
     const payload = {
-      main_color: designMainColorInput?.value || "#2563eb",
       accent_color: designAccentColorInput?.value || "#38bdf8",
-      font_color: designFontColorInput?.value || "#e2e8f0",
     };
     try {
       const response = await requestJson("/api/settings/design", payload, "PUT");

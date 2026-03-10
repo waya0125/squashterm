@@ -342,11 +342,7 @@
               </div>
               <button class="secondary">設定を保存</button>
             </div>
-            <div class="settings-tabs">
-              <button type="button" class="settings-tab-button is-active" id="settings-tab-general">一般</button>
-              <button type="button" class="settings-tab-button" id="settings-tab-design">デザイン</button>
-            </div>
-            <div class="settings-grid" id="settings-panel-general">
+            <div class="settings-grid">
               <div class="card">
                 <h4>バージョン情報</h4>
                 <ul id="settings-version-list"></ul>
@@ -389,13 +385,9 @@
                 <button class="secondary" type="button" id="apply-playlist-album-names">プレイリスト名をAlbumに適用</button>
                 <p id="apply-playlist-album-result" style="margin-top: 0.5rem; font-size: 0.85rem;"></p>
               </div>
-            </div>
-            <div class="settings-grid" id="settings-panel-design" hidden>
               <div class="card">
-                <h4>カラーテーマ</h4>
-                <label><span>メインカラー</span><input type="color" id="design-main-color" value="#2563eb" /></label>
+                <h4>デザイン</h4>
                 <label><span>アクセントカラー</span><input type="color" id="design-accent-color" value="#38bdf8" /></label>
-                <label><span>フォントカラー</span><input type="color" id="design-font-color" value="#e2e8f0" /></label>
                 <button class="secondary" type="button" id="design-colors-save">カラーを保存</button>
               </div>
               <div class="card">
