@@ -989,7 +989,7 @@
     <script>
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
-          navigator.serviceWorker.register("/static/sw.js").catch((error) => {
+          navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch((error) => {
             console.warn("Service Worker registration failed:", error);
           });
         });

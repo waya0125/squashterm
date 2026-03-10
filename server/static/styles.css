@@ -659,6 +659,8 @@ body {
 
 .manage-grid .card {
   gap: 8px;
+  align-content: start;
+  min-height: 100%;
 }
 
 .manage-grid .card h4 {
@@ -667,6 +669,10 @@ body {
 
 .manage-grid .card label {
   gap: 4px;
+}
+
+.manage-grid .card > :last-child {
+  margin-bottom: 12px;
 }
 
 .settings-grid {
@@ -1437,6 +1443,7 @@ input[type="file"] {
     padding: calc(8px + env(safe-area-inset-top)) 12px 8px;
     background: rgba(29, 29, 29, 0.92);
     backdrop-filter: blur(10px);
+    transition: background-color 0.2s ease;
   }
 
   .mobile-nav-toggle {
@@ -1464,6 +1471,10 @@ input[type="file"] {
     transform: translateX(0);
     opacity: 1;
     pointer-events: auto;
+  }
+
+  body.mobile-menu-open .mobile-sticky-header {
+    background: #111;
   }
 
   .brand {
