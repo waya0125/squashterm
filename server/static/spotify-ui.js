@@ -1,16 +1,12 @@
 /**
- * spotify-ui.js — Spotify 風 UI テーマ パッチ v4
+ * spotify-ui.js — Spotify 風 UI テーマ v5
+ * このファイルは Spotify モード (spotify-dark / spotify-light) のときのみロードされる。
+ * テーマ CSS は index.html の <head> インラインスクリプトで条件ロード済み。
  */
 (function () {
   "use strict";
 
   var THEME_KEY = "squashterm_ui_theme";
-
-  var THEME_CLASSES = {
-    "default":       [],
-    "spotify-dark":  ["theme-spotify"],
-    "spotify-light": ["theme-spotify", "theme-light"],
-  };
 
   // marquee キャンセル用タイマーマップ
   var _marqueeTimers = {};
@@ -21,17 +17,28 @@
 
   var _syncAllTimer = null;
 
+  /**
+   * テーマ切り替え。
+   * spotify-dark ↔ spotify-light: theme-light クラスのみ変更 (CSS ファイルは同じ、リロード不要)
+   * default など Spotify 以外: localStorage 保存後にリロード (CSS ファイルが変わる)
+   */
   function applyTheme(theme) {
-    document.body.classList.remove("theme-spotify", "theme-light");
-    var classes = THEME_CLASSES[theme] || [];
-    classes.forEach(function (cls) { document.body.classList.add(cls); });
+    var isSpotify = (theme === "spotify-dark" || theme === "spotify-light");
+    if (!isSpotify) {
+      // Spotify 以外の CSS が必要: 保存してリロード
+      location.reload();
+      return;
+    }
+    // Spotify バリアント切り替え: CSS はそのまま、theme-light クラスだけ変更
+    if (theme === "spotify-light") {
+      document.body.classList.add("theme-light");
+    } else {
+      document.body.classList.remove("theme-light");
+    }
     updateThemeSelect();
     syncSpBarVisibility();
-    if (document.body.classList.contains("theme-spotify")) {
-      // 連続呼び出し時にタイマーを積まないようキャンセルしてから再スケジュール
-      if (_syncAllTimer) clearTimeout(_syncAllTimer);
-      _syncAllTimer = setTimeout(function () { _syncAllTimer = null; syncAll(); }, 100);
-    }
+    if (_syncAllTimer) clearTimeout(_syncAllTimer);
+    _syncAllTimer = setTimeout(function () { _syncAllTimer = null; syncAll(); }, 100);
   }
 
   function updateThemeSelect() {
@@ -45,6 +52,7 @@
   // ================================================================
 
   function init() {
+    // URL パラメータ ?ui= でのテーマ指定処理
     var params = new URLSearchParams(location.search);
     if (params.has("ui")) {
       var val = params.get("ui");
@@ -55,10 +63,19 @@
         ? location.pathname + "?" + params.toString()
         : location.pathname;
       history.replaceState(null, "", newUrl);
+      // URL パラメータでテーマが変わった場合は applyTheme でリロードの可能性あり
+      applyTheme(val);
+      return;
     }
 
-    applyTheme(localStorage.getItem(THEME_KEY) || "default");
+    // 初期テーマは <head> スクリプトで CSS ロード済み・FOUC スクリプトでクラス付与済み
+    // ここでは UI 要素の同期だけ行う
+    updateThemeSelect();
+    syncSpBarVisibility();
+    if (_syncAllTimer) clearTimeout(_syncAllTimer);
+    _syncAllTimer = setTimeout(function () { _syncAllTimer = null; syncAll(); }, 100);
 
+    // テーマセレクター: Spotify バリアント間はクラス変更、Spotify 外はリロード
     var sel = document.getElementById("sp-theme-select");
     if (sel) {
       sel.addEventListener("change", function () {

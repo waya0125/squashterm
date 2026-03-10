@@ -11,15 +11,25 @@
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <link rel="apple-touch-icon" href="/static/images/icon.png" />
     <link rel="manifest" href="/static/manifest.webmanifest" />
-    <link rel="stylesheet" href="/static/styles.css" />
-    <link rel="stylesheet" href="/static/spotify-ui.css" />
+    <script>
+      /* テーマ判定: localStorage を読んで CSS を1ファイルだけ同期ロード (FOUC 防止)
+         document.write は <head> 内同期スクリプトでのみ使用。
+         ブラウザはこの <link> をレンダーブロッキング扱いにするため FOUC が発生しない。 */
+      (function(){
+        var t='';try{t=localStorage.getItem('squashterm_ui_theme')||'';}catch(e){}
+        var isSp=(t==='spotify-dark'||t==='spotify-light');
+        var isLt=(t==='spotify-light');
+        window._sqTheme={spotify:isSp,light:isLt,val:t};
+        document.write('<link rel="stylesheet" href="/static/'+(isSp?'spotify-ui':'styles')+'.css">');
+      })();
+    </script>
   </head>
   <body><script>
-    /* FOUC 防止: body が開いた瞬間に同期実行してテーマクラスを先付与 */
+    /* FOUC 防止: _sqTheme は head スクリプトで設定済み */
     (function(){
-      var t='';try{t=localStorage.getItem('squashterm_ui_theme')||'';}catch(e){}
-      if(t==='spotify-dark'||t==='spotify-light'){document.body.classList.add('theme-spotify');}
-      if(t==='spotify-light'){document.body.classList.add('theme-light');}
+      var th=window._sqTheme||{};
+      if(th.spotify)document.body.classList.add('theme-spotify');
+      if(th.light)document.body.classList.add('theme-light');
     })();
   </script>
     <div class="app">
@@ -1292,7 +1302,28 @@
     </section>
 
     <script src="/static/app.js"></script>
-    <script src="/static/spotify-ui.js" defer></script>
+    <script>
+      /* テーマ別 JS 管理:
+         - Spotify モード: spotify-ui.js がセレクターも含めて管理 (非同期ロード)
+         - Default モード: インラインでセレクターを単純リロード方式で管理 */
+      (function(){
+        var THEME_KEY='squashterm_ui_theme';
+        if(window._sqTheme&&window._sqTheme.spotify){
+          var s=document.createElement('script');
+          s.src='/static/spotify-ui.js';
+          document.body.appendChild(s);
+        } else {
+          var sel=document.getElementById('sp-theme-select');
+          if(sel){
+            sel.value=localStorage.getItem(THEME_KEY)||'default';
+            sel.addEventListener('change',function(){
+              localStorage.setItem(THEME_KEY,sel.value);
+              location.reload();
+            });
+          }
+        }
+      })();
+    </script>
     <script>
       if ("serviceWorker" in navigator) {
         // 既存の SW を即座に強制更新（古い v1 キャッシュ＋main.js 問題を解消）
