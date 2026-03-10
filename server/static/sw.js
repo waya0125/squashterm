@@ -1,7 +1,8 @@
-const cacheName = "squashterm-v2"; // v2: 古いキャッシュ (v1) を強制削除
+const cacheName = "squashterm-v3"; // v3: CSS 分離 (spotify-ui.css standalone 化) に伴う強制更新
 const staticAssets = [
   "/",
   "/static/styles.css",
+  "/static/spotify-ui.css",
   "/static/app.js",
   "/static/images/logo.png",
   "/static/images/icon.png",
