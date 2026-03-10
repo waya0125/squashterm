@@ -101,6 +101,10 @@ const playerDeleteTrack = document.getElementById("player-delete-track");
 const playerSeek = document.getElementById("player-seek");
 const playerCurrent = document.getElementById("player-current");
 const playerDuration = document.getElementById("player-duration");
+const playerVolumeToggle = document.getElementById("player-volume-toggle");
+const playerVolumeSlider = document.getElementById("player-volume-slider");
+const spVolumeToggle = document.getElementById("sp-volume-toggle");
+const spVolumeSlider = document.getElementById("sp-volume-slider");
 
 const miniPlayer = document.getElementById("mini-player");
 const miniCover = document.getElementById("mini-cover");
@@ -2582,11 +2586,14 @@ if (audioPlayer) {
   audioPlayer.addEventListener("timeupdate", () => {
     const { currentTime, duration } = audioPlayer;
     const percent = duration ? Math.floor((currentTime / duration) * 100) : 0;
+    const pctStr = percent + "%";
     if (playerSeek) {
       playerSeek.value = percent;
+      playerSeek.style.setProperty("--seek-pct", pctStr);
     }
     if (miniSeek) {
       miniSeek.value = percent;
+      miniSeek.style.setProperty("--seek-pct", pctStr);
     }
     if (playerCurrent) {
       playerCurrent.textContent = formatTime(currentTime);
@@ -2912,6 +2919,7 @@ function updateMobilePlayerUI() {
   if (audioPlayer) {
     const progress = (audioPlayer.currentTime / audioPlayer.duration) * 100 || 0;
     mobilePlayerProgressSlider.value = progress;
+    mobilePlayerProgressSlider.style.setProperty("--seek-pct", progress.toFixed(1) + "%");
     mobilePlayerCurrentTime.textContent = formatTime(audioPlayer.currentTime);
     mobilePlayerDuration.textContent = formatTime(audioPlayer.duration);
   }
@@ -3017,15 +3025,33 @@ if (mobilePlayerVolumeSlider) {
   }
 }
 
+// ---- ミュート共通処理 ----
+const syncMuteButtons = () => {
+  if (!audioPlayer) return;
+  const muted = audioPlayer.muted;
+  [playerVolumeToggle, mobilePlayerVolumeToggle, spVolumeToggle].forEach((btn) => {
+    if (!btn) return;
+    btn.classList.toggle("is-muted", muted);
+    btn.setAttribute("aria-label", muted ? "ミュート解除" : "ミュート切り替え");
+    btn.setAttribute("aria-pressed", muted ? "true" : "false");
+  });
+};
+
+const toggleMute = () => {
+  if (!audioPlayer) return;
+  audioPlayer.muted = !audioPlayer.muted;
+  syncMuteButtons();
+};
+
+[playerVolumeToggle, spVolumeToggle].forEach((btn) => {
+  if (btn) btn.addEventListener("click", toggleMute);
+});
+
 if (mobilePlayerVolumeToggle) {
   if (isIOS) {
     mobilePlayerVolumeToggle.style.display = "none";
   } else {
-    mobilePlayerVolumeToggle.addEventListener("click", () => {
-      if (playerVolumeToggle) {
-        playerVolumeToggle.click();
-      }
-    });
+    mobilePlayerVolumeToggle.addEventListener("click", toggleMute);
   }
 }
 
@@ -3171,6 +3197,7 @@ audioPlayer.addEventListener("timeupdate", () => {
   if (mobilePlayerOverlay && mobilePlayerOverlay.getAttribute("aria-hidden") === "false") {
     const progress = (audioPlayer.currentTime / audioPlayer.duration) * 100 || 0;
     mobilePlayerProgressSlider.value = progress;
+    mobilePlayerProgressSlider.style.setProperty("--seek-pct", progress.toFixed(1) + "%");
     mobilePlayerCurrentTime.textContent = formatTime(audioPlayer.currentTime);
     mobilePlayerDuration.textContent = formatTime(audioPlayer.duration);
   }

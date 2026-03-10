@@ -2724,17 +2724,22 @@ body.theme-spotify #mini-player {
   height: 18px !important;
 }
 
-/* ---- 音量ボタン: 通常=白、hover=緑 ---- */
-.sp-vol-btn {
+/* ---- 音量ボタン共通: 通常=白、hover=緑、ミュート=グレー半透明 ---- */
+.sp-vol-btn,
+body.theme-spotify #player-volume-toggle,
+body.theme-spotify #mobile-player-volume-toggle {
   color: var(--sp-text, #fff) !important;
 }
 
-.sp-vol-btn:hover {
+.sp-vol-btn:hover,
+body.theme-spotify #player-volume-toggle:hover,
+body.theme-spotify #mobile-player-volume-toggle:hover {
   color: var(--sp-accent, #1db954) !important;
 }
 
-/* ---- ミュート状態: 半透明でグレー ---- */
-.sp-vol-btn.is-muted {
+.sp-vol-btn.is-muted,
+body.theme-spotify #player-volume-toggle.is-muted,
+body.theme-spotify #mobile-player-volume-toggle.is-muted {
   color: var(--sp-text-muted, #b3b3b3) !important;
   opacity: 0.55;
 }
@@ -3019,6 +3024,63 @@ body.theme-spotify .mobile-player-controls .is-primary:hover {
 }
 
 /* range input スタイル統一 */
+/* ---- デスクトップ / ミニ プレイヤーのシークバー（Spotify テーマ） ---- */
+body.theme-spotify .player-progress input[type="range"],
+body.theme-spotify .mini-player .mini-seek {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+body.theme-spotify .player-progress input[type="range"]::-webkit-slider-runnable-track,
+body.theme-spotify .mini-player .mini-seek::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(
+    to right,
+    var(--sp-accent, #1db954) var(--seek-pct, 0%),
+    rgba(255, 255, 255, 0.25) var(--seek-pct, 0%)
+  );
+}
+
+body.theme-spotify .player-progress input[type="range"]::-webkit-slider-thumb,
+body.theme-spotify .mini-player .mini-seek::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+  margin-top: -5px;
+}
+
+body.theme-spotify .player-progress input[type="range"]::-moz-range-track,
+body.theme-spotify .mini-player .mini-seek::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+body.theme-spotify .player-progress input[type="range"]::-moz-range-progress,
+body.theme-spotify .mini-player .mini-seek::-moz-range-progress {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--sp-accent, #1db954);
+}
+
+body.theme-spotify .player-progress input[type="range"]::-moz-range-thumb,
+body.theme-spotify .mini-player .mini-seek::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  border: none;
+  cursor: pointer;
+}
+
 body.theme-spotify .mobile-player-progress input[type="range"],
 body.theme-spotify .mobile-player-volume .volume-slider {
   -webkit-appearance: none;
