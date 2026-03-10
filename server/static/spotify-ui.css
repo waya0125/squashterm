@@ -3674,10 +3674,14 @@ body.theme-spotify .manage-grid .card .checkbox span {
 body.theme-spotify .settings-grid {
   padding: 16px 28px 24px;
   gap: 12px;
-  /* settings カードを一定幅に収めて右側コンテンツの中央に配置 */
-  max-width: 720px;
-  margin-left: auto;
-  margin-right: auto;
+  width: 100%; /* max-width はカード側で管理 */
+}
+
+/* 各カードを右側コンテンツ中央に配置 */
+body.theme-spotify .settings-grid > .card {
+  max-width: 800px;
+  margin: 0 auto !important;
+  width: 100%;
 }
 
 /* settings カードは hover 変化なし（フォームカード） */
@@ -3685,7 +3689,7 @@ body.theme-spotify .settings-grid .card {
   border: 1px solid var(--sp-border);
   gap: 0;
   padding: 20px;
-  /* justify-items はデフォルト stretch のまま → progress/ul/div が全幅を確保 */
+  justify-items: stretch !important; /* progress/ul/div が全幅を確保 */
 }
 
 /* settings カードの label: flex 縦並び、全幅 */
@@ -3818,21 +3822,73 @@ body.theme-spotify .settings-grid .card button.primary:hover {
   transform: none;
 }
 
-/* 再生設定 toggle ラベル */
-body.theme-spotify #settings-playback-options label {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--sp-border);
-  color: var(--sp-text);
-  font-size: 14px;
-  cursor: pointer;
-  gap: 12px;
+/* 再生設定コンテナ: 縦並び flex */
+body.theme-spotify #settings-playback-options {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px !important;
+  width: 100%;
 }
 
-body.theme-spotify #settings-playback-options label:last-child {
-  border-bottom: none;
+/* .checkbox と .setting-item: テキスト左・UI右 の左右分割 */
+body.theme-spotify .settings-grid .checkbox,
+body.theme-spotify .settings-grid .setting-item {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 8px 0 !important;
+  border-bottom: 1px solid var(--sp-border) !important;
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  cursor: pointer;
+  color: var(--sp-text);
+  font-size: 14px;
+}
+
+body.theme-spotify .settings-grid .checkbox:last-child,
+body.theme-spotify .settings-grid .setting-item:last-child {
+  border-bottom: none !important;
+}
+
+/* .checkbox は構造上 input → span の順なので row-reverse でテキスト左・チェック右 */
+body.theme-spotify .settings-grid .checkbox {
+  flex-direction: row-reverse !important;
+}
+
+/* チェックボックス本体 */
+body.theme-spotify .settings-grid .checkbox input[type="checkbox"] {
+  appearance: auto !important;
+  -webkit-appearance: auto !important;
+  position: static !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 18px !important;
+  height: 18px !important;
+  flex-shrink: 0 !important;
+  accent-color: var(--sp-accent);
+}
+
+/* チェックボックスのラベルテキスト */
+body.theme-spotify .settings-grid .checkbox span {
+  margin: 0 !important;
+  padding: 0 !important;
+  white-space: nowrap !important;
+  color: var(--sp-text-muted);
+}
+
+body.theme-spotify .settings-grid .checkbox:hover span {
+  color: var(--sp-text);
+}
+
+/* 元のUIの余計な擬似要素を完全に消去 */
+body.theme-spotify .settings-grid .checkbox::before,
+body.theme-spotify .settings-grid .checkbox::after,
+body.theme-spotify .settings-grid .checkbox span::before,
+body.theme-spotify .settings-grid .checkbox span::after {
+  display: none !important;
 }
 
 /* ------------------------------------------------------------------ */
