@@ -2528,7 +2528,7 @@ body.theme-spotify .player-close:hover {
 /* ── ⋯ 三点メニューを × の左に絶対配置 ── */
 body.theme-spotify .player-menu {
   position: absolute !important;
-  top: 10px !important;
+  top: 16px !important;
   right: calc(36px + 16px + 12px) !important; /* × ボタン幅 + 右余白 + gap */
   bottom: auto !important;
   z-index: 10 !important;
@@ -2553,6 +2553,7 @@ body.theme-spotify .player-menu-panel {
   right: 16px !important;
   bottom: auto !important;
   transform: translateY(-6px) !important;
+  z-index: 1000 !important;
 }
 
 body.theme-spotify .player-menu-panel.is-open {
@@ -3047,30 +3048,45 @@ body.theme-spotify .mobile-player-controls .is-primary:hover {
 }
 
 /* range input スタイル統一 */
-/* ---- デスクトップ / ミニ プレイヤーのシークバー（Spotify テーマ） ---- */
+/* ---- シークバー / 音量スライダー 統一スタイル（Spotify テーマ向け） ---- */
+/* すべての range input に適用するベーススタイル */
 body.theme-spotify .player-progress input[type="range"],
-body.theme-spotify .mini-player .mini-seek {
+body.theme-spotify .mini-player .mini-seek,
+body.theme-spotify .mobile-player-progress input[type="range"],
+body.theme-spotify #player-volume-slider,
+body.theme-spotify #mobile-player-volume-slider {
   -webkit-appearance: none;
   appearance: none;
   background: transparent;
   border: none !important;
   outline: none !important;
   box-shadow: none !important;
+  cursor: pointer;
+  height: 20px;
 }
 
+/* webkit トラック */
 body.theme-spotify .player-progress input[type="range"]::-webkit-slider-runnable-track,
-body.theme-spotify .mini-player .mini-seek::-webkit-slider-runnable-track {
+body.theme-spotify .mini-player .mini-seek::-webkit-slider-runnable-track,
+body.theme-spotify .mobile-player-progress input[type="range"]::-webkit-slider-runnable-track,
+body.theme-spotify #player-volume-slider::-webkit-slider-runnable-track,
+body.theme-spotify #mobile-player-volume-slider::-webkit-slider-runnable-track {
   height: 4px;
   border-radius: 2px;
   background: linear-gradient(
     to right,
-    var(--sp-accent, #1db954) var(--seek-pct, 0%),
-    rgba(255, 255, 255, 0.25) var(--seek-pct, 0%)
+    var(--sp-track-fill, #fff) var(--seek-pct, 0%),
+    var(--sp-track-bg, rgba(255, 255, 255, 0.25)) var(--seek-pct, 0%)
   );
+  cursor: pointer;
 }
 
+/* webkit サム（ホバーで表示） */
 body.theme-spotify .player-progress input[type="range"]::-webkit-slider-thumb,
-body.theme-spotify .mini-player .mini-seek::-webkit-slider-thumb {
+body.theme-spotify .mini-player .mini-seek::-webkit-slider-thumb,
+body.theme-spotify .mobile-player-progress input[type="range"]::-webkit-slider-thumb,
+body.theme-spotify #player-volume-slider::-webkit-slider-thumb,
+body.theme-spotify #mobile-player-volume-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 14px;
   height: 14px;
@@ -3078,76 +3094,53 @@ body.theme-spotify .mini-player .mini-seek::-webkit-slider-thumb {
   background: #fff;
   cursor: pointer;
   margin-top: -5px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
 }
 
+body.theme-spotify .player-progress:hover input[type="range"]::-webkit-slider-thumb,
+body.theme-spotify .mini-player .mini-seek:hover::-webkit-slider-thumb,
+body.theme-spotify .mobile-player-progress:hover input[type="range"]::-webkit-slider-thumb,
+body.theme-spotify #player-volume-slider:hover::-webkit-slider-thumb,
+body.theme-spotify #mobile-player-volume-slider:hover::-webkit-slider-thumb {
+  opacity: 1;
+}
+
+/* Firefox トラック */
 body.theme-spotify .player-progress input[type="range"]::-moz-range-track,
-body.theme-spotify .mini-player .mini-seek::-moz-range-track {
+body.theme-spotify .mini-player .mini-seek::-moz-range-track,
+body.theme-spotify .mobile-player-progress input[type="range"]::-moz-range-track,
+body.theme-spotify #player-volume-slider::-moz-range-track,
+body.theme-spotify #mobile-player-volume-slider::-moz-range-track {
   height: 4px;
   border-radius: 2px;
-  background: rgba(255, 255, 255, 0.25);
+  background: var(--sp-track-bg, rgba(255, 255, 255, 0.25));
+  border: none;
 }
 
+/* Firefox 進行部分 */
 body.theme-spotify .player-progress input[type="range"]::-moz-range-progress,
-body.theme-spotify .mini-player .mini-seek::-moz-range-progress {
+body.theme-spotify .mini-player .mini-seek::-moz-range-progress,
+body.theme-spotify .mobile-player-progress input[type="range"]::-moz-range-progress,
+body.theme-spotify #player-volume-slider::-moz-range-progress,
+body.theme-spotify #mobile-player-volume-slider::-moz-range-progress {
   height: 4px;
   border-radius: 2px;
-  background: var(--sp-accent, #1db954);
+  background: var(--sp-track-fill, #fff);
 }
 
+/* Firefox サム */
 body.theme-spotify .player-progress input[type="range"]::-moz-range-thumb,
-body.theme-spotify .mini-player .mini-seek::-moz-range-thumb {
+body.theme-spotify .mini-player .mini-seek::-moz-range-thumb,
+body.theme-spotify .mobile-player-progress input[type="range"]::-moz-range-thumb,
+body.theme-spotify #player-volume-slider::-moz-range-thumb,
+body.theme-spotify #mobile-player-volume-slider::-moz-range-thumb {
   width: 14px;
   height: 14px;
   border-radius: 50%;
   background: #fff;
   border: none;
   cursor: pointer;
-}
-
-body.theme-spotify .mobile-player-progress input[type="range"],
-body.theme-spotify .mobile-player-volume .volume-slider {
-  -webkit-appearance: none;
-  appearance: none;
-  background: transparent;
-  border: none !important;
-  outline: none !important;
-  box-shadow: none !important;
-}
-
-body.theme-spotify .mobile-player-progress input[type="range"]::-webkit-slider-runnable-track {
-  height: 4px;
-  border-radius: 2px;
-  background: linear-gradient(
-    to right,
-    #fff var(--seek-pct, 0%),
-    rgba(255, 255, 255, 0.3) var(--seek-pct, 0%)
-  );
-}
-
-body.theme-spotify .mobile-player-progress input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #fff;
-  cursor: pointer;
-  margin-top: -5px;
-}
-
-body.theme-spotify .mobile-player-volume .volume-slider::-webkit-slider-runnable-track {
-  height: 4px;
-  border-radius: 2px;
-  background: rgba(255, 255, 255, 0.3);
-}
-
-body.theme-spotify .mobile-player-volume .volume-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #fff;
-  cursor: pointer;
-  margin-top: -5px;
 }
 
 body.theme-spotify .mobile-player-volume .icon-button {

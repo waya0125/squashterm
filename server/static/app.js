@@ -2316,6 +2316,9 @@ const init = async () => {
         audioPlayer.volume = vol / 100;
         syncVolumeSliders(vol);
       }
+    } else if (audioPlayer) {
+      // デフォルト 100% のまま → スライダーの --seek-pct を初期化
+      syncVolumeSliders(audioPlayer.volume * 100);
     }
 
     const savedTrackIndex = localStorage.getItem("currentTrackIndex");
@@ -2935,7 +2938,9 @@ function updateMobilePlayerUI() {
   
   // 音量スライダーを同期
   if (mobilePlayerVolumeSlider) {
-    mobilePlayerVolumeSlider.value = audioPlayer.volume * 100;
+    const v = audioPlayer.volume * 100;
+    mobilePlayerVolumeSlider.value = v;
+    mobilePlayerVolumeSlider.style.setProperty("--seek-pct", v.toFixed(1) + "%");
   }
   
   // ボタン状態を同期
@@ -3035,8 +3040,11 @@ if (mobilePlayerVolumeSlider) {
 
 // ---- 音量スライダー同期ユーティリティ ----
 function syncVolumeSliders(val) {
+  const pct = parseFloat(val).toFixed(1) + "%";
   [playerVolumeSlider, spVolumeSlider, mobilePlayerVolumeSlider].forEach((el) => {
-    if (el && el.value !== String(val)) el.value = val;
+    if (!el) return;
+    if (el.value !== String(val)) el.value = val;
+    el.style.setProperty("--seek-pct", pct);
   });
 }
 
@@ -3250,6 +3258,11 @@ if (playerMenuPanel) {
       closePlayerMenu();
     }
   });
+  // Spotify テーマでは .player-overlay の opacity:0 が stacking context を形成し
+  // position:fixed の子要素も透明になるため、body 直下に移動して回避する
+  if (document.body.classList.contains("theme-spotify")) {
+    document.body.appendChild(playerMenuPanel);
+  }
 }
 
 if (playerAddPlaylist) {
