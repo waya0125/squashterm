@@ -2511,8 +2511,18 @@ body.theme-spotify .player-bottom {
 }
 
 /* ── × ボタン ── */
+/* ── × ボタンと ⋯ ボタンを統一スタイルに ── */
 body.theme-spotify .player-close {
+  background: rgba(40, 40, 40, 0.85) !important;
+  color: #e2e8f0 !important;
+  border-radius: 999px !important;
+  width: 36px !important;
+  height: 36px !important;
   z-index: 10;
+}
+
+body.theme-spotify .player-close:hover {
+  background: rgba(70, 70, 70, 0.95) !important;
 }
 
 /* ── ⋯ 三点メニューを × の左に絶対配置 ── */
@@ -2524,11 +2534,24 @@ body.theme-spotify .player-menu {
   z-index: 10 !important;
 }
 
-/* メニューパネルは下向きに展開 */
+body.theme-spotify .player-menu-toggle.icon-button {
+  background: rgba(40, 40, 40, 0.85) !important;
+  color: #e2e8f0 !important;
+  border-radius: 999px !important;
+  width: 36px !important;
+  height: 36px !important;
+}
+
+body.theme-spotify .player-menu-toggle.icon-button:hover {
+  background: rgba(70, 70, 70, 0.95) !important;
+}
+
+/* メニューパネルは position:fixed で overflow:hidden を突き抜けて表示 */
 body.theme-spotify .player-menu-panel {
+  position: fixed !important;
+  top: 60px !important;
+  right: 16px !important;
   bottom: auto !important;
-  top: calc(100% + 8px) !important;
-  right: 0 !important;
   transform: translateY(-6px) !important;
 }
 
