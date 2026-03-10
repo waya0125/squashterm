@@ -1,4 +1,4 @@
-const cacheName = "squashterm-v8"; // v8: 音量スライダー統一・三点リーダーメニューopacity修正・⋯位置修正
+const cacheName = "squashterm-v9"; // v9: モバイル⋯位置・シークバーホバー色・サイドバーオーバーレイ
 const staticAssets = [
   "/",
   "/static/styles.css",
