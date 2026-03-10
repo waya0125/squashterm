@@ -564,6 +564,11 @@ const updatePlayerUI = () => {
   if (playerCover) {
     playerCover.src = track.cover || "";
     playerCover.alt = track.album || track.title;
+    // Spotify theme: set CSS custom property for centered square art
+    if (playerOverlay) {
+      const artUrl = track.cover ? `url("${track.cover.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}")` : "none";
+      playerOverlay.style.setProperty("--player-art", artUrl);
+    }
   }
   if (playerTitle) {
     playerTitle.textContent = track.title;

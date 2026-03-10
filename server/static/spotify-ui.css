@@ -2443,39 +2443,97 @@ body.theme-spotify ::selection {
    プレイヤーオーバーレイ
    ================================================================== */
 
-body.theme-spotify .player-overlay {
-  background: linear-gradient(to bottom, #2c2c2c 0%, var(--sp-bg) 60%);
-}
+/* ============================================================
+   Spotify テーマ: モバイル Spotify 風フルスクリーンプレイヤー
+   ============================================================ */
 
+/* 背景は透明にし、ぼかしアートワークで全面を覆う */
+body.theme-spotify .player-overlay,
 body.theme-spotify.theme-light .player-overlay {
-  background: linear-gradient(to bottom, #d0d0d0 0%, var(--sp-bg) 60%);
+  background: transparent;
 }
 
+/* player-overlay-content: 相対位置の基準 */
 body.theme-spotify .player-overlay-content {
-  /* max-width を削除 — オリジナルの width:100% height:100% を維持 */
+  position: relative;
+  overflow: hidden;
+}
+
+/* ── ぼかし背景 (#player-cover = full-screen blurred art) ── */
+body.theme-spotify .player-visual {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
 }
 
 body.theme-spotify .player-cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(40px) brightness(0.35) saturate(1.8);
+  transform: scale(1.15);
+  transform-origin: center;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* ── 暗めのスクリムを重ねる ── */
+body.theme-spotify .player-overlay-content::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* ── 中央の正方形アートワーク（CSS var で JS からセット） ── */
+body.theme-spotify .player-overlay-content::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(65vw, 65vh, 400px);
+  height: min(65vw, 65vh, 400px);
+  background-image: var(--player-art, none);
+  background-size: cover;
+  background-position: center;
   border-radius: 8px;
-  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 24px 72px rgba(0, 0, 0, 0.7);
+  z-index: 2;
 }
 
-body.theme-spotify .player-controls .icon-button.is-primary {
-  background: var(--sp-play-btn-bg) !important;
-  color: var(--sp-play-btn-fg) !important;
-  border-radius: 50%;
-  width: 48px;
-  height: 48px;
+/* ── 再生バー・タイトル・コントロールは非表示 ── */
+body.theme-spotify .player-bottom {
+  display: none !important;
 }
 
-body.theme-spotify .player-controls .icon-button.is-primary:hover {
-  transform: scale(1.05) !important;
-  background: var(--sp-play-btn-bg) !important;
+/* ── × ボタン ── */
+body.theme-spotify .player-close {
+  z-index: 10;
 }
 
-body.theme-spotify .player-controls .icon-button.is-active,
-body.theme-spotify .player-controls .icon-button[aria-pressed="true"] {
-  color: var(--sp-accent);
+/* ── ⋯ 三点メニューを × の左に絶対配置 ── */
+body.theme-spotify .player-menu {
+  position: absolute !important;
+  top: 10px !important;
+  right: calc(36px + 16px + 12px) !important; /* × ボタン幅 + 右余白 + gap */
+  bottom: auto !important;
+  z-index: 10 !important;
+}
+
+/* メニューパネルは下向きに展開 */
+body.theme-spotify .player-menu-panel {
+  bottom: auto !important;
+  top: calc(100% + 8px) !important;
+  right: 0 !important;
+  transform: translateY(-6px) !important;
+}
+
+body.theme-spotify .player-menu-panel.is-open {
+  transform: translateY(0) !important;
 }
 
 /* ==================================================================
