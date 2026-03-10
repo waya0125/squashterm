@@ -15,6 +15,7 @@ from html import escape
 from fastapi import FastAPI, File, Form, HTTPException, Query, Request, Response, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.gzip import GZipMiddleware
 import uvicorn
 
 from library_service import (
@@ -91,6 +92,30 @@ async def lifespan(app_: "FastAPI"):  # noqa: F841
 
 
 app = FastAPI(title="SquashTerm Server", version="0.1.0", lifespan=lifespan)
+
+# ------------------------------------------------------------------ #
+# ミドルウェア                                                          #
+# ------------------------------------------------------------------ #
+# GZip: テキスト系アセット (HTML/JS/CSS/JSON) を自動圧縮               #
+# minimum_size=512 で微小レスポンスへのオーバーヘッドを回避             #
+app.add_middleware(GZipMiddleware, minimum_size=512)
+
+
+# Cache-Control ヘッダをパスパターンで付与
+# /static/*  → 1時間キャッシュ + ETag再検証 (ファイル名にハッシュなし)
+# /media/*   → 24時間キャッシュ (カバー画像はほぼ不変)
+# /          → no-cache (ETag再検証、常に最新HTMLを確保)
+@app.middleware("http")
+async def add_cache_headers(request: Request, call_next):
+    response = await call_next(request)
+    path = request.url.path
+    if path.startswith("/static/"):
+        response.headers.setdefault("Cache-Control", "public, max-age=3600, must-revalidate")
+    elif path.startswith("/media/"):
+        response.headers.setdefault("Cache-Control", "public, max-age=86400")
+    elif path in ("/", "/index.html"):
+        response.headers["Cache-Control"] = "no-cache"
+    return response
 
 init_library()
 load_settings(DEFAULT_SETTINGS)
@@ -670,7 +695,15 @@ def resolve_soundcloud_urls():
 
 def run(host: str = "0.0.0.0", port: int = 8000) -> None:
     print(f"SquashTerm server running on http://{host}:{port}")
-    uvicorn.run(app, host=host, port=port)
+    uvicorn.run(
+        app,
+        host=host,
+        port=port,
+        loop="uvloop",          # uvloop: asyncio より ~2-4x 高速
+        http="httptools",       # httptools: 高速 HTTP パーサー
+        timeout_keep_alive=65,  # Cloudflare Tunnel の keepalive と合わせる
+        access_log=False,       # アクセスログ無効化でホットパス削減
+    )
 
 
 if __name__ == "__main__":
