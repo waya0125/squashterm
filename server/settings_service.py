@@ -16,6 +16,10 @@ DEFAULT_SETTINGS = {
         "base_url": "",
     },
     "device": "Raspberry Pi (prototype)",
+
+    "design": {
+        "accent_color": "#38bdf8",
+    },
     "storage": {
         "used_gb": 3.8,
         "total_gb": 9.0,
@@ -153,6 +157,7 @@ def build_settings_payload(repo_root: Path) -> dict:
             "percent": percent,
         },
         "playback_options": settings.get("playback_options", []),
+        "design": settings.get("design", DEFAULT_SETTINGS["design"]),
     }
 
 
@@ -246,3 +251,16 @@ def set_base_url(base_url: str) -> dict:
         encoding="utf-8",
     )
     return {"success": True, "base_url": base_url}
+
+
+def set_design_settings(accent_color: str) -> dict:
+    """デザイン設定を更新する。"""
+    settings = load_settings(DEFAULT_SETTINGS)
+    settings["design"] = {
+        "accent_color": accent_color,
+    }
+    SETTINGS_PATH.write_text(
+        json.dumps(settings, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    return {"success": True, "design": settings["design"]}

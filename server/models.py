@@ -20,6 +20,7 @@ class Track:
     source_url: str | None = None
     file_format: str | None = None
     bitrate_kbps: int | None = None
+    video_url: str | None = None
 
 
 class ImportRequest(BaseModel):

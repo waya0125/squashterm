@@ -1,6 +1,7 @@
 :root {
   color-scheme: dark;
   font-family: "Segoe UI", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+  --theme-accent-color: #38bdf8;
   background: #1d1d1d;
   color: #e2e8f0;
 }
@@ -85,10 +86,10 @@ body {
 }
 
 .nav-button.is-active {
-  background: #2563eb;
+  background: var(--theme-accent-color);
   color: #ffffff;
-  border-color: rgba(59, 130, 246, 0.5);
-  box-shadow: 0 12px 30px rgba(37, 99, 235, 0.3);
+  border-color: color-mix(in srgb, var(--theme-accent-color) 50%, transparent);
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--theme-accent-color) 30%, transparent);
 }
 
 .content {
@@ -371,7 +372,7 @@ body {
   border: none;
   padding: 8px 14px;
   border-radius: 999px;
-  background: #2563eb;
+  background: var(--theme-accent-color);
   color: #ffffff;
   font-weight: 600;
   cursor: pointer;
@@ -807,7 +808,7 @@ input[type="file"] {
 }
 
 .primary {
-  background: #2563eb;
+  background: var(--theme-accent-color);
   color: #ffffff;
 }
 
@@ -871,7 +872,7 @@ input[type="file"] {
   justify-self: center;
   align-self: center;
   cursor: pointer;
-  accent-color: #2563eb;
+  accent-color: var(--theme-accent-color);
 }
 
 #confirm-dialog-file-option {
@@ -1088,7 +1089,7 @@ input[type="file"] {
 }
 
 .icon-button.is-primary {
-  background: #2563eb;
+  background: var(--theme-accent-color);
   color: #ffffff;
 }
 
@@ -1103,7 +1104,7 @@ input[type="file"] {
 }
 
 .icon-button.is-active {
-  background: #2563eb;
+  background: var(--theme-accent-color);
   color: #ffffff;
 }
 
@@ -1680,3 +1681,4 @@ input[type="file"] {
     gap: 8px;
   }
 }
+

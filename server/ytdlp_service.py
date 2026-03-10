@@ -36,18 +36,36 @@ def is_single_video_url(url: str) -> bool:
     return True
 
 
+def is_youtube_url(url: str) -> bool:
+    parsed = urlparse(url)
+    hostname = (parsed.hostname or "").lower()
+    return hostname in {"youtube.com", "www.youtube.com", "youtu.be", "m.youtube.com"}
+
+
 def download_with_ytdlp(url: str, no_playlist: bool = False) -> tuple[list[dict], str]:
     command = [
         "yt-dlp",
         "--print-json",
         "--write-info-json",
         "--write-thumbnail",
-        "-x",
-        "--audio-format",
-        "mp3",
+    ]
+    if is_youtube_url(url):
+        command.extend([
+            "-f",
+            "bv*+ba/b[ext=mp4]/best",
+            "--merge-output-format",
+            "mp4",
+        ])
+    else:
+        command.extend([
+            "-x",
+            "--audio-format",
+            "mp3",
+        ])
+    command.extend([
         "-o",
         str(MEDIA_DIR / "%(id)s.%(ext)s"),
-    ]
+    ])
     if no_playlist:
         command.insert(1, "--no-playlist")
     command.append(url)
@@ -84,12 +102,24 @@ def build_ytdlp_command(url: str, no_playlist: bool = False) -> list[str]:
         "--print-json",
         "--write-info-json",
         "--write-thumbnail",
-        "-x",
-        "--audio-format",
-        "mp3",
+    ]
+    if is_youtube_url(url):
+        command.extend([
+            "-f",
+            "bv*+ba/b[ext=mp4]/best",
+            "--merge-output-format",
+            "mp4",
+        ])
+    else:
+        command.extend([
+            "-x",
+            "--audio-format",
+            "mp3",
+        ])
+    command.extend([
         "-o",
         str(MEDIA_DIR / "%(id)s.%(ext)s"),
-    ]
+    ])
     if no_playlist:
         command.insert(1, "--no-playlist")
     command.append(url)

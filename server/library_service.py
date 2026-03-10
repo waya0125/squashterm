@@ -72,6 +72,7 @@ def parse_track_from_info(info: dict, source_url: str | None = None, playlist_na
         source_url=resolved_source_url,
         file_format=info.get("ext") or info.get("audio_ext"),
         bitrate_kbps=bitrate_kbps,
+        video_url=info.get("webpage_url") or info.get("original_url"),
     )
 
 
@@ -256,6 +257,9 @@ def fetch_tracks() -> list[Track]:
                     row["bitrate_kbps"] = bitrate_kbps
                     library_updated = True
         file_url = f"/media/{Path(file_path).name}" if file_path else None
+        video_url = row.get("video_url")
+        if not video_url and file_path and Path(file_path).suffix.lower() in {".mp4", ".webm", ".mkv"}:
+            video_url = file_url
         tracks.append(
             Track(
                 id=row["id"],
@@ -271,6 +275,7 @@ def fetch_tracks() -> list[Track]:
                 source_url=row.get("source_url"),
                 file_format=file_format,
                 bitrate_kbps=bitrate_kbps,
+                video_url=video_url,
             )
         )
     if library_updated:
@@ -319,7 +324,7 @@ def store_downloaded_tracks(
         track_id = info.get("id", track.id)
         # yt-dlp のメタ情報(ext)は変換前の形式を返すため、実ファイルを確認して正確なパスを取得
         file_path = None
-        for ext in ("m4a", "mp3", "opus", "ogg", "webm", "flac"):
+        for ext in ("m4a", "mp3", "opus", "ogg", "webm", "flac", "mp4", "mkv"):
             candidate = MEDIA_DIR / f"{track_id}.{ext}"
             if candidate.exists():
                 file_path = candidate
@@ -327,6 +332,8 @@ def store_downloaded_tracks(
         if file_path is None:
             file_path = MEDIA_DIR / f"{track_id}.m4a"  # フォールバック: m4a（--audio-format m4a 設定）
         track.file_url = f"/media/{file_path.name}"
+        if file_path.suffix.lower() in {".mp4", ".webm", ".mkv"}:
+            track.video_url = track.file_url
         if track.id not in track_map:
             track_entry = {**asdict(track), "file_path": str(file_path)}
             tracks.append(track_entry)
@@ -337,6 +344,8 @@ def store_downloaded_tracks(
                 track_entry["cover"] = resolved_cover
             if track.source_url and not track_entry.get("source_url"):
                 track_entry["source_url"] = track.source_url
+            if track.video_url and not track_entry.get("video_url"):
+                track_entry["video_url"] = track.video_url
         stored_tracks.append(track)
     save_library(data)
     append_tracks_to_playlist(playlist_id, [track.id for track in stored_tracks])

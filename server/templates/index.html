@@ -16,7 +16,7 @@
       <div class="layout">
         <aside class="sidebar" id="sidebar">
           <div class="brand">
-            <img class="app-logo" src="/static/images/logo.png" alt="SquashTerm logo" />
+            <img class="app-logo" src="/branding/logo" alt="SquashTerm logo" />
           </div>
           <nav class="nav-menu" role="tablist">
             <button class="nav-button is-active" data-tab="media" role="tab">
@@ -83,7 +83,7 @@
               </svg>
               <span class="sr-only">メニュー</span>
             </button>
-            <img class="mobile-sticky-logo" src="/static/images/logo.png" alt="SquashTerm logo" />
+            <img class="mobile-sticky-logo" src="/branding/logo" alt="SquashTerm logo" />
           </header>
 
           <section class="panel is-active" id="panel-media" role="tabpanel">
@@ -385,6 +385,18 @@
                 <button class="secondary" type="button" id="apply-playlist-album-names">プレイリスト名をAlbumに適用</button>
                 <p id="apply-playlist-album-result" style="margin-top: 0.5rem; font-size: 0.85rem;"></p>
               </div>
+              <div class="card">
+                <h4>デザイン</h4>
+                <label><span>アクセントカラー</span><input type="color" id="design-accent-color" value="#38bdf8" /></label>
+                <button class="secondary" type="button" id="design-colors-save">カラーを保存</button>
+              </div>
+              <div class="card">
+                <h4>ロゴ・アイコン</h4>
+                <label><span>タイトルロゴ (logo.png)</span><input type="file" id="design-logo-file" accept="image/png" /></label>
+                <button class="secondary" type="button" id="design-logo-save">ロゴを保存</button>
+                <label><span>favicon (favicon.ico)</span><input type="file" id="design-favicon-file" accept="image/x-icon,.ico" /></label>
+                <button class="secondary" type="button" id="design-favicon-save">faviconを保存</button>
+              </div>
             </div>
           </section>
         </main>
@@ -630,6 +642,13 @@
                     <path d="M9 12h6" stroke="currentColor" stroke-width="2" />
                   </svg>
                   <span>ソース URLを開く</span>
+                </button>
+                <button type="button" role="menuitem" id="player-open-video" class="player-menu-action">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="4" y="5" width="16" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2" />
+                    <polygon points="11,9 16,12 11,15" />
+                  </svg>
+                  <span>動画を開く</span>
                 </button>
                 <button type="button" role="menuitem" id="player-share-track" class="player-menu-action">
                   <svg viewBox="0 0 24 24" aria-hidden="true">
