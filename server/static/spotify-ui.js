@@ -19,6 +19,8 @@
   // テーマ適用
   // ================================================================
 
+  var _syncAllTimer = null;
+
   function applyTheme(theme) {
     document.body.classList.remove("theme-spotify", "theme-light");
     var classes = THEME_CLASSES[theme] || [];
@@ -26,7 +28,9 @@
     updateThemeSelect();
     syncSpBarVisibility();
     if (document.body.classList.contains("theme-spotify")) {
-      setTimeout(syncAll, 100);
+      // 連続呼び出し時にタイマーを積まないようキャンセルしてから再スケジュール
+      if (_syncAllTimer) clearTimeout(_syncAllTimer);
+      _syncAllTimer = setTimeout(function () { _syncAllTimer = null; syncAll(); }, 100);
     }
   }
 
@@ -202,7 +206,7 @@
       }).observe(miniLoop, { childList: true, subtree: true, characterData: true });
     }
 
-    setTimeout(syncAll, 150);
+    setTimeout(function () { _updateWidthCache(); syncAll(); }, 150);
   }
 
   // ================================================================
@@ -452,16 +456,33 @@
   }
 
   // ================================================================
+  // シークバー・音量スライダーの幅キャッシュ（リサイズ時のみ再計測）
+  // offsetWidth はレイアウトを強制するため hot path (timeupdate) に置かない
+  // ================================================================
+
+  var _seekW = 0;
+  var _volW  = 0;
+
+  function _updateWidthCache() {
+    var spSeek = document.getElementById("sp-seek");
+    var spVol  = document.getElementById("sp-volume-slider");
+    if (spSeek) _seekW = spSeek.offsetWidth || 200;
+    if (spVol)  _volW  = spVol.offsetWidth  || 90;
+  }
+
+  window.addEventListener("resize", _updateWidthCache);
+  // 初回は initSpBar() から呼び出す
+
+  // ================================================================
   // シークバーのグラデーション CSS 変数を更新
-  // webkit ではサム幅分のオフセット補正を入れて塗りと位置を一致させる
   // ================================================================
 
   function updateSeekCss(input) {
     var max = parseFloat(input.max) || 100;
     var val = parseFloat(input.value) || 0;
     var fraction = max > 0 ? val / max : 0;
-    var thumbHalf = 6; // 12px thumb の半径
-    var w = input.offsetWidth || 200;
+    var thumbHalf = 6;
+    var w = _seekW || 200;
     var pct;
     if (w > thumbHalf * 2) {
       pct = ((thumbHalf + fraction * (w - thumbHalf * 2)) / w * 100).toFixed(2);
@@ -480,7 +501,7 @@
     var val = parseFloat(input.value) || 0;
     var fraction = max > 0 ? val / max : 0;
     var thumbHalf = 6;
-    var w = input.offsetWidth || 90;
+    var w = _volW || 90;
     var pct;
     if (w > thumbHalf * 2) {
       pct = ((thumbHalf + fraction * (w - thumbHalf * 2)) / w * 100).toFixed(2);
