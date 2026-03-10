@@ -1,4 +1,4 @@
-const cacheName = "squashterm-v3"; // v3: CSS 分離 (spotify-ui.css standalone 化) に伴う強制更新
+const cacheName = "squashterm-v4"; // v4: Settings レイアウト・import-progress/terminal 幅修正
 const staticAssets = [
   "/",
   "/static/styles.css",
