@@ -322,18 +322,16 @@ def store_downloaded_tracks(
         if resolved_cover:
             track.cover = resolved_cover
         track_id = info.get("id", track.id)
-        # yt-dlp のメタ情報(ext)は変換前の形式を返すため、実ファイルを確認して正確なパスを取得
-        file_path = None
-        for ext in ("m4a", "mp3", "opus", "ogg", "webm", "flac", "mp4", "mkv"):
-            candidate = MEDIA_DIR / f"{track_id}.{ext}"
-            if candidate.exists():
-                file_path = candidate
-                break
+        # 動画本体と、より高音質な音声ファイルがあれば音声を優先して再生する
+        video_path = _resolve_downloaded_media_path(track_id, ("mp4", "webm", "mkv", "mov", "avi"))
+        preferred_audio_path = _resolve_downloaded_media_path(track_id, ("mp3", "flac", "m4a", "opus", "ogg", "aac"), preferred_suffixes=("_audio", ""))
+
+        file_path = preferred_audio_path or video_path
         if file_path is None:
-            file_path = MEDIA_DIR / f"{track_id}.m4a"  # フォールバック: m4a（--audio-format m4a 設定）
+            file_path = MEDIA_DIR / f"{track_id}.mp3"
         track.file_url = f"/media/{file_path.name}"
-        if file_path.suffix.lower() in {".mp4", ".webm", ".mkv"}:
-            track.video_url = track.file_url
+        if video_path is not None:
+            track.video_url = f"/media/{video_path.name}"
         if track.id not in track_map:
             track_entry = {**asdict(track), "file_path": str(file_path)}
             tracks.append(track_entry)
@@ -346,10 +344,20 @@ def store_downloaded_tracks(
                 track_entry["source_url"] = track.source_url
             if track.video_url and not track_entry.get("video_url"):
                 track_entry["video_url"] = track.video_url
+            track_entry["file_path"] = str(file_path)
         stored_tracks.append(track)
     save_library(data)
     append_tracks_to_playlist(playlist_id, [track.id for track in stored_tracks])
     return stored_tracks
+
+
+def _resolve_downloaded_media_path(track_id: str, extensions: tuple[str, ...], preferred_suffixes: tuple[str, ...] = ("",)) -> Path | None:
+    for suffix in preferred_suffixes:
+        for extension in extensions:
+            candidate = MEDIA_DIR / f"{track_id}{suffix}.{extension}"
+            if candidate.exists():
+                return candidate
+    return None
 
 
 def build_upload_track(
@@ -692,5 +700,4 @@ def apply_album_from_source_playlists(
     if updated > 0:
         save_library(data)
     return {"updated": updated, "skipped": skipped, "details": details}
-
 

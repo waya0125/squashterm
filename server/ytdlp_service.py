@@ -4,7 +4,7 @@ import json
 import re
 import subprocess
 from dataclasses import asdict
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import parse_qs, urlparse
 
 from library_service import store_downloaded_tracks
 from models import Track
@@ -36,39 +36,7 @@ def is_single_video_url(url: str) -> bool:
     return True
 
 
-def is_youtube_url(url: str) -> bool:
-    parsed = urlparse(url)
-    hostname = (parsed.hostname or "").lower()
-    return hostname in {"youtube.com", "www.youtube.com", "youtu.be", "m.youtube.com"}
-
-
-def download_with_ytdlp(url: str, no_playlist: bool = False) -> tuple[list[dict], str]:
-    command = [
-        "yt-dlp",
-        "--print-json",
-        "--write-info-json",
-        "--write-thumbnail",
-    ]
-    if is_youtube_url(url):
-        command.extend([
-            "-f",
-            "bv*+ba/b[ext=mp4]/best",
-            "--merge-output-format",
-            "mp4",
-        ])
-    else:
-        command.extend([
-            "-x",
-            "--audio-format",
-            "mp3",
-        ])
-    command.extend([
-        "-o",
-        str(MEDIA_DIR / "%(id)s.%(ext)s"),
-    ])
-    if no_playlist:
-        command.insert(1, "--no-playlist")
-    command.append(url)
+def _run_ytdlp_command(command: list[str]) -> tuple[list[dict], str]:
     result = subprocess.run(
         command,
         check=False,
@@ -89,8 +57,6 @@ def download_with_ytdlp(url: str, no_playlist: bool = False) -> tuple[list[dict]
             infos.append(json.loads(line))
         except json.JSONDecodeError:
             continue
-    if not infos:
-        raise RuntimeError("yt-dlp did not return metadata")
     return infos, log_output
 
 
@@ -103,19 +69,12 @@ def build_ytdlp_command(url: str, no_playlist: bool = False) -> list[str]:
         "--write-info-json",
         "--write-thumbnail",
     ]
-    if is_youtube_url(url):
-        command.extend([
-            "-f",
-            "bv*+ba/b[ext=mp4]/best",
-            "--merge-output-format",
-            "mp4",
-        ])
-    else:
-        command.extend([
-            "-x",
-            "--audio-format",
-            "mp3",
-        ])
+    command.extend([
+        "-f",
+        "bv*+ba/best",
+        "--merge-output-format",
+        "mp4",
+    ])
     command.extend([
         "-o",
         str(MEDIA_DIR / "%(id)s.%(ext)s"),
@@ -124,6 +83,39 @@ def build_ytdlp_command(url: str, no_playlist: bool = False) -> list[str]:
         command.insert(1, "--no-playlist")
     command.append(url)
     return command
+
+
+def build_audio_ytdlp_command(url: str, no_playlist: bool = False) -> list[str]:
+    command = [
+        "yt-dlp",
+        "--print-json",
+        "--write-info-json",
+        "--write-thumbnail",
+        "-f",
+        "bestaudio/best",
+        "-x",
+        "--audio-format",
+        "mp3",
+        "-o",
+        str(MEDIA_DIR / "%(id)s_audio.%(ext)s"),
+    ]
+    if no_playlist:
+        command.insert(1, "--no-playlist")
+    command.append(url)
+    return command
+
+
+def download_with_ytdlp(url: str, no_playlist: bool = False) -> tuple[list[dict], str]:
+    infos, primary_log = _run_ytdlp_command(build_ytdlp_command(url, no_playlist))
+    audio_log = ""
+    try:
+        _, audio_log = _run_ytdlp_command(build_audio_ytdlp_command(url, no_playlist))
+    except RuntimeError as exc:
+        audio_log = f"Audio extraction skipped: {exc}"
+    if not infos:
+        raise RuntimeError("yt-dlp did not return metadata")
+    log_output = "\n".join(part for part in [primary_log, audio_log] if part)
+    return infos, log_output
 
 
 def parse_progress(line: str) -> float | None:
@@ -175,6 +167,12 @@ def iter_ytdlp_events(url: str, playlist_id: str | None = None, no_playlist: boo
     if not infos:
         yield {"type": "error", "message": "yt-dlp did not return metadata"}
         return
+    try:
+        _, audio_log = _run_ytdlp_command(build_audio_ytdlp_command(url, no_playlist))
+        if audio_log:
+            yield {"type": "log", "message": "高音質音声の抽出が完了しました。"}
+    except RuntimeError as exc:
+        yield {"type": "log", "message": f"高音質音声の抽出をスキップしました: {exc}"}
     tracks = store_downloaded_tracks(infos, url, playlist_id)
     failed_count = len(infos) - len(tracks)
     yield {

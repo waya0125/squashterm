@@ -107,6 +107,9 @@ const playerDeleteTrack = document.getElementById("player-delete-track");
 const playerSeek = document.getElementById("player-seek");
 const playerCurrent = document.getElementById("player-current");
 const playerDuration = document.getElementById("player-duration");
+const videoModal = document.getElementById("video-modal");
+const videoModalPlayer = document.getElementById("video-modal-player");
+const videoModalClose = document.getElementById("video-modal-close");
 
 const miniPlayer = document.getElementById("mini-player");
 const miniCover = document.getElementById("mini-cover");
@@ -474,6 +477,27 @@ const resolveTrackVideoUrl = (track) => {
     return fileUrl;
   }
   return null;
+};
+
+const closeVideoModal = () => {
+  if (!videoModal || !videoModalPlayer) {
+    return;
+  }
+  videoModal.classList.remove("is-open");
+  videoModal.setAttribute("aria-hidden", "true");
+  videoModalPlayer.pause();
+  videoModalPlayer.removeAttribute("src");
+  videoModalPlayer.load();
+};
+
+const openVideoModal = (videoUrl) => {
+  if (!videoModal || !videoModalPlayer || !videoUrl) {
+    return;
+  }
+  videoModalPlayer.src = videoUrl;
+  videoModal.classList.add("is-open");
+  videoModal.setAttribute("aria-hidden", "false");
+  videoModalPlayer.play().catch(() => {});
 };
 
 const applyDesignTheme = (design) => {
@@ -2865,7 +2889,21 @@ if (playerOpenVideo) {
       appendImportLog("再生可能な保存済み動画が見つかりません。", { append: true });
       return;
     }
-    window.open(videoUrl, "_blank", "noopener");
+    openVideoModal(videoUrl);
+  });
+}
+
+if (videoModalClose) {
+  videoModalClose.addEventListener("click", () => {
+    closeVideoModal();
+  });
+}
+
+if (videoModal) {
+  videoModal.addEventListener("click", (event) => {
+    if (event.target === videoModal) {
+      closeVideoModal();
+    }
   });
 }
 
@@ -3043,6 +3081,10 @@ document.addEventListener("click", (event) => {
 });
 
 document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && videoModal?.classList.contains("is-open")) {
+    closeVideoModal();
+    return;
+  }
   if (!isPlayerOverlayActive()) {
     return;
   }
