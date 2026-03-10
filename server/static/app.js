@@ -71,6 +71,18 @@ const settingsPlaybackOptions = document.getElementById("settings-playback-optio
 const systemInfoList = document.getElementById("system-info-list");
 const settingsBaseUrlInput = document.getElementById("settings-base-url");
 const settingsBaseUrlSave = document.getElementById("settings-base-url-save");
+const settingsTabGeneral = document.getElementById("settings-tab-general");
+const settingsTabDesign = document.getElementById("settings-tab-design");
+const settingsPanelGeneral = document.getElementById("settings-panel-general");
+const settingsPanelDesign = document.getElementById("settings-panel-design");
+const designMainColorInput = document.getElementById("design-main-color");
+const designAccentColorInput = document.getElementById("design-accent-color");
+const designFontColorInput = document.getElementById("design-font-color");
+const designColorsSave = document.getElementById("design-colors-save");
+const designLogoFile = document.getElementById("design-logo-file");
+const designLogoSave = document.getElementById("design-logo-save");
+const designFaviconFile = document.getElementById("design-favicon-file");
+const designFaviconSave = document.getElementById("design-favicon-save");
 
 const audioPlayer = document.getElementById("audio-player");
 const playerOverlay = document.getElementById("player-overlay");
@@ -94,6 +106,7 @@ const playerMenuPanel = document.getElementById("player-menu-panel");
 const playerDownload = document.getElementById("player-download");
 const playerAddPlaylist = document.getElementById("player-add-playlist");
 const playerOpenSource = document.getElementById("player-open-source");
+const playerOpenVideo = document.getElementById("player-open-video");
 const playerShareTrack = document.getElementById("player-share-track");
 const playerEditInfo = document.getElementById("player-edit-info");
 const playerDeleteTrack = document.getElementById("player-delete-track");
@@ -454,6 +467,36 @@ const updateMediaViewToggle = () => {
 };
 
 const normalizeQuery = (value) => value.trim().toLowerCase();
+
+const isYouTubeUrl = (value) => {
+  const text = String(value || "").trim();
+  if (!text) {
+    return false;
+  }
+  return /(?:youtube\.com|youtu\.be)/i.test(text);
+};
+
+const applyDesignTheme = (design) => {
+  const resolved = {
+    main_color: design?.main_color || "#2563eb",
+    accent_color: design?.accent_color || "#38bdf8",
+    font_color: design?.font_color || "#e2e8f0",
+  };
+  document.documentElement.style.setProperty("--theme-main-color", resolved.main_color);
+  document.documentElement.style.setProperty("--theme-accent-color", resolved.accent_color);
+  document.documentElement.style.setProperty("--theme-font-color", resolved.font_color);
+};
+
+const switchSettingsTab = (target) => {
+  if (!settingsTabGeneral || !settingsTabDesign || !settingsPanelGeneral || !settingsPanelDesign) {
+    return;
+  }
+  const isDesign = target === "design";
+  settingsTabGeneral.classList.toggle("is-active", !isDesign);
+  settingsTabDesign.classList.toggle("is-active", isDesign);
+  settingsPanelGeneral.hidden = isDesign;
+  settingsPanelDesign.hidden = !isDesign;
+};
 
 const filterTracks = (tracks, query) => {
   const normalized = normalizeQuery(query);
@@ -1538,6 +1581,9 @@ const updatePlayerMenuButtons = () => {
     const hasSource = Boolean(track?.source_url);
     playerOpenSource.disabled = !hasSource;
   }
+  if (playerOpenVideo) {
+    playerOpenVideo.disabled = !(track && isYouTubeUrl(track.source_url));
+  }
   if (playerAddPlaylist) {
     playerAddPlaylist.disabled = !track;
   }
@@ -1726,7 +1772,7 @@ const renderSettings = (settings) => {
     const version = settings?.version || {};
     settingsVersionList.innerHTML = `
       <li class="settings-version-item">
-        <img class="settings-version-logo" src="/static/images/logo.png" alt="SquashTerm logo" />
+        <img class="settings-version-logo" src="/branding/logo" alt="SquashTerm logo" />
         <div class="settings-version-values">
           <div class="settings-version-row">
             <span class="settings-version-label">バージョン</span>
@@ -1747,6 +1793,16 @@ const renderSettings = (settings) => {
   if (settingsBaseUrlInput) {
     settingsBaseUrlInput.value = settings?.app?.base_url || "";
   }
+  if (designMainColorInput) {
+    designMainColorInput.value = settings?.design?.main_color || "#2563eb";
+  }
+  if (designAccentColorInput) {
+    designAccentColorInput.value = settings?.design?.accent_color || "#38bdf8";
+  }
+  if (designFontColorInput) {
+    designFontColorInput.value = settings?.design?.font_color || "#e2e8f0";
+  }
+  applyDesignTheme(settings?.design);
   if (settingsPlaybackOptions) {
     const options = settings?.playback_options || [];
     settingsPlaybackOptions.innerHTML = "";
@@ -2824,6 +2880,17 @@ if (playerOpenSource) {
   });
 }
 
+if (playerOpenVideo) {
+  playerOpenVideo.addEventListener("click", () => {
+    const track = state.tracks[playerState.currentIndex];
+    if (!track || !isYouTubeUrl(track.source_url)) {
+      appendImportLog("YouTube 動画リンクが見つかりません。", { append: true });
+      return;
+    }
+    window.open(track.source_url, "_blank", "noopener");
+  });
+}
+
 if (playerShareTrack) {
   playerShareTrack.addEventListener("click", () => {
     const track = state.tracks[playerState.currentIndex];
@@ -2910,8 +2977,9 @@ if (playerDownload) {
     }
     const anchor = document.createElement("a");
     const safeTitle = track.title.replace(/[\\/:*?"<>|]/g, "_");
+    const ext = String(track.file_url || "").split(".").pop() || "mp3";
     anchor.href = track.file_url;
-    anchor.download = `${safeTitle}.mp3`;
+    anchor.download = `${safeTitle}.${ext}`;
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();
@@ -3052,3 +3120,76 @@ if (supportsMediaSession) {
 }
 
 init();
+if (settingsTabGeneral) {
+  settingsTabGeneral.addEventListener("click", () => {
+    switchSettingsTab("general");
+  });
+}
+
+if (settingsTabDesign) {
+  settingsTabDesign.addEventListener("click", () => {
+    switchSettingsTab("design");
+  });
+}
+
+if (designColorsSave) {
+  designColorsSave.addEventListener("click", async () => {
+    const payload = {
+      main_color: designMainColorInput?.value || "#2563eb",
+      accent_color: designAccentColorInput?.value || "#38bdf8",
+      font_color: designFontColorInput?.value || "#e2e8f0",
+    };
+    try {
+      const response = await requestJson("/api/settings/design", payload, "PUT");
+      applyDesignTheme(response.design);
+      appendImportLog("デザインカラーを保存しました。", { append: true });
+    } catch (error) {
+      console.error(error);
+    }
+  });
+}
+
+const uploadDesignAsset = async (path, fileInput) => {
+  const file = fileInput?.files?.[0];
+  if (!file) {
+    appendImportLog("ファイルを選択してください。", { append: true });
+    return;
+  }
+  const formData = new FormData();
+  formData.append("file", file);
+  const response = await fetch(path, { method: "POST", body: formData });
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+  const logos = document.querySelectorAll(".app-logo, .mobile-sticky-logo, .settings-version-logo");
+  logos.forEach((img) => {
+    img.src = `/branding/logo?t=${Date.now()}`;
+  });
+};
+
+if (designLogoSave) {
+  designLogoSave.addEventListener("click", async () => {
+    try {
+      await uploadDesignAsset("/api/settings/design/logo", designLogoFile);
+      appendImportLog("ロゴを保存しました。", { append: true });
+    } catch (error) {
+      console.error(error);
+    }
+  });
+}
+
+if (designFaviconSave) {
+  designFaviconSave.addEventListener("click", async () => {
+    try {
+      await uploadDesignAsset("/api/settings/design/favicon", designFaviconFile);
+      const icon = document.querySelector('link[rel="icon"]');
+      if (icon) {
+        icon.href = `/favicon.ico?t=${Date.now()}`;
+      }
+      appendImportLog("faviconを保存しました。", { append: true });
+    } catch (error) {
+      console.error(error);
+    }
+  });
+}
+

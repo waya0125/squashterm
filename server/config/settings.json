@@ -20,5 +20,10 @@
       "label": "自動ライブラリスキャン",
       "enabled": false
     }
-  ]
+  ],
+  "design": {
+    "main_color": "#2563eb",
+    "accent_color": "#38bdf8",
+    "font_color": "#e2e8f0"
+  }
 }

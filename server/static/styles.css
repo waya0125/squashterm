@@ -1,8 +1,11 @@
 :root {
   color-scheme: dark;
   font-family: "Segoe UI", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+  --theme-main-color: #2563eb;
+  --theme-accent-color: #38bdf8;
+  --theme-font-color: #e2e8f0;
   background: #1d1d1d;
-  color: #e2e8f0;
+  color: var(--theme-font-color);
 }
 
 * {
@@ -63,7 +66,7 @@ body {
 .nav-button {
   border: 1px solid transparent;
   background: #333;
-  color: #e2e8f0;
+  color: var(--theme-font-color);
   padding: 12px 14px;
   border-radius: 14px;
   cursor: pointer;
@@ -85,10 +88,10 @@ body {
 }
 
 .nav-button.is-active {
-  background: #2563eb;
+  background: var(--theme-main-color);
   color: #ffffff;
-  border-color: rgba(59, 130, 246, 0.5);
-  box-shadow: 0 12px 30px rgba(37, 99, 235, 0.3);
+  border-color: color-mix(in srgb, var(--theme-main-color) 50%, transparent);
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--theme-main-color) 30%, transparent);
 }
 
 .content {
@@ -371,7 +374,7 @@ body {
   border: none;
   padding: 8px 14px;
   border-radius: 999px;
-  background: #2563eb;
+  background: var(--theme-main-color);
   color: #ffffff;
   font-weight: 600;
   cursor: pointer;
@@ -807,7 +810,7 @@ input[type="file"] {
 }
 
 .primary {
-  background: #2563eb;
+  background: var(--theme-main-color);
   color: #ffffff;
 }
 
@@ -1088,7 +1091,7 @@ input[type="file"] {
 }
 
 .icon-button.is-primary {
-  background: #2563eb;
+  background: var(--theme-main-color);
   color: #ffffff;
 }
 
@@ -1103,7 +1106,7 @@ input[type="file"] {
 }
 
 .icon-button.is-active {
-  background: #2563eb;
+  background: var(--theme-main-color);
   color: #ffffff;
 }
 
@@ -1679,4 +1682,25 @@ input[type="file"] {
     grid-template-columns: 18px 20px 36px 1.4fr 1fr 60px 28px;
     gap: 8px;
   }
+}
+
+
+.settings-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.settings-tab-button {
+  border: 1px solid #334155;
+  background: #1f2937;
+  color: var(--theme-font-color);
+  border-radius: 10px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.settings-tab-button.is-active {
+  background: var(--theme-main-color);
+  border-color: var(--theme-main-color);
 }

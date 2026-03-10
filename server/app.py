@@ -52,6 +52,7 @@ from settings_service import (
     ensure_version_file,
     load_settings,
     set_base_url,
+    set_design_settings,
     update_playback_option,
 )
 from sync_service import auto_sync_worker, sync_playlist_with_remote
@@ -112,10 +113,20 @@ def get_service_worker():
 
 @app.get("/favicon.ico")
 def get_favicon():
-    favicon_path = STATIC_DIR / "images" / "icon.png"
+    custom_favicon = MEDIA_DIR / "branding" / "favicon.ico"
+    favicon_path = custom_favicon if custom_favicon.exists() else STATIC_DIR / "images" / "icon.png"
     if not favicon_path.exists():
         raise HTTPException(status_code=404, detail="Favicon not found")
     return FileResponse(favicon_path)
+
+
+@app.get("/branding/logo")
+def get_logo():
+    custom_logo = MEDIA_DIR / "branding" / "logo.png"
+    logo_path = custom_logo if custom_logo.exists() else STATIC_DIR / "images" / "logo.png"
+    if not logo_path.exists():
+        raise HTTPException(status_code=404, detail="Logo not found")
+    return FileResponse(logo_path)
 
 
 @app.get("/api/share/track/{track_id}")
@@ -318,6 +329,40 @@ def update_base_url(payload: dict):
     if base_url and not base_url.startswith(("http://", "https://")):
         raise HTTPException(status_code=400, detail="base_url must start with http:// or https://")
     return set_base_url(base_url)
+
+
+@app.put("/api/settings/design")
+def update_design_settings(payload: dict):
+    main_color = str(payload.get("main_color", "")).strip()
+    accent_color = str(payload.get("accent_color", "")).strip()
+    font_color = str(payload.get("font_color", "")).strip()
+    if not main_color or not accent_color or not font_color:
+        raise HTTPException(status_code=400, detail="main_color, accent_color and font_color are required")
+    return set_design_settings(main_color, accent_color, font_color)
+
+
+@app.post("/api/settings/design/logo")
+async def upload_logo(file: UploadFile = File(...)):
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="logo file is required")
+    branding_dir = MEDIA_DIR / "branding"
+    branding_dir.mkdir(parents=True, exist_ok=True)
+    logo_path = branding_dir / "logo.png"
+    with logo_path.open("wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    return {"success": True, "logo_url": "/branding/logo"}
+
+
+@app.post("/api/settings/design/favicon")
+async def upload_favicon(file: UploadFile = File(...)):
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="favicon file is required")
+    branding_dir = MEDIA_DIR / "branding"
+    branding_dir.mkdir(parents=True, exist_ok=True)
+    favicon_path = branding_dir / "favicon.ico"
+    with favicon_path.open("wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    return {"success": True, "favicon_url": "/favicon.ico"}
 
 
 @app.get("/api/library")
