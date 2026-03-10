@@ -483,6 +483,9 @@ const closeVideoModal = () => {
   if (!videoModal || !videoModalPlayer) {
     return;
   }
+  if (document.fullscreenElement === videoModalPlayer) {
+    document.exitFullscreen().catch(() => {});
+  }
   videoModal.classList.remove("is-open");
   videoModal.setAttribute("aria-hidden", "true");
   videoModalPlayer.pause();
@@ -494,10 +497,13 @@ const openVideoModal = (videoUrl) => {
   if (!videoModal || !videoModalPlayer || !videoUrl) {
     return;
   }
+  stopPlayback();
   videoModalPlayer.src = videoUrl;
   videoModal.classList.add("is-open");
   videoModal.setAttribute("aria-hidden", "false");
-  videoModalPlayer.play().catch(() => {});
+  videoModalPlayer.play().then(() => {
+    videoModalPlayer.requestFullscreen?.().catch(() => {});
+  }).catch(() => {});
 };
 
 const applyDesignTheme = (design) => {
@@ -3198,4 +3204,3 @@ if (designFaviconSave) {
     }
   });
 }
-
