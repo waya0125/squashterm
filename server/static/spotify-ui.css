@@ -31,6 +31,14 @@ body.theme-spotify {
   font-family: "Noto Sans JP", "BIZ UDGothic", "Hiragino Kaku Gothic ProN", sans-serif;
 }
 
+/* ブラウザはフォームエレメントに font-family を継承しないため強制継承 */
+body.theme-spotify input,
+body.theme-spotify select,
+body.theme-spotify textarea,
+body.theme-spotify button {
+  font-family: inherit;
+}
+
 /* ---- CSS 変数（ライト） ---- */
 body.theme-spotify.theme-light {
   --sp-bg: #fff;
@@ -1023,10 +1031,21 @@ body.theme-spotify .play-button.is-disabled {
   opacity: 0.6;
 }
 
+/* "再生" テキストを非表示にして ▶ アイコンへ置換 */
+body.theme-spotify .play-button:not(.is-disabled) {
+  font-size: 0 !important;
+}
+body.theme-spotify .play-button:not(.is-disabled)::before {
+  content: '▶';
+  font-size: 14px;
+  color: #000;
+  line-height: 1;
+}
+
 /* リスト表示モード (.is-list) */
 body.theme-spotify .media-grid.is-list {
   padding: 0 28px 24px;
-  gap: 2px;
+  gap: 1px;
 }
 
 body.theme-spotify .media-grid.is-list .media-card {
@@ -1035,7 +1054,9 @@ body.theme-spotify .media-grid.is-list .media-card {
   align-items: center;
   gap: 0 14px;
   border-radius: 4px;
-  padding: 8px 16px;
+  padding: 5px 14px;
+  background: transparent; /* 通常は背景なし */
+  box-shadow: none;
 }
 
 body.theme-spotify .media-grid.is-list .media-card img {
@@ -1082,6 +1103,10 @@ body.theme-spotify .media-grid.is-list .play-button {
 
 body.theme-spotify .media-grid.is-list .media-card:hover .play-button {
   transform: scale(1.06);
+}
+
+body.theme-spotify .media-grid.is-list .media-card:hover {
+  background: var(--sp-hover);
 }
 
 /* 選択状態 */
@@ -1321,7 +1346,8 @@ body.theme-spotify .manage-grid .card {
   border: 1px solid var(--sp-border);
   gap: 0;
   padding: 20px;
-  align-items: start; /* grid item を引き伸ばさない */
+  /* flex-direction: column の cross-axis = 水平方向。flex-start でボタンを縮める */
+  align-items: flex-start;
 }
 
 body.theme-spotify .manage-grid .card:hover {
@@ -1338,7 +1364,7 @@ body.theme-spotify .manage-grid .card h4 {
 
 body.theme-spotify .manage-grid .card label {
   width: 100%;
-  align-self: stretch;
+  align-self: stretch; /* ラベルは全幅 */
 }
 
 body.theme-spotify .manage-grid .card label span {
@@ -1385,10 +1411,9 @@ body.theme-spotify .manage-grid .card button.primary {
   border-radius: 500px;
   border: none;
   margin-top: 8px;
-  /* grid コンテナ内で引き伸ばさない */
-  align-self: start;
-  justify-self: start;
-  width: auto;
+  /* flex 子要素は align-self で cross-axis (水平) を制御 */
+  align-self: flex-start !important;
+  width: auto !important;
 }
 
 body.theme-spotify .manage-grid .card button.primary:hover {
@@ -1402,10 +1427,9 @@ body.theme-spotify .manage-grid .card button.secondary {
   color: var(--sp-text);
   border-radius: 500px;
   margin-top: 8px;
-  /* grid コンテナ内で引き伸ばさない */
-  align-self: start;
-  justify-self: start;
-  width: auto;
+  /* flex 子要素は align-self で cross-axis (水平) を制御 */
+  align-self: flex-start !important;
+  width: auto !important;
 }
 
 body.theme-spotify .manage-grid .card button.secondary:hover {
@@ -1457,16 +1481,18 @@ body.theme-spotify .settings-grid .card {
   border: 1px solid var(--sp-border);
   gap: 0;
   padding: 20px;
-  align-items: start; /* grid item を引き伸ばさない */
+  /* grid コンテナ内アイテムのデフォルト配置: start にして content-width にする */
+  justify-items: start;
 }
 
-/* settings カードの label: flex 縦並び */
+/* settings カードの label: flex 縦並び、全幅 */
 body.theme-spotify .settings-grid .card > label {
   display: flex;
   flex-direction: column;
   gap: 4px;
   width: 100%;
   margin-bottom: 10px;
+  justify-self: stretch; /* grid item として全幅 */
   align-self: stretch;
 }
 
@@ -1525,7 +1551,7 @@ body.theme-spotify #settings-storage-text {
   font-size: 13px;
 }
 
-/* 設定内 input / select */
+/* 設定内 input / select: justify-items: start を上書きして全幅維持 */
 body.theme-spotify .settings-grid .card input,
 body.theme-spotify .settings-grid .card input[type="url"],
 body.theme-spotify .settings-grid .card input[type="number"],
@@ -1538,6 +1564,7 @@ body.theme-spotify #sp-theme-select {
   padding: 10px 14px;
   font-size: 14px;
   width: 100%;
+  justify-self: stretch; /* grid item として全幅 */
   box-sizing: border-box;
   transition: border-color 0.15s ease;
 }
@@ -1555,7 +1582,7 @@ body.theme-spotify #sp-theme-select option {
   color: var(--sp-text);
 }
 
-/* 設定内ボタン */
+/* 設定内ボタン: grid item として content-width、左揃え */
 body.theme-spotify .settings-grid .card button.secondary,
 body.theme-spotify .settings-grid .card button.primary {
   border-radius: 500px;
@@ -1563,10 +1590,8 @@ body.theme-spotify .settings-grid .card button.primary {
   font-weight: 700;
   margin-top: 12px;
   border: none;
-  /* grid コンテナ内で引き伸ばさない */
-  align-self: start;
-  justify-self: start;
-  width: auto;
+  justify-self: start !important;
+  width: auto !important;
   white-space: nowrap;
 }
 

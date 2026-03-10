@@ -110,7 +110,7 @@ async def add_cache_headers(request: Request, call_next):
     response = await call_next(request)
     path = request.url.path
     if path.startswith("/static/"):
-        response.headers.setdefault("Cache-Control", "public, max-age=3600, must-revalidate")
+        response.headers.setdefault("Cache-Control", "no-cache")
     elif path.startswith("/media/"):
         response.headers.setdefault("Cache-Control", "public, max-age=86400")
     elif path in ("/", "/index.html"):
