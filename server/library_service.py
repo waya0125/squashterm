@@ -509,20 +509,15 @@ def batch_download_playlist(url: str, playlist_id: str | None, concurrency: int)
             return {"success": False, "error": str(e)}
     
     def progress_callback(task, result):
-        """進捗コールバック"""
+        """進捗コールバック（通常関数 — generator にしてはいけない）"""
         nonlocal completed_count, failed_count
         if result.get("success"):
             completed_count += 1
             results.extend(result.get("tracks", []))
         else:
             failed_count += 1
-        yield {
-            "type": "progress",
-            "total": len(entries),
-            "completed": completed_count,
-            "failed": failed_count,
-            "message": f"{task.index + 1}/{task.total}: {task.title or task.entry_id}",
-        }
+        # yield を持つと generator 関数になり download_queue から呼ばれても
+        # body が実行されず completed_count が更新されないためここには書かない
     
     # ダウンロード開始
     task_id = queue.enqueue_playlist(
