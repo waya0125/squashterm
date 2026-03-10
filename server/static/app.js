@@ -2324,6 +2324,15 @@ const init = async () => {
       updateShuffleButtons();
     }
     
+    const savedVolume = localStorage.getItem("playerVolume");
+    if (savedVolume !== null && audioPlayer) {
+      const vol = parseFloat(savedVolume);
+      if (vol >= 0 && vol <= 100) {
+        audioPlayer.volume = vol / 100;
+        syncVolumeSliders(vol);
+      }
+    }
+
     const savedTrackIndex = localStorage.getItem("currentTrackIndex");
     const savedTrackTime = localStorage.getItem("currentTrackTime");
     if (savedTrackIndex !== null && state.tracks.length > 0) {
@@ -3035,15 +3044,33 @@ if (mobilePlayerVolumeSlider) {
     const updateVolume = (e) => {
       if (audioPlayer) {
         audioPlayer.volume = e.target.value / 100;
-        if (playerVolumeSlider) {
-          playerVolumeSlider.value = e.target.value;
-        }
+        syncVolumeSliders(e.target.value);
+        localStorage.setItem("playerVolume", e.target.value);
       }
     };
     mobilePlayerVolumeSlider.addEventListener("input", updateVolume);
     mobilePlayerVolumeSlider.addEventListener("change", updateVolume);
   }
 }
+
+// ---- 音量スライダー同期ユーティリティ ----
+function syncVolumeSliders(val) {
+  [playerVolumeSlider, spVolumeSlider, mobilePlayerVolumeSlider].forEach((el) => {
+    if (el && el.value !== String(val)) el.value = val;
+  });
+}
+
+// sp-volume-slider / player-volume-slider のイベント登録
+[spVolumeSlider, playerVolumeSlider].forEach((slider) => {
+  if (!slider) return;
+  slider.addEventListener("input", (e) => {
+    if (audioPlayer) {
+      audioPlayer.volume = e.target.value / 100;
+      syncVolumeSliders(e.target.value);
+      localStorage.setItem("playerVolume", e.target.value);
+    }
+  });
+});
 
 // ---- ミュート共通処理 ----
 const syncMuteButtons = () => {
@@ -3143,7 +3170,7 @@ const toggleMobilePlayerMenu = () => {
 if (mobilePlayerMenuToggle) {
   mobilePlayerMenuToggle.addEventListener("click", (e) => {
     e.stopPropagation();
-    toggleMobilePlayerMenu();
+    togglePlayerMenu();
   });
 }
 
@@ -3429,7 +3456,8 @@ document.addEventListener("click", (event) => {
   if (
     playerMenuPanel.classList.contains("is-open") &&
     !playerMenuPanel.contains(event.target) &&
-    !playerMenuToggle.contains(event.target)
+    !playerMenuToggle.contains(event.target) &&
+    (!mobilePlayerMenuToggle || !mobilePlayerMenuToggle.contains(event.target))
   ) {
     closePlayerMenu();
   }

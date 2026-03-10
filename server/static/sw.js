@@ -1,4 +1,4 @@
-const cacheName = "squashterm-v6"; // v6: ミュート共通化・シークバー色・⋯メニュー修正
+const cacheName = "squashterm-v7"; // v7: 音量保存・モバイル三点リーダー共通化・ボタンスタイル統一
 const staticAssets = [
   "/",
   "/static/styles.css",
