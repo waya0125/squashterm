@@ -1,4 +1,4 @@
-const cacheName = "squashterm-v7"; // v7: 音量保存・モバイル三点リーダー共通化・ボタンスタイル統一
+const cacheName = "squashterm-v8"; // v8: 音量スライダー統一・三点リーダーメニューopacity修正・⋯位置修正
 const staticAssets = [
   "/",
   "/static/styles.css",
