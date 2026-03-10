@@ -36,6 +36,7 @@ from library_service import (
     save_library,
 )
 from models import (
+    DownloadRequest,
     FavoritesUpdate,
     ImportRequest,
     LocalFolderImportRequest,
@@ -132,13 +133,7 @@ def get_logo():
     return FileResponse(logo_path)
 
 
-@app.get("/api/share/track/{track_id}")
-def get_track_share_url(track_id: str, base_url: str | None = Query(default=None)):
-    tracks = fetch_tracks()
-    track = next((item for item in tracks if item.id == track_id), None)
-    if track is None:
-        raise HTTPException(status_code=404, detail="Track not found")
-
+def build_track_share_url(track_id: str, base_url: str | None = None) -> str:
     raw_base_url = (base_url or "").strip()
     if not raw_base_url:
         settings = load_settings(DEFAULT_SETTINGS)
@@ -149,9 +144,17 @@ def get_track_share_url(track_id: str, base_url: str | None = Query(default=None
     if normalized_base_url and not normalized_base_url.startswith(("http://", "https://")):
         raise HTTPException(status_code=400, detail="Invalid base_url")
 
-    track_path = f"/share/{quote(str(track.id))}"
-    share_url = f"{normalized_base_url}{track_path}" if normalized_base_url else track_path
-    return {"track_id": track.id, "share_url": share_url}
+    track_path = f"/share/{quote(str(track_id))}"
+    return f"{normalized_base_url}{track_path}" if normalized_base_url else track_path
+
+
+@app.get("/api/share/track/{track_id}")
+def get_track_share_url(track_id: str, base_url: str | None = Query(default=None)):
+    tracks = fetch_tracks()
+    track = next((item for item in tracks if item.id == track_id), None)
+    if track is None:
+        raise HTTPException(status_code=404, detail="Track not found")
+    return {"track_id": track.id, "share_url": build_track_share_url(track.id, base_url)}
 
 
 
@@ -559,6 +562,30 @@ def update_playback_options(payload: dict):
 @app.get("/api/system")
 def get_system():
     return build_system_payload()
+
+
+@app.post("/api/library/download")
+def download_track(payload: DownloadRequest, base_url: str | None = Query(default=None)):
+    """URLから楽曲をダウンロードし、登録済みトラックの共有リンクを返す。"""
+    try:
+        tracks, _ = ingest_from_url(payload.url, payload.playlist_id)
+        if not tracks:
+            raise HTTPException(status_code=400, detail="No tracks were registered")
+        share_links = [
+            {"track_id": track.id, "share_url": build_track_share_url(track.id, base_url)}
+            for track in tracks
+        ]
+        if len(share_links) == 1:
+            return share_links[0]
+        return {"share_links": share_links}
+    except FileNotFoundError:
+        raise HTTPException(status_code=400, detail="yt-dlp is not installed")
+    except RuntimeError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 @app.post("/api/library/import")

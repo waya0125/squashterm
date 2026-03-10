@@ -29,6 +29,13 @@ class ImportRequest(BaseModel):
     auto_tag: bool | None = None
 
 
+
+
+class DownloadRequest(BaseModel):
+    url: str
+    playlist_id: str | None = None
+
+
 class PlaylistBatchImportRequest(BaseModel):
     """プレイリスト一括インポートリクエスト"""
     url: str

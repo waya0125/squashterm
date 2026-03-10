@@ -47,3 +47,4 @@ python server/app.py
 ## APIドキュメント
 
 - 楽曲登録API: `docs/api/library-register.md`
+- URLダウンロードAPI: `docs/api/library-download.md`
