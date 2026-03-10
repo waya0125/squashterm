@@ -7,10 +7,14 @@ Redisが利用可能な場合はRedisベースのキューを、
 
 import os
 import json
+import time
+import threading
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from typing import Callable, Any
 from dataclasses import dataclass
+
+_TASK_TTL_SECONDS = 3600  # 完了タスクを 1 時間後に自動削除
 
 
 @dataclass
@@ -47,7 +51,8 @@ class ThreadPoolDownloadQueue(DownloadQueue):
     
     def __init__(self, max_workers: int = 5):
         self.max_workers = max_workers
-        self._active_tasks = {}
+        self._active_tasks: dict = {}
+        self._tasks_lock = threading.Lock()
         self._executor = ThreadPoolExecutor(max_workers=max_workers)
     
     def enqueue_playlist(
@@ -60,14 +65,16 @@ class ThreadPoolDownloadQueue(DownloadQueue):
         """プレイリストを並列ダウンロード"""
         task_id = f"task_{uuid.uuid4().hex}"
         total = len(entries)
-        
-        self._active_tasks[task_id] = {
-            "total": total,
-            "completed": 0,
-            "failed": 0,
-            "results": [],
-            "futures": [],
-        }
+
+        with self._tasks_lock:
+            self._active_tasks[task_id] = {
+                "total": total,
+                "completed": 0,
+                "failed": 0,
+                "results": [],
+                "done_at": None,
+            }
+            self._purge_expired_tasks()
         
         def process_entry(entry: dict, index: int):
             """単一エントリのダウンロード処理"""
@@ -92,34 +99,60 @@ class ThreadPoolDownloadQueue(DownloadQueue):
             
             try:
                 result = download_func(url, playlist_id)
-                self._active_tasks[task_id]["completed"] += 1
-                self._active_tasks[task_id]["results"].append(result)
-                
+                with self._tasks_lock:
+                    self._active_tasks[task_id]["completed"] += 1
+                    self._active_tasks[task_id]["results"].append(result)
+                    if (
+                        self._active_tasks[task_id]["completed"]
+                        + self._active_tasks[task_id]["failed"]
+                        >= total
+                    ):
+                        self._active_tasks[task_id]["done_at"] = time.monotonic()
+
                 if progress_callback:
                     progress_callback(task, result)
-                
+
                 return result
             except Exception as exc:
-                self._active_tasks[task_id]["failed"] += 1
+                with self._tasks_lock:
+                    self._active_tasks[task_id]["failed"] += 1
+                    if (
+                        self._active_tasks[task_id]["completed"]
+                        + self._active_tasks[task_id]["failed"]
+                        >= total
+                    ):
+                        self._active_tasks[task_id]["done_at"] = time.monotonic()
                 if progress_callback:
                     progress_callback(task, {"error": str(exc)})
                 return {"error": str(exc)}
         
         # 各エントリを非同期にサブミット
         for idx, entry in enumerate(entries):
-            future = self._executor.submit(process_entry, entry, idx)
-            self._active_tasks[task_id]["futures"].append(future)
-        
+            self._executor.submit(process_entry, entry, idx)
         return task_id
     
     def get_status(self, task_id: str) -> dict:
         """タスクの進捗状況を取得"""
-        task_data = self._active_tasks.get(task_id, {})
+        with self._tasks_lock:
+            task_data = self._active_tasks.get(task_id, {})
+            total = task_data.get("total", 0)
+            completed = task_data.get("completed", 0)
+            failed = task_data.get("failed", 0)
         return {
-            "total": task_data.get("total", 0),
-            "completed": task_data.get("completed", 0),
-            "failed": task_data.get("failed", 0),
+            "total": total,
+            "completed": completed,
+            "failed": failed,
         }
+
+    def _purge_expired_tasks(self) -> None:
+        """完了から TTL を超えたタスクを削除する（Lock 保持中に呼ぶこと）。"""
+        now = time.monotonic()
+        expired = [
+            tid for tid, t in self._active_tasks.items()
+            if t.get("done_at") is not None and now - t["done_at"] > _TASK_TTL_SECONDS
+        ]
+        for tid in expired:
+            del self._active_tasks[tid]
 
 
 class RedisDownloadQueue(DownloadQueue):
