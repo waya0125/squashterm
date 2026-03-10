@@ -1,7 +1,10 @@
 /* ====================================================================
-   spotify-ui.css — Spotify 風 UI テーマ パッチ v3
+   spotify-ui.css — Spotify 風 UI テーマ パッチ v4
    body.theme-spotify が付与されているときのみ有効
    ==================================================================== */
+
+/* ---- Google Fonts: Noto Sans JP + BIZ UDGothic ---- */
+@import url('https://fonts.googleapis.com/css2?family=BIZ+UDGothic:wght@400;700&family=Noto+Sans+JP:wght@400;500;700&display=swap');
 
 /* ---- CSS 変数（ダーク） ---- */
 body.theme-spotify {
@@ -24,6 +27,8 @@ body.theme-spotify {
   --sp-thumb: #fff;
   --sp-btn-color: #b3b3b3;
   --sp-btn-hover: #fff;
+  /* フォント */
+  font-family: "Noto Sans JP", "BIZ UDGothic", "Hiragino Kaku Gothic ProN", sans-serif;
 }
 
 /* ---- CSS 変数（ライト） ---- */
@@ -250,7 +255,7 @@ body.theme-spotify.theme-light .player-overlay {
 }
 
 body.theme-spotify .player-overlay-content {
-  max-width: 680px;
+  /* max-width を削除 — オリジナルの width:100% height:100% を維持 */
 }
 
 body.theme-spotify .player-cover {
@@ -1285,11 +1290,22 @@ body.theme-spotify .playlist-track-row {
   border-radius: 4px;
   padding: 8px 12px;
   transition: background 0.15s ease;
+  /* テキスト色を継承させてSVGのcurrentColorが黒にならないようにする */
+  color: var(--sp-text);
 }
 
 body.theme-spotify .playlist-track-row:hover {
   background: #282828;
   border: none;
+}
+
+/* ドラッグハンドルアイコン: ダークテーマで白/グレーに */
+body.theme-spotify .playlist-drag-handle {
+  color: var(--sp-text-muted);
+}
+
+body.theme-spotify .playlist-drag-handle svg {
+  fill: currentColor;
 }
 
 /* ------------------------------------------------------------------ */
@@ -1305,6 +1321,7 @@ body.theme-spotify .manage-grid .card {
   border: 1px solid var(--sp-border);
   gap: 0;
   padding: 20px;
+  align-items: start; /* grid item を引き伸ばさない */
 }
 
 body.theme-spotify .manage-grid .card:hover {
@@ -1319,11 +1336,19 @@ body.theme-spotify .manage-grid .card h4 {
   border-bottom: 1px solid var(--sp-border);
 }
 
+body.theme-spotify .manage-grid .card label {
+  width: 100%;
+  align-self: stretch;
+}
+
 body.theme-spotify .manage-grid .card label span {
   font-size: 12px;
   color: var(--sp-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* 入力フィールド（Spotify カラー） */
@@ -1360,6 +1385,10 @@ body.theme-spotify .manage-grid .card button.primary {
   border-radius: 500px;
   border: none;
   margin-top: 8px;
+  /* grid コンテナ内で引き伸ばさない */
+  align-self: start;
+  justify-self: start;
+  width: auto;
 }
 
 body.theme-spotify .manage-grid .card button.primary:hover {
@@ -1373,6 +1402,10 @@ body.theme-spotify .manage-grid .card button.secondary {
   color: var(--sp-text);
   border-radius: 500px;
   margin-top: 8px;
+  /* grid コンテナ内で引き伸ばさない */
+  align-self: start;
+  justify-self: start;
+  width: auto;
 }
 
 body.theme-spotify .manage-grid .card button.secondary:hover {
@@ -1424,6 +1457,27 @@ body.theme-spotify .settings-grid .card {
   border: 1px solid var(--sp-border);
   gap: 0;
   padding: 20px;
+  align-items: start; /* grid item を引き伸ばさない */
+}
+
+/* settings カードの label: flex 縦並び */
+body.theme-spotify .settings-grid .card > label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  margin-bottom: 10px;
+  align-self: stretch;
+}
+
+body.theme-spotify .settings-grid .card > label > span {
+  font-size: 12px;
+  color: var(--sp-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 body.theme-spotify .settings-grid .card:hover {
@@ -1509,6 +1563,11 @@ body.theme-spotify .settings-grid .card button.primary {
   font-weight: 700;
   margin-top: 12px;
   border: none;
+  /* grid コンテナ内で引き伸ばさない */
+  align-self: start;
+  justify-self: start;
+  width: auto;
+  white-space: nowrap;
 }
 
 body.theme-spotify .settings-grid .card button.secondary {
