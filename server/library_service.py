@@ -60,7 +60,7 @@ def parse_track_from_info(info: dict, source_url: str | None = None, playlist_na
     if isinstance(bitrate_value, (int, float)):
         bitrate_kbps = int(round(bitrate_value))
     return Track(
-        id=f"yt_{info.get('id', uuid.uuid4().hex)}",
+        id=str(info.get("id") or uuid.uuid4().hex),
         title=info.get("track") or info.get("title") or "Unknown Title",
         artist=info.get("artist") or info.get("uploader") or "Unknown Artist",
         album=info.get("album") or (playlist_name.strip() if playlist_name and playlist_name.strip() else None) or info.get("playlist_title") or info.get("playlist") or "Unknown Album",
@@ -633,7 +633,14 @@ def apply_album_from_source_playlists(
 
     data = load_library()
     tracks = data.get("tracks", [])
-    track_map: dict[str, dict] = {t["id"][3:]: t for t in tracks if t.get("id", "").startswith("yt_")}
+    track_map: dict[str, dict] = {}
+    for track in tracks:
+        track_id = str(track.get("id", ""))
+        if not track_id:
+            continue
+        track_map[track_id] = track
+        if track_id.startswith("yt_"):
+            track_map[track_id[3:]] = track
 
     updated = 0
     skipped = 0

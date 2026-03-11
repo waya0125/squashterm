@@ -30,17 +30,21 @@ from library_service import (
     import_local_folder,
     init_library,
     load_library,
+    parse_bool,
     parse_positive_int,
     remove_media_asset,
     save_library,
 )
 from models import (
+    DownloadRequest,
     FavoritesUpdate,
     ImportRequest,
     LocalFolderImportRequest,
     PlaylistBatchImportRequest,
     PlaylistCreate,
     PlaylistUpdate,
+    Track,
+    TrackRegisterRequest,
     TrackUpdate,
 )
 from paths import AUTO_SYNC_LOCK, MEDIA_DIR, STATIC_DIR, TEMPLATE_PATH
@@ -129,13 +133,7 @@ def get_logo():
     return FileResponse(logo_path)
 
 
-@app.get("/api/share/track/{track_id}")
-def get_track_share_url(track_id: str, base_url: str | None = Query(default=None)):
-    tracks = fetch_tracks()
-    track = next((item for item in tracks if item.id == track_id), None)
-    if track is None:
-        raise HTTPException(status_code=404, detail="Track not found")
-
+def build_track_share_url(track_id: str, base_url: str | None = None) -> str:
     raw_base_url = (base_url or "").strip()
     if not raw_base_url:
         settings = load_settings(DEFAULT_SETTINGS)
@@ -146,9 +144,17 @@ def get_track_share_url(track_id: str, base_url: str | None = Query(default=None
     if normalized_base_url and not normalized_base_url.startswith(("http://", "https://")):
         raise HTTPException(status_code=400, detail="Invalid base_url")
 
-    track_path = f"/share/{quote(str(track.id))}"
-    share_url = f"{normalized_base_url}{track_path}" if normalized_base_url else track_path
-    return {"track_id": track.id, "share_url": share_url}
+    track_path = f"/share/{quote(str(track_id))}"
+    return f"{normalized_base_url}{track_path}" if normalized_base_url else track_path
+
+
+@app.get("/api/share/track/{track_id}")
+def get_track_share_url(track_id: str, base_url: str | None = Query(default=None)):
+    tracks = fetch_tracks()
+    track = next((item for item in tracks if item.id == track_id), None)
+    if track is None:
+        raise HTTPException(status_code=404, detail="Track not found")
+    return {"track_id": track.id, "share_url": build_track_share_url(track.id, base_url)}
 
 
 
@@ -558,6 +564,30 @@ def get_system():
     return build_system_payload()
 
 
+@app.post("/api/library/download")
+def download_track(payload: DownloadRequest, base_url: str | None = Query(default=None)):
+    """URLから楽曲をダウンロードし、登録済みトラックの共有リンクを返す。"""
+    try:
+        tracks, _ = ingest_from_url(payload.url, payload.playlist_id)
+        if not tracks:
+            raise HTTPException(status_code=400, detail="No tracks were registered")
+        share_links = [
+            {"track_id": track.id, "share_url": build_track_share_url(track.id, base_url)}
+            for track in tracks
+        ]
+        if len(share_links) == 1:
+            return share_links[0]
+        return {"share_links": share_links}
+    except FileNotFoundError:
+        raise HTTPException(status_code=400, detail="yt-dlp is not installed")
+    except RuntimeError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
 @app.post("/api/library/import")
 def import_track(payload: ImportRequest):
     """URLからトラックをインポートする。"""
@@ -627,6 +657,63 @@ def import_local_folder_route(payload: LocalFolderImportRequest):
         raise HTTPException(status_code=400, detail="Folder not found")
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.post("/api/library/register")
+def register_track(payload: TrackRegisterRequest):
+    """既存ファイルをライブラリへ登録する。
+
+    - scan_meta=true: mutagen でメタデータを読み取って登録
+    - scan_meta=false: metadata で手動指定した値を登録
+    """
+    source_path = Path(payload.file_path).expanduser()
+    if not source_path.exists() or not source_path.is_file():
+        raise HTTPException(status_code=400, detail="file_path does not exist")
+
+    ensure_data_dirs()
+    track_id = f"local_{uuid.uuid4().hex}"
+    extension = source_path.suffix or ".mp3"
+    dest_path = MEDIA_DIR / f"{track_id}{extension}"
+    shutil.copy2(source_path, dest_path)
+
+    if payload.scan_meta:
+        track = build_upload_track(
+            dest_path,
+            track_id,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            True,
+            None,
+        )
+    else:
+        if payload.metadata is None:
+            raise HTTPException(status_code=400, detail="metadata is required when scan_meta is false")
+        manual_meta = payload.metadata
+        parsed_year = manual_meta.year if manual_meta.year and manual_meta.year > 0 else 0
+        parsed_bpm = manual_meta.bpm if manual_meta.bpm and manual_meta.bpm > 0 else 0
+        track = Track(
+            id=track_id,
+            title=manual_meta.title,
+            artist=manual_meta.artist,
+            album=manual_meta.album,
+            cover="/static/images/icon.png",
+            duration=manual_meta.duration or "--",
+            bpm=parsed_bpm,
+            genre=manual_meta.genre or "Unknown",
+            year=parsed_year,
+            file_url=f"/media/{dest_path.name}",
+            source_url=manual_meta.source_url,
+            file_format=dest_path.suffix.lstrip(".").lower() or None,
+            bitrate_kbps=None,
+        )
+
+    append_track_record(track, dest_path)
+    append_tracks_to_playlist(payload.playlist_id, [track.id])
+    return {"track": asdict(track), "scan_meta": parse_bool(payload.scan_meta, True)}
 
 
 @app.post("/api/library/upload")

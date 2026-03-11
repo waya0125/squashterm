@@ -29,6 +29,13 @@ class ImportRequest(BaseModel):
     auto_tag: bool | None = None
 
 
+
+
+class DownloadRequest(BaseModel):
+    url: str
+    playlist_id: str | None = None
+
+
 class PlaylistBatchImportRequest(BaseModel):
     """プレイリスト一括インポートリクエスト"""
     url: str
@@ -68,6 +75,24 @@ class TrackUpdate(BaseModel):
     artist: str | None = None
     album: str | None = None
     source_url: str | None = None
+
+
+class ManualTrackMetadata(BaseModel):
+    title: str
+    artist: str
+    album: str
+    genre: str = "Unknown"
+    year: int = 0
+    duration: str = "--"
+    bpm: int = 0
+    source_url: str | None = None
+
+
+class TrackRegisterRequest(BaseModel):
+    file_path: str
+    scan_meta: bool = True
+    playlist_id: str | None = None
+    metadata: ManualTrackMetadata | None = None
 
 
 class PlaybackOptionUpdate(BaseModel):
