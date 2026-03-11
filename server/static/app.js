@@ -149,6 +149,7 @@ const selectionState = {
 
 const playerState = {
   currentIndex: -1,
+  lastIndex: -1,
   isPlaying: false,
   loopMode: "off",
   shuffleMode: false,
@@ -543,8 +544,12 @@ const updatePlayerUI = () => {
       miniDuration.textContent = "0:00";
     }
     if (supportsMediaSession) {
-      navigator.mediaSession.metadata = null;
-      navigator.mediaSession.playbackState = "none";
+      // Keep the last metadata so system controls (lock screen, CarPlay, etc.) stay visible.
+      // Only switch to "paused" so the OS doesn't remove the media notification.
+      navigator.mediaSession.playbackState = "paused";
+      if (typeof navigator.mediaSession.setPositionState === "function") {
+        try { navigator.mediaSession.setPositionState(null); } catch (_) { /* not supported */ }
+      }
     }
     updateMediaPlayingIndicator();
     updateLoopButtons();
@@ -697,6 +702,10 @@ const stopPlayback = () => {
   if (!audioPlayer) {
     return;
   }
+  // Remember last track so the MediaSession play handler can resume it
+  if (playerState.currentIndex >= 0) {
+    playerState.lastIndex = playerState.currentIndex;
+  }
   audioPlayer.pause();
   audioPlayer.currentTime = 0;
   audioPlayer.removeAttribute("src");
@@ -733,7 +742,10 @@ const playNext = () => {
   
   setTrackByIndex(nextIndex, false);
   if (audioPlayer) {
-    audioPlayer.play();
+    audioPlayer.play().catch((err) => {
+      console.warn("[squashterm] playNext: play() failed:", err);
+      updateMediaSessionPlaybackState();
+    });
   }
 };
 
@@ -764,7 +776,10 @@ const playPrev = () => {
   
   setTrackByIndex(prevIndex, false);
   if (audioPlayer) {
-    audioPlayer.play();
+    audioPlayer.play().catch((err) => {
+      console.warn("[squashterm] playPrev: play() failed:", err);
+      updateMediaSessionPlaybackState();
+    });
   }
 };
 
@@ -2580,7 +2595,10 @@ if (audioPlayer) {
   audioPlayer.addEventListener("ended", () => {
     if (playerState.loopMode === "track") {
       audioPlayer.currentTime = 0;
-      audioPlayer.play();
+      audioPlayer.play().catch((err) => {
+        console.warn("[squashterm] ended/loop-track: play() failed:", err);
+        updateMediaSessionPlaybackState();
+      });
       return;
     }
     if (playerState.shuffleMode) {
@@ -2603,6 +2621,7 @@ if (playerSeek && audioPlayer) {
     const value = Number(event.target.value);
     if (Number.isFinite(value) && audioPlayer.duration) {
       audioPlayer.currentTime = (value / 100) * audioPlayer.duration;
+      updateMediaSessionPosition();
     }
   });
 }
@@ -2612,6 +2631,7 @@ if (miniSeek && audioPlayer) {
     const value = Number(event.target.value);
     if (Number.isFinite(value) && audioPlayer.duration) {
       audioPlayer.currentTime = Math.round((value / 100) * audioPlayer.duration);
+      updateMediaSessionPosition();
     }
   });
 }
@@ -2962,16 +2982,55 @@ document.addEventListener("keydown", (event) => {
 
 if (supportsMediaSession) {
   navigator.mediaSession.setActionHandler("play", () => {
-    togglePlayback();
+    if (playerState.currentIndex === -1 && state.tracks.length > 0) {
+      // Resume from the last played track if available, otherwise start from the first
+      const resumeIndex =
+        playerState.lastIndex >= 0 && playerState.lastIndex < state.tracks.length
+          ? playerState.lastIndex
+          : 0;
+      setTrackByIndex(resumeIndex);
+    }
+    audioPlayer && audioPlayer.play().catch((err) => {
+      console.warn("[squashterm] MediaSession play failed:", err);
+      updateMediaSessionPlaybackState();
+    });
   });
   navigator.mediaSession.setActionHandler("pause", () => {
-    togglePlayback();
+    audioPlayer && audioPlayer.pause();
   });
   navigator.mediaSession.setActionHandler("previoustrack", () => {
     playPrev();
   });
   navigator.mediaSession.setActionHandler("nexttrack", () => {
     playNext();
+  });
+  navigator.mediaSession.setActionHandler("seekbackward", (event) => {
+    if (!audioPlayer) {
+      playPrev();
+      return;
+    }
+    const offset = typeof event?.seekOffset === "number" ? event.seekOffset : 0;
+    if (offset > 0) {
+      audioPlayer.currentTime = Math.max(0, audioPlayer.currentTime - offset);
+      updateMediaSessionPosition();
+    } else {
+      playPrev();
+    }
+  });
+  navigator.mediaSession.setActionHandler("seekforward", (event) => {
+    if (!audioPlayer) {
+      playNext();
+      return;
+    }
+    const offset = typeof event?.seekOffset === "number" ? event.seekOffset : 0;
+    if (offset > 0) {
+      const dur = Number.isFinite(audioPlayer.duration) ? audioPlayer.duration : undefined;
+      const newTime = audioPlayer.currentTime + offset;
+      audioPlayer.currentTime = dur !== undefined ? Math.min(dur, newTime) : newTime;
+      updateMediaSessionPosition();
+    } else {
+      playNext();
+    }
   });
   navigator.mediaSession.setActionHandler("stop", () => {
     stopPlayback();
@@ -3236,6 +3295,7 @@ if (mobilePlayerProgressSlider && audioPlayer) {
     const v = Number(e.target.value);
     if (Number.isFinite(v) && audioPlayer.duration) {
       audioPlayer.currentTime = (v / 100) * audioPlayer.duration;
+      updateMediaSessionPosition();
     }
   });
 }
