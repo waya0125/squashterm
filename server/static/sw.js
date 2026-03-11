@@ -1,4 +1,4 @@
-const cacheName = "squashterm-v9"; // v9: モバイル⋯位置・シークバーホバー色・サイドバーオーバーレイ
+const cacheName = "squashterm-v10"; // v10: MediaSession修正 (停止後もコントロール維持・seekbackward/forward対応)
 const staticAssets = [
   "/",
   "/static/styles.css",
