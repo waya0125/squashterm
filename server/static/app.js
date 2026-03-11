@@ -150,6 +150,7 @@ const selectionState = {
 
 const playerState = {
   currentIndex: -1,
+  lastIndex: -1,
   isPlaying: false,
   loopMode: "off",
   shuffleMode: false,
@@ -717,6 +718,10 @@ const seekBySeconds = (deltaSeconds) => {
 const stopPlayback = () => {
   if (!audioPlayer) {
     return;
+  }
+  // Remember last track so the MediaSession play handler can resume it
+  if (playerState.currentIndex >= 0) {
+    playerState.lastIndex = playerState.currentIndex;
   }
   audioPlayer.pause();
   audioPlayer.currentTime = 0;
@@ -3419,7 +3424,12 @@ document.addEventListener("keydown", (event) => {
 if (supportsMediaSession) {
   navigator.mediaSession.setActionHandler("play", () => {
     if (playerState.currentIndex === -1 && state.tracks.length > 0) {
-      setTrackByIndex(0);
+      // Resume from the last played track if available, otherwise start from the first
+      const resumeIndex =
+        playerState.lastIndex >= 0 && playerState.lastIndex < state.tracks.length
+          ? playerState.lastIndex
+          : 0;
+      setTrackByIndex(resumeIndex);
     }
     audioPlayer && audioPlayer.play().catch((err) => {
       console.warn("[squashterm] MediaSession play failed:", err);
@@ -3435,11 +3445,33 @@ if (supportsMediaSession) {
   navigator.mediaSession.setActionHandler("nexttrack", () => {
     playNext();
   });
-  navigator.mediaSession.setActionHandler("seekbackward", () => {
-    playPrev();
+  navigator.mediaSession.setActionHandler("seekbackward", (event) => {
+    if (!audioPlayer) {
+      playPrev();
+      return;
+    }
+    const offset = typeof event?.seekOffset === "number" ? event.seekOffset : 0;
+    if (offset > 0) {
+      audioPlayer.currentTime = Math.max(0, audioPlayer.currentTime - offset);
+      updateMediaSessionPosition();
+    } else {
+      playPrev();
+    }
   });
-  navigator.mediaSession.setActionHandler("seekforward", () => {
-    playNext();
+  navigator.mediaSession.setActionHandler("seekforward", (event) => {
+    if (!audioPlayer) {
+      playNext();
+      return;
+    }
+    const offset = typeof event?.seekOffset === "number" ? event.seekOffset : 0;
+    if (offset > 0) {
+      const dur = Number.isFinite(audioPlayer.duration) ? audioPlayer.duration : undefined;
+      const newTime = audioPlayer.currentTime + offset;
+      audioPlayer.currentTime = dur !== undefined ? Math.min(dur, newTime) : newTime;
+      updateMediaSessionPosition();
+    } else {
+      playNext();
+    }
   });
   navigator.mediaSession.setActionHandler("stop", () => {
     stopPlayback();
