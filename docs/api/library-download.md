@@ -32,8 +32,8 @@ Manage画面の「ライブラリに追加」と同等のダウンロード処�
 
 ```json
 {
-  "track_id": "yt_xxx",
-  "share_url": "/share/yt_xxx"
+  "track_id": "abc123",
+  "share_url": "/share/abc123"
 }
 ```
 
@@ -43,12 +43,12 @@ Manage画面の「ライブラリに追加」と同等のダウンロード処�
 {
   "share_links": [
     {
-      "track_id": "yt_xxx",
-      "share_url": "/share/yt_xxx"
+      "track_id": "abc123",
+      "share_url": "/share/abc123"
     },
     {
-      "track_id": "yt_yyy",
-      "share_url": "/share/yt_yyy"
+      "track_id": "def456",
+      "share_url": "/share/def456"
     }
   ]
 }
