@@ -159,6 +159,7 @@ const selectionState = {
 
 const playerState = {
   currentIndex: -1,
+  lastIndex: -1,
   isPlaying: false,
   loopMode: "off",
   shuffleMode: false,
@@ -601,8 +602,13 @@ const updatePlayerUI = () => {
       miniDuration.textContent = "0:00";
     }
     if (supportsMediaSession) {
-      navigator.mediaSession.metadata = null;
-      navigator.mediaSession.playbackState = "none";
+      // Keep metadata visible (e.g. on lock screen / CarPlay) so the user can
+      // resume playback from the OS media controls after a playlist ends.
+      // Only mark it "paused" – setting "none" would remove the controls entirely.
+      navigator.mediaSession.playbackState = "paused";
+      if (typeof navigator.mediaSession.setPositionState === "function") {
+        try { navigator.mediaSession.setPositionState(null); } catch (_) { /* not supported */ }
+      }
     }
     updateMediaPlayingIndicator();
     updateLoopButtons();
@@ -744,7 +750,12 @@ const playCurrentTrack = async () => {
   }
   if (playerState.currentIndex === -1) {
     if (state.tracks.length > 0) {
-      setTrackByIndex(0);
+      // Resume from the last played track if available, otherwise start from first
+      const resumeIndex =
+        playerState.lastIndex >= 0 && playerState.lastIndex < state.tracks.length
+          ? playerState.lastIndex
+          : 0;
+      setTrackByIndex(resumeIndex);
     } else {
       return;
     }
@@ -752,7 +763,10 @@ const playCurrentTrack = async () => {
   if (!audioPlayer.paused) {
     return;
   }
-  await audioPlayer.play();
+  await audioPlayer.play().catch((err) => {
+    console.warn("[squashterm] playCurrentTrack: play() failed:", err);
+    updateMediaSessionPlaybackState();
+  });
 };
 
 const pauseCurrentTrack = () => {
@@ -778,6 +792,10 @@ const seekBySeconds = (deltaSeconds) => {
 const stopPlayback = () => {
   if (!audioPlayer) {
     return;
+  }
+  // Remember the last track so the MediaSession play handler can resume it
+  if (playerState.currentIndex >= 0) {
+    playerState.lastIndex = playerState.currentIndex;
   }
   audioPlayer.pause();
   audioPlayer.currentTime = 0;
@@ -815,7 +833,10 @@ const playNext = () => {
   
   setTrackByIndex(nextIndex, false);
   if (audioPlayer) {
-    audioPlayer.play();
+    audioPlayer.play().catch((err) => {
+      console.warn("[squashterm] playNext: play() failed:", err);
+      updateMediaSessionPlaybackState();
+    });
   }
 };
 
@@ -846,7 +867,10 @@ const playPrev = () => {
   
   setTrackByIndex(prevIndex, false);
   if (audioPlayer) {
-    audioPlayer.play();
+    audioPlayer.play().catch((err) => {
+      console.warn("[squashterm] playPrev: play() failed:", err);
+      updateMediaSessionPlaybackState();
+    });
   }
 };
 
@@ -2697,7 +2721,10 @@ if (audioPlayer) {
   audioPlayer.addEventListener("ended", () => {
     if (playerState.loopMode === "track") {
       audioPlayer.currentTime = 0;
-      audioPlayer.play();
+      audioPlayer.play().catch((err) => {
+        console.warn("[squashterm] ended/loop-track: play() failed:", err);
+        updateMediaSessionPlaybackState();
+      });
       return;
     }
     if (playerState.shuffleMode) {
@@ -2720,6 +2747,7 @@ if (playerSeek && audioPlayer) {
     const value = Number(event.target.value);
     if (Number.isFinite(value) && audioPlayer.duration) {
       audioPlayer.currentTime = (value / 100) * audioPlayer.duration;
+      updateMediaSessionPosition();
     }
   });
 }
@@ -2729,6 +2757,7 @@ if (miniSeek && audioPlayer) {
     const value = Number(event.target.value);
     if (Number.isFinite(value) && audioPlayer.duration) {
       audioPlayer.currentTime = Math.round((value / 100) * audioPlayer.duration);
+      updateMediaSessionPosition();
     }
   });
 }
@@ -3128,6 +3157,31 @@ if (supportsMediaSession) {
   });
   registerMediaSessionHandler("nexttrack", () => {
     playNext();
+  });
+  // seekbackward/seekforward: sent by car audio, Android Auto, headsets.
+  // When the event carries a seekOffset, seek by that many seconds.
+  // When no offset is provided, treat as previous/next track.
+  registerMediaSessionHandler("seekbackward", (event) => {
+    if (!audioPlayer) { playPrev(); return; }
+    const offset = typeof event?.seekOffset === "number" ? event.seekOffset : 0;
+    if (offset > 0) {
+      audioPlayer.currentTime = Math.max(0, audioPlayer.currentTime - offset);
+      updateMediaSessionPosition();
+    } else {
+      playPrev();
+    }
+  });
+  registerMediaSessionHandler("seekforward", (event) => {
+    if (!audioPlayer) { playNext(); return; }
+    const offset = typeof event?.seekOffset === "number" ? event.seekOffset : 0;
+    if (offset > 0) {
+      const dur = Number.isFinite(audioPlayer.duration) ? audioPlayer.duration : undefined;
+      const newTime = audioPlayer.currentTime + offset;
+      audioPlayer.currentTime = dur !== undefined ? Math.min(dur, newTime) : newTime;
+      updateMediaSessionPosition();
+    } else {
+      playNext();
+    }
   });
   registerMediaSessionHandler("stop", () => {
     stopPlayback();
