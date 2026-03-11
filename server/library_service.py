@@ -511,7 +511,7 @@ def batch_download_playlist(url: str, playlist_id: str | None, concurrency: int)
     
     completed_count = 0
     failed_count = 0
-    results: list = []
+    results: list[Track] = []
     _expected = len(entries)
     _lock = threading.Lock()
     _callbacks_done = threading.Event()
@@ -573,15 +573,20 @@ def batch_download_playlist(url: str, playlist_id: str | None, concurrency: int)
     # 全コールバック完了を最大 30 秒待ってから最終結果を送出する
     _callbacks_done.wait(timeout=30)
     
-    # 最終結果
+    # 最終結果: ロック内でローカルにコピーし、yield はロックの外で行う
     with _lock:
-        yield {
-            "type": "complete",
-            "total": _expected,
-            "completed": completed_count,
-            "failed": failed_count,
-            "tracks": [asdict(track) for track in results],
-        }
+        final_expected = _expected
+        final_completed = completed_count
+        final_failed = failed_count
+        final_tracks = [asdict(track) for track in results]
+
+    yield {
+        "type": "complete",
+        "total": final_expected,
+        "completed": final_completed,
+        "failed": final_failed,
+        "tracks": final_tracks,
+    }
 
 
 def apply_album_from_source_playlists(
