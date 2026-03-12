@@ -121,6 +121,18 @@ body {
   display: inline;
 }
 
+
+#auth-login-button.is-authenticated {
+  border-color: color-mix(in srgb, var(--theme-accent-color) 55%, #ffffff 10%);
+  background: color-mix(in srgb, var(--theme-accent-color) 18%, #1b1b1b);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--theme-accent-color) 35%, transparent) inset;
+}
+
+#auth-login-button.is-authenticated:hover {
+  border-color: color-mix(in srgb, var(--theme-accent-color) 75%, #ffffff 10%);
+  background: color-mix(in srgb, var(--theme-accent-color) 24%, #1b1b1b);
+}
+
 .auth-menu-panel {
   position: absolute;
   left: 0;

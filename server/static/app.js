@@ -2356,6 +2356,7 @@ const applyAuthUi = () => {
   if (authLoginButton) {
     authLoginButton.style.display = "";
     authLoginButton.setAttribute("aria-expanded", "false");
+    authLoginButton.classList.toggle("is-authenticated", Boolean(state.authUser));
   }
   if (authUserIcon) {
     authUserIcon.src = state.authUser?.icon_url || "/static/images/icon.png";
@@ -2366,6 +2367,7 @@ const applyAuthUi = () => {
     }
     if (authLoginLabel) {
       authLoginLabel.hidden = true;
+      authLoginLabel.textContent = "";
     }
     if (authUserDisplay) {
       authUserDisplay.textContent = state.authUser.display_name || state.authUser.username || "-";
