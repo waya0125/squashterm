@@ -77,6 +77,23 @@ const designLogoFile = document.getElementById("design-logo-file");
 const designLogoSave = document.getElementById("design-logo-save");
 const designFaviconFile = document.getElementById("design-favicon-file");
 const designFaviconSave = document.getElementById("design-favicon-save");
+const authLoginButton = document.getElementById("auth-login-button");
+const authLoginDialog = document.getElementById("auth-login-dialog");
+const authLoginForm = document.getElementById("auth-login-form");
+const authUsername = document.getElementById("auth-username");
+const authPassword = document.getElementById("auth-password");
+const authLoginCancel = document.getElementById("auth-login-cancel");
+const adminTabButton = document.getElementById("admin-tab-button");
+const adminUserName = document.getElementById("admin-user-name");
+const adminUserPassword = document.getElementById("admin-user-password");
+const adminUserRole = document.getElementById("admin-user-role");
+const adminUserCreate = document.getElementById("admin-user-create");
+const adminUserList = document.getElementById("admin-user-list");
+const adminApiKeyName = document.getElementById("admin-api-key-name");
+const adminApiKeyOrigin = document.getElementById("admin-api-key-origin");
+const adminApiKeyCreate = document.getElementById("admin-api-key-create");
+const adminApiKeyPlain = document.getElementById("admin-api-key-plain");
+const adminApiKeyList = document.getElementById("admin-api-key-list");
 
 const audioPlayer = document.getElementById("audio-player");
 const playerOverlay = document.getElementById("player-overlay");
@@ -150,6 +167,8 @@ const state = {
   playlists: [],
   favorites: [],
   selectedPlaylist: null,
+  authUser: null,
+  role: "guest",
 };
 
 const selectionState = {
@@ -2321,9 +2340,112 @@ const handlePlaylistCreate = async () => {
   }
 };
 
+
+const applyAuthUi = () => {
+  if (authLoginButton) {
+    authLoginButton.textContent = state.authUser ? `ログアウト (${state.authUser.username})` : "ログイン";
+  }
+  if (adminTabButton) {
+    adminTabButton.style.display = state.role === "admin" ? "" : "none";
+  }
+};
+
+const fetchAuthMe = async () => {
+  const auth = await fetchJson("/api/auth/me");
+  state.authUser = auth.user;
+  state.role = auth.role;
+  applyAuthUi();
+};
+
+const renderAdminUsers = (users) => {
+  if (!adminUserList) return;
+  adminUserList.innerHTML = "";
+  users.forEach((userItem) => {
+    const row = document.createElement("div");
+    row.style.marginBottom = "0.75rem";
+    const playlistCount = (userItem.playlists || []).length;
+    row.innerHTML = `<div><strong>${userItem.username}</strong> (${userItem.role}) / playlists: ${playlistCount}</div>`;
+    const disableBtn = document.createElement("button");
+    disableBtn.className = "secondary";
+    disableBtn.textContent = userItem.is_active ? "無効化" : "有効化";
+    disableBtn.addEventListener("click", async () => {
+      await requestJson(`/api/admin/users/${userItem.id}`, { is_active: !Boolean(userItem.is_active) }, "PUT");
+      await refreshAdminData();
+    });
+    const delBtn = document.createElement("button");
+    delBtn.className = "danger";
+    delBtn.textContent = "削除";
+    delBtn.addEventListener("click", async () => {
+      await requestJson(`/api/admin/users/${userItem.id}`, null, "DELETE");
+      await refreshAdminData();
+    });
+    row.appendChild(disableBtn);
+    row.appendChild(delBtn);
+    adminUserList.appendChild(row);
+  });
+};
+
+const renderAdminApiKeys = (keys) => {
+  if (!adminApiKeyList) return;
+  adminApiKeyList.innerHTML = "";
+  keys.forEach((keyItem) => {
+    const row = document.createElement("div");
+    row.style.marginBottom = "0.75rem";
+    row.innerHTML = `<div><strong>${keyItem.name}</strong> (${keyItem.origin || "*"})</div>`;
+    const toggle = document.createElement("button");
+    toggle.className = "secondary";
+    toggle.textContent = keyItem.is_active ? "無効化" : "有効化";
+    toggle.addEventListener("click", async () => {
+      await requestJson(`/api/admin/api-keys/${keyItem.id}`, { is_active: !Boolean(keyItem.is_active) }, "PUT");
+      await refreshAdminData();
+    });
+    row.appendChild(toggle);
+    adminApiKeyList.appendChild(row);
+  });
+};
+
+const refreshAdminData = async () => {
+  if (state.role !== "admin") return;
+  const [users, keys] = await Promise.all([fetchJson("/api/admin/users"), fetchJson("/api/admin/api-keys")]);
+  renderAdminUsers(users);
+  renderAdminApiKeys(keys);
+};
+
+const bindAuthAdminEvents = () => {
+  authLoginButton?.addEventListener("click", async () => {
+    if (state.authUser) {
+      await fetch("/api/auth/logout", { method: "POST" });
+      state.authUser = null;
+      state.role = "guest";
+      applyAuthUi();
+      return;
+    }
+    authLoginDialog?.showModal();
+  });
+  authLoginCancel?.addEventListener("click", () => authLoginDialog?.close());
+  authLoginForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await requestJson("/api/auth/login", { username: authUsername.value.trim(), password: authPassword.value }, "POST");
+    authLoginDialog?.close();
+    authPassword.value = "";
+    await fetchAuthMe();
+    await refreshAdminData();
+  });
+  adminUserCreate?.addEventListener("click", async () => {
+    await requestJson("/api/admin/users", { username: adminUserName.value.trim(), password: adminUserPassword.value, role: adminUserRole.value }, "POST");
+    adminUserPassword.value = "";
+    await refreshAdminData();
+  });
+  adminApiKeyCreate?.addEventListener("click", async () => {
+    const created = await requestJson("/api/admin/api-keys", { name: adminApiKeyName.value.trim(), origin: adminApiKeyOrigin.value.trim() || null }, "POST");
+    if (adminApiKeyPlain) adminApiKeyPlain.textContent = `発行キー: ${created.key}`;
+    await refreshAdminData();
+  });
+};
+
 const init = async () => {
   try {
-    const [tracks, playlists, favoritesData, status, settings, system] =
+    const [tracks, playlists, favoritesData, status, settings, system, auth] =
       await Promise.all([
         fetchJson("/api/library"),
         fetchJson("/api/playlists"),
@@ -2331,11 +2453,15 @@ const init = async () => {
         fetchJson("/api/status"),
         fetchJson("/api/settings"),
         fetchJson("/api/system"),
+        fetchJson("/api/auth/me"),
       ]);
 
     state.tracks = tracks;
     state.playlists = playlists;
     state.favorites = favoritesData;
+    state.authUser = auth.user;
+    state.role = auth.role;
+    applyAuthUi();
     ensureSelectedPlaylist();
 
     renderMedia();
@@ -2363,6 +2489,7 @@ const init = async () => {
     }
     renderSettings(settings);
     renderSystem(system);
+    await refreshAdminData();
 
     const query = new URLSearchParams(window.location.search);
     const sharedTrackId = query.get("id");
@@ -3199,6 +3326,7 @@ if (supportsMediaSession) {
   });
 }
 
+bindAuthAdminEvents();
 init();
 if (designColorsSave) {
   designColorsSave.addEventListener("click", async () => {
