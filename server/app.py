@@ -906,7 +906,13 @@ def delete_playlist(
 @app.post("/api/playlists/{playlist_id}/sync")
 def sync_playlist(playlist_id: str, session_token: str | None = Cookie(default=None), authorization: str | None = Header(default=None), x_api_key: str | None = Header(default=None), origin: str | None = Header(default=None)):
     user = resolve_current_user(session_token, authorization, x_api_key, origin)
-    require_login(user)
+    user = require_login(user)
+    playlists = fetch_playlists()
+    playlist = next((item for item in playlists if item.get("id") == playlist_id), None)
+    if playlist is None:
+        raise HTTPException(status_code=404, detail="Playlist not found")
+    if not can_manage_playlist(user, playlist):
+        raise HTTPException(status_code=403, detail="Forbidden")
     try:
         with AUTO_SYNC_LOCK:
             return sync_playlist_with_remote(playlist_id)
@@ -975,7 +981,9 @@ def update_playback_options(payload: dict):
 
 
 @app.get("/api/system")
-def get_system():
+def get_system(session_token: str | None = Cookie(default=None), authorization: str | None = Header(default=None), x_api_key: str | None = Header(default=None), origin: str | None = Header(default=None)):
+    user = resolve_current_user(session_token, authorization, x_api_key, origin)
+    require_admin(user)
     return build_system_payload()
 
 

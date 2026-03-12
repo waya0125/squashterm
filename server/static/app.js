@@ -73,6 +73,7 @@ const settingsDisplayNameInput = document.getElementById("settings-display-name"
 const settingsUserIcon = document.getElementById("settings-user-icon");
 const settingsUserIconFile = document.getElementById("settings-user-icon-file");
 const settingsProfileSave = document.getElementById("settings-profile-save");
+const settingsShowVideoOnPlayer = document.getElementById("settings-show-video-on-player");
 const settingsPlaybackOptions = document.getElementById("settings-playback-options");
 const systemInfoList = document.getElementById("system-info-list");
 const settingsBaseUrlInput = document.getElementById("settings-base-url");
@@ -90,6 +91,7 @@ const authLoginDialog = document.getElementById("auth-login-dialog");
 const authLoginForm = document.getElementById("auth-login-form");
 const authUsername = document.getElementById("auth-username");
 const authPassword = document.getElementById("auth-password");
+const authLoginError = document.getElementById("auth-login-error");
 const authLoginCancel = document.getElementById("auth-login-cancel");
 const authMenu = document.getElementById("auth-menu");
 const authMenuPanel = document.getElementById("auth-menu-panel");
@@ -101,6 +103,7 @@ const authLoginLabel = document.getElementById("auth-login-label");
 const authSettingsButton = document.getElementById("auth-settings-button");
 const authLogoutButton = document.getElementById("auth-logout-button");
 const adminTabButton = document.getElementById("admin-tab-button");
+const aboutSystemCard = document.getElementById("about-system-card");
 const adminUserName = document.getElementById("admin-user-name");
 const adminUserPassword = document.getElementById("admin-user-password");
 const adminUserRole = document.getElementById("admin-user-role");
@@ -122,6 +125,7 @@ const audioPlayer = document.getElementById("audio-player");
 const playerOverlay = document.getElementById("player-overlay");
 const playerClose = document.getElementById("player-close");
 const playerCover = document.getElementById("player-cover");
+const playerVideo = document.getElementById("player-video");
 const playerTitle = document.getElementById("player-title");
 const playerArtist = document.getElementById("player-artist");
 const playerAlbum = document.getElementById("player-album");
@@ -217,6 +221,41 @@ const searchState = {
   mediaQuery: "",
   playlistQuery: "",
   playlistTrackQuery: "",
+};
+
+const hasLogin = () => Boolean(state.authUser);
+
+const canManagePlaylist = (playlist) => {
+  if (!playlist) {
+    return false;
+  }
+  if (state.role === "admin") {
+    return true;
+  }
+  if (!hasLogin()) {
+    return false;
+  }
+  return playlist.owner_id === state.authUser?.id;
+};
+
+const canUsePlaylistActions = () => hasLogin();
+
+const canUseFavoritesActions = () => hasLogin();
+
+const parseErrorMessage = async (response, fallbackMessage) => {
+  try {
+    const data = await response.json();
+    if (typeof data?.detail === "string" && data.detail) {
+      return data.detail;
+    }
+    if (typeof data?.message === "string" && data.message) {
+      return data.message;
+    }
+    return fallbackMessage;
+  } catch (_error) {
+    const text = await response.text();
+    return text || fallbackMessage;
+  }
 };
 
 const supportsMediaSession = "mediaSession" in navigator;
@@ -421,6 +460,8 @@ const updateFavoriteButtons = () => {
     if (!button) {
       return;
     }
+    button.style.display = canUseFavoritesActions() ? "" : "none";
+    button.disabled = !canUseFavoritesActions();
     button.classList.toggle("is-active", isFavorite);
     button.setAttribute("aria-pressed", isFavorite ? "true" : "false");
     button.setAttribute("aria-label", label);
@@ -522,6 +563,30 @@ const resolveTrackVideoUrl = (track) => {
   return null;
 };
 
+const shouldShowVideoOnPlayer = () => Boolean(settingsShowVideoOnPlayer?.checked);
+
+const updatePlayerVisual = (track) => {
+  const videoUrl = shouldShowVideoOnPlayer() ? resolveTrackVideoUrl(track) : null;
+  if (playerVideo) {
+    if (videoUrl) {
+      if (playerVideo.src !== videoUrl) {
+        playerVideo.src = videoUrl;
+        playerVideo.load();
+      }
+      playerVideo.classList.add("is-visible");
+      playerVideo.play().catch(() => {});
+    } else {
+      playerVideo.pause();
+      playerVideo.removeAttribute("src");
+      playerVideo.load();
+      playerVideo.classList.remove("is-visible");
+    }
+  }
+  if (playerCover) {
+    playerCover.classList.toggle("is-hidden", Boolean(videoUrl));
+  }
+};
+
 const closeVideoModal = () => {
   if (!videoModal || !videoModalPlayer) {
     return;
@@ -598,6 +663,7 @@ const updatePlayerUI = () => {
       playerCover.src = "";
       playerCover.alt = "";
     }
+    updatePlayerVisual(null);
     if (playerTitle) {
       playerTitle.textContent = "--";
     }
@@ -662,6 +728,7 @@ const updatePlayerUI = () => {
     playerCover.src = track.cover || "";
     playerCover.alt = track.album || track.title;
   }
+  updatePlayerVisual(track);
   if (playerTitle) {
     playerTitle.textContent = track.title;
   }
@@ -703,6 +770,9 @@ const closePlayerOverlay = () => {
     playerOverlay.classList.remove("is-active");
     playerOverlay.setAttribute("aria-hidden", "true");
   }
+  if (playerVideo) {
+    playerVideo.pause();
+  }
   document.body?.classList.remove("player-overlay-open");
   closePlayerMenu();
   // 直前のタブに戻す
@@ -729,6 +799,9 @@ const openPlayerOverlay = () => {
   }
   document.body?.classList.add("player-overlay-open");
   updatePlayerUI();
+  if (playerVideo?.classList.contains("is-visible")) {
+    playerVideo.play().catch(() => {});
+  }
   updatePlayerButtons();
   updateFavoriteButtons();
 };
@@ -1167,8 +1240,11 @@ const buildPlaylistTrackRow = (track, listType) => {
   const row = document.createElement("div");
   row.className = "playlist-track-row";
   row.dataset.trackId = track.id;
+  const selectedPlaylist = getSelectedPlaylistData();
+  const canEditTrackList =
+    listType === "favorites" ? canUseFavoritesActions() : canManagePlaylist(selectedPlaylist);
   row.innerHTML = `
-    <span class="playlist-drag-handle" draggable="true" aria-label="並び替え">
+    <span class="playlist-drag-handle" draggable="${canEditTrackList ? "true" : "false"}" aria-label="並び替え" ${canEditTrackList ? "" : "hidden"}>
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <rect x="5" y="7" width="14" height="2" rx="1" />
         <rect x="5" y="15" width="14" height="2" rx="1" />
@@ -1204,33 +1280,39 @@ const buildPlaylistTrackRow = (track, listType) => {
       togglePlayback();
     }
   });
-  row
-    .querySelector(".playlist-drag-handle")
-    .addEventListener("dragstart", (event) => {
+  const dragHandle = row.querySelector(".playlist-drag-handle");
+  if (canEditTrackList && dragHandle) {
+    dragHandle.addEventListener("dragstart", (event) => {
       row.classList.add("is-dragging");
       event.dataTransfer.effectAllowed = "move";
       event.dataTransfer.setData("text/plain", track.id);
     });
-  row
-    .querySelector(".playlist-drag-handle")
-    .addEventListener("dragend", () => {
+    dragHandle.addEventListener("dragend", () => {
       row.classList.remove("is-dragging");
     });
-  row.addEventListener("dragover", (event) => {
-    event.preventDefault();
-    event.dataTransfer.dropEffect = "move";
-  });
-  row.addEventListener("drop", (event) => {
-    event.preventDefault();
-    const draggedId = event.dataTransfer.getData("text/plain");
-    if (!draggedId || draggedId === track.id) {
-      return;
+    row.addEventListener("dragover", (event) => {
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "move";
+    });
+    row.addEventListener("drop", (event) => {
+      event.preventDefault();
+      const draggedId = event.dataTransfer.getData("text/plain");
+      if (!draggedId || draggedId === track.id) {
+        return;
+      }
+      reorderPlaylistTracks(listType, draggedId, track.id);
+    });
+  }
+  const removeButton = row.querySelector(".playlist-remove");
+  if (removeButton) {
+    if (!canEditTrackList) {
+      removeButton.hidden = true;
+    } else {
+      removeButton.addEventListener("click", () => {
+        removePlaylistTrack(listType, track.id);
+      });
     }
-    reorderPlaylistTracks(listType, draggedId, track.id);
-  });
-  row.querySelector(".playlist-remove").addEventListener("click", () => {
-    removePlaylistTrack(listType, track.id);
-  });
+  }
   return row;
 };
 
@@ -1435,7 +1517,7 @@ const renderPlaylists = () => {
   const actions = document.createElement("div");
   actions.style.display = "flex";
   actions.style.gap = "0.5rem";
-  const canEditSelected = state.role === "admin" || !selected.is_public;
+  const canEditSelected = canManagePlaylist(selected);
   const renameButton = document.createElement("button");
   renameButton.type = "button";
   renameButton.className = "secondary";
@@ -1515,16 +1597,17 @@ const renderPlaylistModalList = () => {
     return;
   }
   playlistModalList.innerHTML = "";
-  if (!state.playlists.length) {
+  const manageablePlaylists = state.playlists.filter((playlist) => canManagePlaylist(playlist));
+  if (!manageablePlaylists.length) {
     const empty = document.createElement("p");
     empty.className = "player-menu-title";
-    empty.textContent = "プレイリストがありません";
+    empty.textContent = "追加可能なプレイリストがありません";
     playlistModalList.appendChild(empty);
     return;
   }
   const isBulkMode = selectionState.active && selectionState.selectedIds.size > 0;
   const track = state.tracks[playerState.currentIndex];
-  state.playlists.forEach((playlist) => {
+  manageablePlaylists.forEach((playlist) => {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "modal-item";
@@ -1570,7 +1653,7 @@ const renderPlaylistSelectOptions = () => {
   ].filter(Boolean);
   selects.forEach((select) => {
     select.innerHTML = '<option value="">指定なし</option>';
-    state.playlists.forEach((playlist) => {
+    state.playlists.filter((playlist) => canManagePlaylist(playlist)).forEach((playlist) => {
       const option = document.createElement("option");
       option.value = playlist.id;
       option.textContent = playlist.name;
@@ -1634,13 +1717,15 @@ const updatePlayerMenuButtons = () => {
     playerOpenVideo.disabled = !resolveTrackVideoUrl(track);
   }
   if (playerAddPlaylist) {
-    playerAddPlaylist.disabled = !track;
+    playerAddPlaylist.style.display = canUsePlaylistActions() ? "" : "none";
+    playerAddPlaylist.disabled = !track || !canUsePlaylistActions();
   }
   if (playerShareTrack) {
     playerShareTrack.disabled = !track;
   }
   if (playerDeleteTrack) {
-    playerDeleteTrack.disabled = !track;
+    playerDeleteTrack.style.display = state.role === "admin" ? "" : "none";
+    playerDeleteTrack.disabled = !track || state.role !== "admin";
   }
 };
 
@@ -1705,7 +1790,7 @@ const addTrackToPlaylist = async (playlistId) => {
     renderPlaylists();
     renderPlaylistModalList();
   } catch (error) {
-    console.error(error);
+    appendImportLog(`プレイリストへの追加に失敗しました: ${error.message}`, { append: true });
   }
 };
 
@@ -1821,7 +1906,7 @@ const renderSettings = (settings) => {
     const version = settings?.version || {};
     settingsVersionList.innerHTML = `
       <li class="settings-version-item">
-        <img class="settings-version-logo" src="/branding/logo" alt="SquashTerm logo" />
+        <a href="https://github.com/ibuto/squashterm" target="_blank" rel="noopener noreferrer"><img class="settings-version-logo" src="/branding/logo" alt="SquashTerm logo" /></a>
         <div class="settings-version-values">
           <div class="settings-version-row">
             <span class="settings-version-label">バージョン</span>
@@ -1845,6 +1930,12 @@ const renderSettings = (settings) => {
   if (designAccentColorInput) {
     designAccentColorInput.value = settings?.design?.accent_color || "#38bdf8";
   }
+  const showVideoOption = (settings?.playback_options || []).find(
+    (option) => option.id === "show_video_on_player"
+  );
+  if (settingsShowVideoOnPlayer) {
+    settingsShowVideoOnPlayer.checked = Boolean(showVideoOption?.enabled);
+  }
   applyDesignTheme(settings?.design);
   if (settingsPlaybackOptions) {
     const options = settings?.playback_options || [];
@@ -1861,14 +1952,14 @@ const renderSettings = (settings) => {
         input.dataset.optionId = option.id;
         input.addEventListener("change", async (e) => {
           try {
-            await fetch("/api/settings/playback-options", {
-              method: "PUT",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
+            await requestJson(
+              "/api/settings/playback-options",
+              {
                 option_id: option.id,
                 enabled: e.target.checked,
-              }),
-            });
+              },
+              "PUT"
+            );
           } catch (err) {
             console.error("設定保存エラー:", err);
             e.target.checked = !e.target.checked;
@@ -1885,7 +1976,13 @@ const renderSettings = (settings) => {
 };
 
 const renderSystem = (system) => {
+  if (aboutSystemCard) {
+    aboutSystemCard.style.display = state.role === "admin" ? "" : "none";
+  }
   if (!system) {
+    if (systemInfoList) {
+      systemInfoList.innerHTML = "";
+    }
     return;
   }
   if (settingsStorageBar && settingsStorageText) {
@@ -1966,7 +2063,7 @@ const ensureSelectedPlaylist = () => {
 const fetchJson = async (path) => {
   const response = await fetch(path);
   if (!response.ok) {
-    throw new Error(`Failed to load ${path}`);
+    throw new Error(await parseErrorMessage(response, `Failed to load ${path}`));
   }
   return response.json();
 };
@@ -1978,8 +2075,7 @@ const requestJson = async (path, payload, method) => {
     body: payload ? JSON.stringify(payload) : undefined,
   });
   if (!response.ok) {
-    const message = await response.text();
-    throw new Error(message || `Failed to ${method} ${path}`);
+    throw new Error(await parseErrorMessage(response, `Failed to ${method} ${path}`));
   }
   if (response.status === 204) {
     return null;
@@ -2306,7 +2402,8 @@ const handleLocalFolderSubmit = async () => {
 };
 
 const handlePlaylistCreate = async () => {
-  if (!playlistNameInput) {
+  if (!playlistNameInput || !hasLogin()) {
+    appendImportLog("プレイリストを作成するにはログインが必要です。", { append: true });
     return;
   }
   const name = playlistNameInput.value.trim();
@@ -2329,7 +2426,7 @@ const handlePlaylistCreate = async () => {
     renderPlaylistSelectOptions();
     renderPlaylistModalList();
   } catch (error) {
-    console.error(error);
+    appendImportLog(`プレイリスト作成に失敗しました: ${error.message}`, { append: true });
   }
 };
 
@@ -2353,6 +2450,7 @@ const openAuthMenu = () => {
 };
 
 const applyAuthUi = () => {
+  const settingsTabButton = document.querySelector('.nav-button[data-tab="settings"]');
   if (authLoginButton) {
     authLoginButton.style.display = "";
     authLoginButton.setAttribute("aria-expanded", "false");
@@ -2360,6 +2458,7 @@ const applyAuthUi = () => {
   }
   if (authUserIcon) {
     authUserIcon.src = state.authUser?.icon_url || "/static/images/icon.png";
+    authUserIcon.style.display = state.authUser ? "" : "none";
   }
   if (state.authUser) {
     if (authUserMeta) {
@@ -2388,12 +2487,33 @@ const applyAuthUi = () => {
   if (adminTabButton) {
     adminTabButton.style.display = state.role === "admin" ? "" : "none";
   }
+  if (settingsTabButton) {
+    settingsTabButton.style.display = hasLogin() ? "" : "none";
+  }
+  if (!hasLogin() && document.getElementById("panel-settings")?.classList.contains("is-active")) {
+    activateTab("media");
+  }
+  if (playlistCreateToggle) {
+    playlistCreateToggle.style.display = hasLogin() ? "" : "none";
+  }
+  if (playlistCreateForm) {
+    const canEditPlaylist = hasLogin();
+    playlistCreateForm.style.display = canEditPlaylist ? "" : "none";
+    playlistCreateForm.classList.remove("is-open");
+    playlistCreateForm.setAttribute("aria-hidden", "true");
+  }
   if (settingsDisplayNameInput) {
     settingsDisplayNameInput.value = state.authUser?.display_name || state.authUser?.username || "";
   }
   if (settingsUserIcon) {
     settingsUserIcon.src = state.authUser?.icon_url || "/static/images/icon.png";
   }
+  updateBulkBar();
+  renderPlaylists();
+  renderPlaylistDetail();
+  renderPlaylistModalList();
+  renderPlaylistSelectOptions();
+  renderSystem(null);
 };
 
 const fetchAuthMe = async () => {
@@ -2401,6 +2521,16 @@ const fetchAuthMe = async () => {
   state.authUser = auth.user;
   state.role = auth.role;
   applyAuthUi();
+  if (state.role === "admin") {
+    try {
+      const system = await fetchJson("/api/system");
+      renderSystem(system);
+    } catch (_error) {
+      renderSystem(null);
+    }
+  } else {
+    renderSystem(null);
+  }
 };
 
 const showAdminPlaylistDialog = (userItem) => {
@@ -2531,6 +2661,9 @@ const refreshAdminData = async () => {
 const bindAuthAdminEvents = () => {
   authLoginButton?.addEventListener("click", () => {
     if (!state.authUser) {
+      if (authLoginError) {
+        authLoginError.textContent = "";
+      }
       authLoginDialog?.showModal();
       return;
     }
@@ -2562,7 +2695,12 @@ const bindAuthAdminEvents = () => {
     }
     closeAuthMenu();
   });
-  authLoginCancel?.addEventListener("click", () => authLoginDialog?.close());
+  authLoginCancel?.addEventListener("click", () => {
+    if (authLoginError) {
+      authLoginError.textContent = "";
+    }
+    authLoginDialog?.close();
+  });
   adminPlaylistDialogClose?.addEventListener("click", () => adminPlaylistDialog?.close());
   playlistSelectDropdown?.addEventListener("change", () => {
     const selectedId = playlistSelectDropdown.value;
@@ -2598,11 +2736,20 @@ const bindAuthAdminEvents = () => {
   });
   authLoginForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
-    await requestJson("/api/auth/login", { username: authUsername.value.trim(), password: authPassword.value }, "POST");
-    authLoginDialog?.close();
-    authPassword.value = "";
-    await fetchAuthMe();
-    await refreshAdminData();
+    if (authLoginError) {
+      authLoginError.textContent = "";
+    }
+    try {
+      await requestJson("/api/auth/login", { username: authUsername.value.trim(), password: authPassword.value }, "POST");
+      authLoginDialog?.close();
+      authPassword.value = "";
+      await fetchAuthMe();
+      await refreshAdminData();
+    } catch (error) {
+      if (authLoginError) {
+        authLoginError.textContent = error.message || "ログインに失敗しました。";
+      }
+    }
   });
   adminUserCreate?.addEventListener("click", async () => {
     const createdUser = await requestJson("/api/admin/users", { username: adminUserName.value.trim(), password: adminUserPassword.value, role: adminUserRole.value, display_name: adminUserDisplayName?.value?.trim() || null }, "POST");
@@ -2626,22 +2773,21 @@ const bindAuthAdminEvents = () => {
 
 const init = async () => {
   try {
-    const [tracks, playlists, favoritesData, status, settings, system, auth] =
+    const auth = await fetchJson("/api/auth/me");
+    state.authUser = auth.user;
+    state.role = auth.role;
+    const [tracks, playlists, favoritesData, status, settings] =
       await Promise.all([
         fetchJson("/api/library"),
         fetchJson("/api/playlists"),
         fetchJson("/api/favorites"),
         fetchJson("/api/status"),
         fetchJson("/api/settings"),
-        fetchJson("/api/system"),
-        fetchJson("/api/auth/me"),
       ]);
 
     state.tracks = tracks;
     state.playlists = playlists;
     state.favorites = favoritesData;
-    state.authUser = auth.user;
-    state.role = auth.role;
     applyAuthUi();
     ensureSelectedPlaylist();
 
@@ -2669,7 +2815,16 @@ const init = async () => {
       statusTime.textContent = status.time;
     }
     renderSettings(settings);
-    renderSystem(system);
+    if (state.role === "admin") {
+      try {
+        const system = await fetchJson("/api/system");
+        renderSystem(system);
+      } catch (error) {
+        renderSystem(null);
+      }
+    } else {
+      renderSystem(null);
+    }
     await refreshAdminData();
 
     const query = new URLSearchParams(window.location.search);
@@ -2789,6 +2944,10 @@ if (applyPlaylistAlbumBtn) {
 
 if (playlistCreateToggle && playlistCreateForm) {
   playlistCreateToggle.addEventListener("click", () => {
+    if (!hasLogin()) {
+      appendImportLog("プレイリストを作成するにはログインが必要です。", { append: true });
+      return;
+    }
     const isOpen = playlistCreateForm.classList.toggle("is-open");
     playlistCreateForm.setAttribute("aria-hidden", isOpen ? "false" : "true");
   });
@@ -2892,8 +3051,21 @@ const updateBulkBar = () => {
   if (bulkSelectedCount) {
     bulkSelectedCount.textContent = `${count}件選択中`;
   }
+  if (bulkAddFavorite) {
+    bulkAddFavorite.style.display = canUseFavoritesActions() ? "" : "none";
+  }
+  if (bulkAddPlaylist) {
+    bulkAddPlaylist.style.display = canUsePlaylistActions() ? "" : "none";
+  }
+  if (bulkDeleteBtn) {
+    bulkDeleteBtn.style.display = state.role === "admin" ? "" : "none";
+  }
   if (bulkActionBar) {
-    bulkActionBar.setAttribute("aria-hidden", selectionState.active ? "false" : "true");
+    const hasAnyAction = canUseFavoritesActions() || canUsePlaylistActions() || state.role === "admin";
+    bulkActionBar.setAttribute(
+      "aria-hidden",
+      selectionState.active && hasAnyAction ? "false" : "true"
+    );
   }
 };
 
@@ -2929,7 +3101,7 @@ if (bulkSelectCancel) {
 
 if (bulkAddFavorite) {
   bulkAddFavorite.addEventListener("click", async () => {
-    if (!selectionState.selectedIds.size) return;
+    if (!selectionState.selectedIds.size || !canUseFavoritesActions()) return;
     const newFavorites = [...state.favorites];
     selectionState.selectedIds.forEach((id) => {
       if (!newFavorites.includes(id)) newFavorites.push(id);
@@ -2948,7 +3120,7 @@ if (bulkAddFavorite) {
 
 if (bulkAddPlaylist) {
   bulkAddPlaylist.addEventListener("click", () => {
-    if (!selectionState.selectedIds.size) return;
+    if (!selectionState.selectedIds.size || !canUsePlaylistActions()) return;
     if (playlistModal) {
       playlistModal.classList.add("is-open");
       playlistModal.setAttribute("aria-hidden", "false");
@@ -2959,6 +3131,7 @@ if (bulkAddPlaylist) {
 
 if (bulkDeleteBtn) {
   bulkDeleteBtn.addEventListener("click", async () => {
+    if (state.role !== "admin") return;
     const ids = [...selectionState.selectedIds];
     if (!ids.length) return;
     const result = await showConfirmDialog({
@@ -3126,12 +3299,18 @@ if (playerShuffle) {
 
 if (playerFavorite) {
   playerFavorite.addEventListener("click", () => {
+    if (!canUseFavoritesActions()) {
+      return;
+    }
     toggleFavorite();
   });
 }
 
 if (miniFavorite) {
   miniFavorite.addEventListener("click", () => {
+    if (!canUseFavoritesActions()) {
+      return;
+    }
     toggleFavorite();
   });
 }
@@ -3208,6 +3387,9 @@ if (playerMenuPanel) {
 
 if (playerAddPlaylist) {
   playerAddPlaylist.addEventListener("click", () => {
+    if (!canUsePlaylistActions()) {
+      return;
+    }
     closePlayerMenu();
     openPlaylistModal();
   });
@@ -3298,6 +3480,9 @@ if (playerEditInfo) {
 
 if (playerDeleteTrack) {
   playerDeleteTrack.addEventListener("click", async () => {
+    if (state.role !== "admin") {
+      return;
+    }
     const track = state.tracks[playerState.currentIndex];
     if (!track) {
       return;
@@ -3510,6 +3695,22 @@ if (supportsMediaSession) {
 bindAuthAdminEvents();
 init();
 
+if (settingsShowVideoOnPlayer) {
+  settingsShowVideoOnPlayer.addEventListener("change", async () => {
+    try {
+      await requestJson(
+        "/api/settings/playback-options",
+        { option_id: "show_video_on_player", enabled: settingsShowVideoOnPlayer.checked },
+        "PUT"
+      );
+      updatePlayerUI();
+    } catch (error) {
+      settingsShowVideoOnPlayer.checked = !settingsShowVideoOnPlayer.checked;
+      appendImportLog(`設定の保存に失敗しました: ${error.message}`, { append: true });
+    }
+  });
+}
+
 if (settingsProfileSave) {
   settingsProfileSave.addEventListener("click", async () => {
     try {
@@ -3527,7 +3728,7 @@ if (settingsProfileSave) {
       await refreshAdminData();
       appendImportLog("プロフィールを保存しました。", { append: true });
     } catch (error) {
-      console.error(error);
+      appendImportLog(`プロフィール保存に失敗しました: ${error.message}`, { append: true });
     }
   });
 }
