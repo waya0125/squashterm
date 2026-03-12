@@ -91,6 +91,15 @@ const authLoginForm = document.getElementById("auth-login-form");
 const authUsername = document.getElementById("auth-username");
 const authPassword = document.getElementById("auth-password");
 const authLoginCancel = document.getElementById("auth-login-cancel");
+const authMenu = document.getElementById("auth-menu");
+const authMenuPanel = document.getElementById("auth-menu-panel");
+const authUserIcon = document.getElementById("auth-user-icon");
+const authUserMeta = document.getElementById("auth-user-meta");
+const authUserDisplay = document.getElementById("auth-user-display");
+const authUserId = document.getElementById("auth-user-id");
+const authLoginLabel = document.getElementById("auth-login-label");
+const authSettingsButton = document.getElementById("auth-settings-button");
+const authLogoutButton = document.getElementById("auth-logout-button");
 const adminTabButton = document.getElementById("admin-tab-button");
 const adminUserName = document.getElementById("admin-user-name");
 const adminUserPassword = document.getElementById("admin-user-password");
@@ -2325,11 +2334,54 @@ const handlePlaylistCreate = async () => {
 };
 
 
+const closeAuthMenu = () => {
+  if (!authMenuPanel || !authLoginButton) {
+    return;
+  }
+  authMenuPanel.classList.remove("is-open");
+  authMenuPanel.setAttribute("aria-hidden", "true");
+  authLoginButton.setAttribute("aria-expanded", "false");
+};
+
+const openAuthMenu = () => {
+  if (!authMenuPanel || !authLoginButton || !state.authUser) {
+    return;
+  }
+  authMenuPanel.classList.add("is-open");
+  authMenuPanel.setAttribute("aria-hidden", "false");
+  authLoginButton.setAttribute("aria-expanded", "true");
+};
+
 const applyAuthUi = () => {
   if (authLoginButton) {
-    const userLabel = state.authUser?.display_name || state.authUser?.username;
-    authLoginButton.textContent = state.authUser ? `ログアウト (${userLabel})` : "ログイン";
     authLoginButton.style.display = "";
+    authLoginButton.setAttribute("aria-expanded", "false");
+  }
+  if (authUserIcon) {
+    authUserIcon.src = state.authUser?.icon_url || "/static/images/icon.png";
+  }
+  if (state.authUser) {
+    if (authUserMeta) {
+      authUserMeta.hidden = false;
+    }
+    if (authLoginLabel) {
+      authLoginLabel.hidden = true;
+    }
+    if (authUserDisplay) {
+      authUserDisplay.textContent = state.authUser.display_name || state.authUser.username || "-";
+    }
+    if (authUserId) {
+      authUserId.textContent = `@${state.authUser.username || state.authUser.id || "-"}`;
+    }
+  } else {
+    closeAuthMenu();
+    if (authUserMeta) {
+      authUserMeta.hidden = true;
+    }
+    if (authLoginLabel) {
+      authLoginLabel.hidden = false;
+      authLoginLabel.textContent = "ログイン";
+    }
   }
   if (adminTabButton) {
     adminTabButton.style.display = state.role === "admin" ? "" : "none";
@@ -2475,13 +2527,38 @@ const refreshAdminData = async () => {
 };
 
 const bindAuthAdminEvents = () => {
-  authLoginButton?.addEventListener("click", async () => {
-    if (state.authUser) {
-      await fetch("/api/auth/logout", { method: "POST" });
-      window.location.href = "/";
+  authLoginButton?.addEventListener("click", () => {
+    if (!state.authUser) {
+      authLoginDialog?.showModal();
       return;
     }
-    authLoginDialog?.showModal();
+    if (authMenuPanel?.classList.contains("is-open")) {
+      closeAuthMenu();
+      return;
+    }
+    openAuthMenu();
+  });
+  authSettingsButton?.addEventListener("click", () => {
+    closeAuthMenu();
+    activateTab("settings");
+    closeMobileSidebar();
+  });
+  authLogoutButton?.addEventListener("click", async () => {
+    closeAuthMenu();
+    await fetch("/api/auth/logout", { method: "POST" });
+    window.location.href = "/";
+  });
+  document.addEventListener("click", (event) => {
+    if (!authMenuPanel?.classList.contains("is-open")) {
+      return;
+    }
+    if (!(event.target instanceof Node)) {
+      return;
+    }
+    if (authMenu?.contains(event.target)) {
+      return;
+    }
+    closeAuthMenu();
   });
   authLoginCancel?.addEventListener("click", () => authLoginDialog?.close());
   adminPlaylistDialogClose?.addEventListener("click", () => adminPlaylistDialog?.close());
