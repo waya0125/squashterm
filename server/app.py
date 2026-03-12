@@ -166,6 +166,8 @@ def can_manage_playlist(user: dict | None, playlist: dict) -> bool:
         return False
     if user.get("role") == "admin":
         return True
+    if playlist.get("is_public", True):
+        return False
     owner_id = playlist.get("owner_id")
     if owner_id is None:
         return False
@@ -458,6 +460,38 @@ async def upload_favicon(
     return {"success": True, "favicon_url": "/favicon.ico"}
 
 
+
+
+
+
+@app.delete("/api/settings/design/logo")
+def reset_logo(
+    session_token: str | None = Cookie(default=None),
+    authorization: str | None = Header(default=None),
+    x_api_key: str | None = Header(default=None),
+    origin: str | None = Header(default=None),
+):
+    user = resolve_current_user(session_token, authorization, x_api_key, origin)
+    require_admin(user)
+    logo_path = MEDIA_DIR / "branding" / "logo.png"
+    if logo_path.exists():
+        logo_path.unlink()
+    return {"success": True, "logo_url": "/branding/logo"}
+
+
+@app.delete("/api/settings/design/favicon")
+def reset_favicon(
+    session_token: str | None = Cookie(default=None),
+    authorization: str | None = Header(default=None),
+    x_api_key: str | None = Header(default=None),
+    origin: str | None = Header(default=None),
+):
+    user = resolve_current_user(session_token, authorization, x_api_key, origin)
+    require_admin(user)
+    favicon_path = MEDIA_DIR / "branding" / "favicon.ico"
+    if favicon_path.exists():
+        favicon_path.unlink()
+    return {"success": True, "favicon_url": "/favicon.ico"}
 
 
 @app.get("/api/auth/me")
