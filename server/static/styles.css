@@ -1781,3 +1781,46 @@ body.has-mini-player .content {
   }
 }
 
+
+
+@media (min-width: 901px) {
+  .app {
+    padding: 0;
+  }
+
+  .layout {
+    display: block;
+    min-height: 100vh;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 260px;
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+    z-index: 40;
+  }
+
+  .content {
+    margin-left: 284px;
+    padding: 24px 24px 140px;
+    min-height: 100vh;
+  }
+
+  body.has-mini-player .sidebar {
+    height: calc(100vh - 96px);
+    max-height: calc(100vh - 96px);
+  }
+
+  body.has-mini-player .content {
+    padding-bottom: 220px;
+  }
+
+  .player-overlay-open .sidebar {
+    display: none;
+  }
+}

@@ -22,10 +22,12 @@ const playlistCreateToggle = document.getElementById("playlist-create-toggle");
 const playlistCreateForm = document.getElementById("playlist-create-form");
 const playlistNameInput = document.getElementById("playlist-name");
 const playlistSearchInput = document.getElementById("playlist-search");
+const playlistSelectDropdown = document.getElementById("playlist-select-dropdown");
 const playlistDetailTitle = document.getElementById("playlist-detail-title");
 const playlistDetailDesc = document.getElementById("playlist-detail-desc");
 const playlistDetailBody = document.getElementById("playlist-detail-body");
 const playlistTrackSearchInput = document.getElementById("playlist-track-search");
+const playlistVisibility = document.getElementById("playlist-visibility");
 const tagSelect = document.getElementById("tag-track-select");
 const tagTitleInput = document.getElementById("tag-title");
 const tagArtistInput = document.getElementById("tag-artist");
@@ -87,6 +89,8 @@ const adminTabButton = document.getElementById("admin-tab-button");
 const adminUserName = document.getElementById("admin-user-name");
 const adminUserPassword = document.getElementById("admin-user-password");
 const adminUserRole = document.getElementById("admin-user-role");
+const adminUserDisplayName = document.getElementById("admin-user-display-name");
+const adminUserIconUrl = document.getElementById("admin-user-icon-url");
 const adminUserCreate = document.getElementById("admin-user-create");
 const adminUserList = document.getElementById("admin-user-list");
 const adminApiKeyName = document.getElementById("admin-api-key-name");
@@ -1387,116 +1391,83 @@ const renderPlaylistDetail = () => {
 
 const renderPlaylists = () => {
   playlistList.innerHTML = "";
-  const title = document.createElement("h4");
-  title.className = "playlist-section-title";
-  title.textContent = "プレイリスト";
-  playlistList.appendChild(title);
   const visiblePlaylists = filterPlaylists(state.playlists, searchState.playlistQuery);
-  if (visiblePlaylists.length === 0) {
-    const empty = document.createElement("div");
-    empty.className = "empty-state";
-    empty.textContent = searchState.playlistQuery
-      ? "該当するプレイリストがありません。"
-      : "項目が存在しません。";
-    playlistList.appendChild(empty);
+  if (playlistSelectDropdown) {
+    playlistSelectDropdown.innerHTML = "";
+    const favoritesOption = document.createElement("option");
+    favoritesOption.value = "favorites";
+    favoritesOption.textContent = `お気に入り (${state.favorites.length})`;
+    playlistSelectDropdown.appendChild(favoritesOption);
+    visiblePlaylists.forEach((playlist) => {
+      const option = document.createElement("option");
+      option.value = playlist.id;
+      const visibilityLabel = playlist.is_public ? "公開" : "非公開";
+      option.textContent = `${playlist.name} (${visibilityLabel})`;
+      playlistSelectDropdown.appendChild(option);
+    });
+    const selectedValue = state.selectedPlaylist?.type === "playlist"
+      ? state.selectedPlaylist.id
+      : "favorites";
+    playlistSelectDropdown.value = selectedValue;
+  }
+  if (state.selectedPlaylist?.type !== "playlist") {
     return;
   }
-  visiblePlaylists.forEach((playlist) => {
-    const item = document.createElement("div");
-    item.className = "playlist-item";
-    if (
-      state.selectedPlaylist?.type === "playlist" &&
-      state.selectedPlaylist?.id === playlist.id
-    ) {
-      item.classList.add("is-active");
+  const selected = state.playlists.find((playlist) => playlist.id === state.selectedPlaylist.id);
+  if (!selected) {
+    return;
+  }
+  const actions = document.createElement("div");
+  actions.style.display = "flex";
+  actions.style.gap = "0.5rem";
+  const renameButton = document.createElement("button");
+  renameButton.type = "button";
+  renameButton.className = "secondary";
+  renameButton.textContent = "名前変更";
+  renameButton.addEventListener("click", async () => {
+    const nextName = window.prompt("新しいプレイリスト名を入力してください。", selected.name);
+    if (!nextName) {
+      return;
     }
-    const mainButton = document.createElement("button");
-    mainButton.type = "button";
-    mainButton.className = "playlist-item-main";
-    mainButton.innerHTML = `
-      <span class="playlist-item-title">${playlist.name}</span>
-      <span class="playlist-item-meta">収録曲数: ${playlist.track_ids.length}</span>
-    `;
-    mainButton.addEventListener("click", () => {
-      setSelectedPlaylist("playlist", playlist.id);
-    });
-    const actions = document.createElement("div");
-    actions.className = "playlist-item-actions";
-    const renameButton = document.createElement("button");
-    renameButton.type = "button";
-    renameButton.className = "icon-button playlist-action playlist-rename";
-    renameButton.setAttribute("aria-label", "プレイリスト名を変更");
-    renameButton.innerHTML = `
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path
-          d="M4 16.5V20h3.5l10-10-3.5-3.5-10 10zM19.5 7l-2.5-2.5 1.5-1.5a1 1 0 0 1 1.4 0l1.1 1.1a1 1 0 0 1 0 1.4L19.5 7z"
-        />
-      </svg>
-    `;
-    renameButton.addEventListener("click", async (event) => {
-      event.stopPropagation();
-      const nextName = window.prompt("新しいプレイリスト名を入力してください。", playlist.name);
-      if (!nextName) {
-        return;
-      }
-      const trimmedName = nextName.trim();
-      if (!trimmedName || trimmedName === playlist.name) {
-        return;
-      }
-      try {
-        const updated = await updatePlaylistSettings(playlist.id, { name: trimmedName });
-        const targetIndex = state.playlists.findIndex((item) => item.id === updated.id);
-        if (targetIndex >= 0) {
-          state.playlists[targetIndex] = updated;
-        }
-        renderPlaylists();
-        renderPlaylistDetail();
-      } catch (error) {
-        console.error(error);
-      }
-    });
-    const deleteButton = document.createElement("button");
-    deleteButton.type = "button";
-    deleteButton.className = "icon-button playlist-action playlist-delete";
-    deleteButton.setAttribute("aria-label", "プレイリストを削除");
-    deleteButton.innerHTML = `
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path
-          d="M7 6h10l-1 14H8L7 6zm9.5-3H7.5l-1 2H4v2h16V5h-2.5l-1-2z"
-        />
-      </svg>
-    `;
-    deleteButton.addEventListener("click", async (event) => {
-      event.stopPropagation();
-      const result = await showConfirmDialog({
-        title: "プレイリストを削除",
-        message: `プレイリスト「${playlist.name}」を削除しますか？`,
-        showFileOption: false,
-        buttons: [
-          { label: "キャンセル", className: "secondary", value: "cancel" },
-          { label: "削除する", className: "danger", value: "confirm" },
-        ],
-      });
-      if (result.action !== "confirm") {
-        return;
-      }
-      try {
-        await deletePlaylist(playlist.id);
-        state.playlists = state.playlists.filter((item) => item.id !== playlist.id);
-        ensureSelectedPlaylist();
-        renderPlaylists();
-        renderPlaylistDetail();
-        renderFavorites();
-      } catch (error) {
-        console.error(error);
-      }
-    });
-    actions.appendChild(renameButton);
-    actions.appendChild(deleteButton);
-    item.appendChild(mainButton);
-    item.appendChild(actions);
-    playlistList.appendChild(item);
+    const trimmedName = nextName.trim();
+    if (!trimmedName || trimmedName === selected.name) {
+      return;
+    }
+    const updated = await updatePlaylistSettings(selected.id, { name: trimmedName });
+    const targetIndex = state.playlists.findIndex((item) => item.id === updated.id);
+    if (targetIndex >= 0) {
+      state.playlists[targetIndex] = updated;
+    }
+    renderPlaylists();
+    renderPlaylistDetail();
   });
+  const deleteButton = document.createElement("button");
+  deleteButton.type = "button";
+  deleteButton.className = "danger";
+  deleteButton.textContent = "削除";
+  deleteButton.addEventListener("click", async () => {
+    const result = await showConfirmDialog({
+      title: "プレイリストを削除",
+      message: `プレイリスト「${selected.name}」を削除しますか？`,
+      showFileOption: false,
+      buttons: [
+        { label: "キャンセル", className: "secondary", value: "cancel" },
+        { label: "削除する", className: "danger", value: "confirm" },
+      ],
+    });
+    if (result.action !== "confirm") {
+      return;
+    }
+    await deletePlaylist(selected.id);
+    state.playlists = state.playlists.filter((item) => item.id !== selected.id);
+    ensureSelectedPlaylist();
+    renderPlaylists();
+    renderPlaylistDetail();
+    renderFavorites();
+  });
+  actions.appendChild(renameButton);
+  actions.appendChild(deleteButton);
+  playlistList.appendChild(actions);
 };
 
 const renderFavorites = () => {
@@ -2327,7 +2298,7 @@ const handlePlaylistCreate = async () => {
   try {
     const playlist = await requestJson(
       "/api/playlists",
-      { name, track_ids: [] },
+      { name, track_ids: [], is_public: playlistVisibility?.value === "public" },
       "POST"
     );
     state.playlists.push(playlist);
@@ -2347,7 +2318,9 @@ const handlePlaylistCreate = async () => {
 
 const applyAuthUi = () => {
   if (authLoginButton) {
-    authLoginButton.textContent = state.authUser ? `ログアウト (${state.authUser.username})` : "ログイン";
+    const userLabel = state.authUser?.display_name || state.authUser?.username;
+    authLoginButton.textContent = state.authUser ? `ログアウト (${userLabel})` : "ログイン";
+    authLoginButton.style.display = "";
   }
   if (adminTabButton) {
     adminTabButton.style.display = state.role === "admin" ? "" : "none";
@@ -2374,17 +2347,14 @@ const showAdminPlaylistDialog = (userItem) => {
   }
   const blocks = playlists.map((playlistItem) => {
     const tracks = playlistItem.tracks || [];
-    const trackLines = tracks.length
-      ? `<ul>${tracks.map((trackItem) => `<li>${trackItem.title}</li>`).join("")}</ul>`
-      : "<p>楽曲なし</p>";
-    const visibility = playlistItem.is_public ? "公開" : "非公開";
+    const trackValue = tracks.map((trackItem) => trackItem.id).join("\n");
     return `
       <div style="padding:0.75rem;border:1px solid var(--border-color);border-radius:12px;margin-bottom:0.75rem;">
-        <p><strong>タイトル:</strong> ${playlistItem.name || "(無題)"}</p>
-        <p><strong>公開設定:</strong> ${visibility}</p>
         <p><strong>所有者:</strong> ${playlistItem.owner_name || "(不明)"}</p>
-        <p><strong>内容:</strong></p>
-        ${trackLines}
+        <label><span>タイトル</span><input type="text" data-edit="name" data-playlist-id="${playlistItem.id}" value="${playlistItem.name || ""}" /></label>
+        <label><span>公開設定</span><select data-edit="isPublic" data-playlist-id="${playlistItem.id}"><option value="public" ${playlistItem.is_public ? "selected" : ""}>公開</option><option value="private" ${playlistItem.is_public ? "" : "selected"}>非公開</option></select></label>
+        <label><span>内容(トラックID改行区切り)</span><textarea data-edit="trackIds" data-playlist-id="${playlistItem.id}" rows="4">${trackValue}</textarea></label>
+        <button type="button" class="secondary" data-action="savePlaylist" data-playlist-id="${playlistItem.id}">保存</button>
       </div>
     `;
   });
@@ -2399,11 +2369,20 @@ const renderAdminUsers = (users) => {
     const row = document.createElement("div");
     row.style.marginBottom = "0.75rem";
     const playlistCount = (userItem.playlists || []).length;
-    row.innerHTML = `<div><strong>${userItem.username}</strong> (${userItem.role}) / playlists: ${playlistCount}</div>`;
+    row.innerHTML = `<div style="display:flex;align-items:center;gap:0.5rem;"><img src="${userItem.icon_url || "/static/images/icon.png"}" alt="" style="width:24px;height:24px;border-radius:999px;object-fit:cover;" /><strong>${userItem.display_name || userItem.username}</strong> (${userItem.role}) / playlists: ${playlistCount}</div>`;
     const playlistBtn = document.createElement("button");
     playlistBtn.className = "secondary";
     playlistBtn.textContent = "プレイリスト管理";
     playlistBtn.addEventListener("click", () => showAdminPlaylistDialog(userItem));
+    const editBtn = document.createElement("button");
+    editBtn.className = "secondary";
+    editBtn.textContent = "ユーザー編集";
+    editBtn.addEventListener("click", async () => {
+      const nextDisplayName = window.prompt("表示名", userItem.display_name || "") ?? userItem.display_name;
+      const nextIconUrl = window.prompt("アイコンURL", userItem.icon_url || "") ?? userItem.icon_url;
+      await requestJson(`/api/admin/users/${userItem.id}`, { display_name: nextDisplayName, icon_url: nextIconUrl }, "PUT");
+      await refreshAdminData();
+    });
     const disableBtn = document.createElement("button");
     disableBtn.className = "secondary";
     disableBtn.textContent = userItem.is_active ? "無効化" : "有効化";
@@ -2419,6 +2398,7 @@ const renderAdminUsers = (users) => {
       await refreshAdminData();
     });
     row.appendChild(playlistBtn);
+    row.appendChild(editBtn);
     row.appendChild(disableBtn);
     row.appendChild(delBtn);
     adminUserList.appendChild(row);
@@ -2462,6 +2442,38 @@ const bindAuthAdminEvents = () => {
   });
   authLoginCancel?.addEventListener("click", () => authLoginDialog?.close());
   adminPlaylistDialogClose?.addEventListener("click", () => adminPlaylistDialog?.close());
+  playlistSelectDropdown?.addEventListener("change", () => {
+    const selectedId = playlistSelectDropdown.value;
+    if (selectedId === "favorites") {
+      setSelectedPlaylist("favorites", "favorites");
+      return;
+    }
+    setSelectedPlaylist("playlist", selectedId);
+  });
+  adminPlaylistDialogBody?.addEventListener("click", async (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement) || target.dataset.action !== "savePlaylist") {
+      return;
+    }
+    const playlistId = target.dataset.playlistId;
+    if (!playlistId) {
+      return;
+    }
+    const nameInput = adminPlaylistDialogBody.querySelector(`[data-edit="name"][data-playlist-id="${playlistId}"]`);
+    const visibilityInput = adminPlaylistDialogBody.querySelector(`[data-edit="isPublic"][data-playlist-id="${playlistId}"]`);
+    const trackIdsInput = adminPlaylistDialogBody.querySelector(`[data-edit="trackIds"][data-playlist-id="${playlistId}"]`);
+    if (!nameInput || !visibilityInput || !trackIdsInput) {
+      return;
+    }
+    const trackIds = trackIdsInput.value.split("\n").map((item) => item.trim()).filter(Boolean);
+    await requestJson(`/api/playlists/${playlistId}`, {
+      name: nameInput.value.trim(),
+      is_public: visibilityInput.value === "public",
+      track_ids: trackIds,
+    }, "PUT");
+    await refreshAdminData();
+    await refreshLibrary();
+  });
   authLoginForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
     await requestJson("/api/auth/login", { username: authUsername.value.trim(), password: authPassword.value }, "POST");
@@ -2471,8 +2483,10 @@ const bindAuthAdminEvents = () => {
     await refreshAdminData();
   });
   adminUserCreate?.addEventListener("click", async () => {
-    await requestJson("/api/admin/users", { username: adminUserName.value.trim(), password: adminUserPassword.value, role: adminUserRole.value }, "POST");
+    await requestJson("/api/admin/users", { username: adminUserName.value.trim(), password: adminUserPassword.value, role: adminUserRole.value, display_name: adminUserDisplayName?.value?.trim() || null, icon_url: adminUserIconUrl?.value?.trim() || null }, "POST");
     adminUserPassword.value = "";
+    if (adminUserDisplayName) adminUserDisplayName.value = "";
+    if (adminUserIconUrl) adminUserIconUrl.value = "";
     await refreshAdminData();
   });
   adminApiKeyCreate?.addEventListener("click", async () => {

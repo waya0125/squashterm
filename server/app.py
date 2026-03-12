@@ -164,7 +164,10 @@ def can_manage_playlist(user: dict | None, playlist: dict) -> bool:
         return False
     if user.get("role") == "admin":
         return True
-    return playlist.get("owner_id") == user.get("id")
+    owner_id = playlist.get("owner_id")
+    if owner_id is None:
+        return False
+    return owner_id == user.get("id")
 
 
 @app.get("/")
@@ -533,7 +536,7 @@ def post_admin_user(
     require_admin(user)
     role = payload.role if payload.role in {"user", "admin"} else "user"
     try:
-        return create_user(payload.username.strip(), payload.password, role)
+        return create_user(payload.username.strip(), payload.password, role, payload.display_name, payload.icon_url)
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
@@ -549,7 +552,7 @@ def put_admin_user(
 ):
     actor = resolve_current_user(session_token, authorization, x_api_key, origin)
     require_admin(actor)
-    updated = update_user(user_id, payload.username, payload.password, payload.role, payload.is_active)
+    updated = update_user(user_id, payload.username, payload.password, payload.role, payload.is_active, payload.display_name, payload.icon_url)
     if not updated:
         raise HTTPException(status_code=404, detail="User not found")
     return updated
@@ -671,13 +674,26 @@ def delete_track(track_id: str, delete_file: bool = True, session_token: str | N
 
 @app.get("/api/playlists")
 def get_playlists(
+    include_public: bool = Query(default=False),
     session_token: str | None = Cookie(default=None),
     authorization: str | None = Header(default=None),
     x_api_key: str | None = Header(default=None),
     origin: str | None = Header(default=None),
 ):
     user = resolve_current_user(session_token, authorization, x_api_key, origin)
-    return [playlist for playlist in fetch_playlists() if can_view_playlist(user, playlist)]
+    playlists = fetch_playlists()
+    if not user:
+        return [playlist for playlist in playlists if playlist.get("is_public", True)]
+    if user.get("role") == "admin":
+        return playlists
+    own_playlists = [playlist for playlist in playlists if playlist.get("owner_id") == user.get("id")]
+    if include_public:
+        public_others = [
+            playlist for playlist in playlists
+            if playlist.get("is_public", True) and playlist.get("owner_id") != user.get("id")
+        ]
+        return own_playlists + public_others
+    return own_playlists
 
 
 @app.post("/api/playlists")

@@ -34,6 +34,8 @@ class UserCreateRequest(BaseModel):
     username: str
     password: str
     role: str = "user"
+    display_name: str | None = None
+    icon_url: str | None = None
 
 
 class UserUpdateRequest(BaseModel):
@@ -41,6 +43,8 @@ class UserUpdateRequest(BaseModel):
     password: str | None = None
     role: str | None = None
     is_active: bool | None = None
+    display_name: str | None = None
+    icon_url: str | None = None
 
 
 class ApiKeyCreateRequest(BaseModel):

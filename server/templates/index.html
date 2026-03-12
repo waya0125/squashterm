@@ -155,6 +155,13 @@
                     <span>プレイリスト名</span>
                     <input type="text" id="playlist-name" placeholder="プレイリスト名" />
                   </label>
+                  <label>
+                    <span>公開範囲</span>
+                    <select id="playlist-visibility">
+                      <option value="private">自分のみ</option>
+                      <option value="public">全体公開</option>
+                    </select>
+                  </label>
                   <button class="primary" type="submit">作成する</button>
                 </form>
                 <label class="search-field">
@@ -165,6 +172,12 @@
                     class="search-input"
                     placeholder="プレイリスト名で検索"
                   />
+                </label>
+                <label class="search-field">
+                  <span>プレイリスト選択</span>
+                  <select id="playlist-select-dropdown">
+                    <option value="favorites">お気に入り</option>
+                  </select>
                 </label>
                 <div class="playlist-list" id="playlist-list"></div>
                 <div class="favorites" id="favorites"></div>
@@ -350,6 +363,8 @@
                 <h4>ユーザー作成</h4>
                 <label><span>ユーザー名</span><input type="text" id="admin-user-name" autocomplete="off" /></label>
                 <label><span>パスワード</span><input type="password" id="admin-user-password" autocomplete="new-password" /></label>
+                <label><span>表示名</span><input type="text" id="admin-user-display-name" /></label>
+                <label><span>アイコンURL</span><input type="url" id="admin-user-icon-url" placeholder="https://..." /></label>
                 <label><span>権限</span><select id="admin-user-role"><option value="user">user</option><option value="admin">admin</option></select></label>
                 <button class="secondary" type="button" id="admin-user-create">作成</button>
               </div>

@@ -49,6 +49,8 @@ def init_auth_db() -> None:
                 password_hash TEXT NOT NULL,
                 role TEXT NOT NULL CHECK(role IN ('user', 'admin')),
                 is_active INTEGER NOT NULL DEFAULT 1,
+                display_name TEXT,
+                icon_url TEXT,
                 created_at TEXT NOT NULL
             );
             CREATE TABLE IF NOT EXISTS sessions (
@@ -70,36 +72,41 @@ def init_auth_db() -> None:
             );
             """
         )
+        columns = {row[1] for row in conn.execute("PRAGMA table_info(users)").fetchall()}
+        if "display_name" not in columns:
+            conn.execute("ALTER TABLE users ADD COLUMN display_name TEXT")
+        if "icon_url" not in columns:
+            conn.execute("ALTER TABLE users ADD COLUMN icon_url TEXT")
         admin = conn.execute("SELECT id FROM users WHERE username = ?", ("admin",)).fetchone()
         if admin is None:
             conn.execute(
-                "INSERT INTO users (username, password_hash, role, is_active, created_at) VALUES (?, ?, 'admin', 1, ?)",
-                ("admin", _hash_password("squashterm"), _utcnow()),
+                "INSERT INTO users (username, password_hash, role, is_active, display_name, icon_url, created_at) VALUES (?, ?, 'admin', 1, ?, ?, ?)",
+                ("admin", _hash_password("squashterm"), "Administrator", "/static/images/icon.png", _utcnow()),
             )
 
 
 def list_users() -> list[dict]:
     with _connect() as conn:
         rows = conn.execute(
-            "SELECT id, username, role, is_active, created_at FROM users ORDER BY id"
+            "SELECT id, username, role, is_active, display_name, icon_url, created_at FROM users ORDER BY id"
         ).fetchall()
     return [dict(row) for row in rows]
 
 
-def create_user(username: str, password: str, role: str) -> dict:
+def create_user(username: str, password: str, role: str, display_name: str | None = None, icon_url: str | None = None) -> dict:
     with _connect() as conn:
         conn.execute(
-            "INSERT INTO users (username, password_hash, role, is_active, created_at) VALUES (?, ?, ?, 1, ?)",
-            (username, _hash_password(password), role, _utcnow()),
+            "INSERT INTO users (username, password_hash, role, is_active, display_name, icon_url, created_at) VALUES (?, ?, ?, 1, ?, ?, ?)",
+            (username, _hash_password(password), role, display_name, icon_url, _utcnow()),
         )
         row = conn.execute(
-            "SELECT id, username, role, is_active, created_at FROM users WHERE username = ?",
+            "SELECT id, username, role, is_active, display_name, icon_url, created_at FROM users WHERE username = ?",
             (username,),
         ).fetchone()
     return dict(row)
 
 
-def update_user(user_id: int, username: str | None, password: str | None, role: str | None, is_active: bool | None) -> dict | None:
+def update_user(user_id: int, username: str | None, password: str | None, role: str | None, is_active: bool | None, display_name: str | None, icon_url: str | None) -> dict | None:
     with _connect() as conn:
         current = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
         if current is None:
@@ -108,12 +115,14 @@ def update_user(user_id: int, username: str | None, password: str | None, role: 
         next_hash = _hash_password(password) if password else current["password_hash"]
         next_role = role if role is not None else current["role"]
         next_is_active = int(is_active) if is_active is not None else current["is_active"]
+        next_display_name = display_name if display_name is not None else current["display_name"]
+        next_icon_url = icon_url if icon_url is not None else current["icon_url"]
         conn.execute(
-            "UPDATE users SET username = ?, password_hash = ?, role = ?, is_active = ? WHERE id = ?",
-            (next_username, next_hash, next_role, next_is_active, user_id),
+            "UPDATE users SET username = ?, password_hash = ?, role = ?, is_active = ?, display_name = ?, icon_url = ? WHERE id = ?",
+            (next_username, next_hash, next_role, next_is_active, next_display_name, next_icon_url, user_id),
         )
         row = conn.execute(
-            "SELECT id, username, role, is_active, created_at FROM users WHERE id = ?", (user_id,)
+            "SELECT id, username, role, is_active, display_name, icon_url, created_at FROM users WHERE id = ?", (user_id,)
         ).fetchone()
     return dict(row)
 
@@ -138,6 +147,8 @@ def authenticate_user(username: str, password: str) -> dict | None:
         "id": row["id"],
         "username": row["username"],
         "role": row["role"],
+        "display_name": row["display_name"],
+        "icon_url": row["icon_url"],
     }
 
 
@@ -163,7 +174,7 @@ def get_session_user(token: str | None) -> dict | None:
     with _connect() as conn:
         row = conn.execute(
             """
-            SELECT users.id, users.username, users.role
+            SELECT users.id, users.username, users.role, users.display_name, users.icon_url
             FROM sessions
             JOIN users ON users.id = sessions.user_id
             WHERE sessions.token = ? AND sessions.expires_at > ? AND users.is_active = 1
@@ -222,7 +233,7 @@ def get_user_by_api_key(raw_key: str | None, origin: str | None) -> dict | None:
     with _connect() as conn:
         row = conn.execute(
             """
-            SELECT users.id, users.username, users.role, api_keys.origin
+            SELECT users.id, users.username, users.role, users.display_name, users.icon_url, api_keys.origin
             FROM api_keys
             JOIN users ON users.id = api_keys.created_by
             WHERE api_keys.key_hash = ? AND api_keys.is_active = 1 AND users.is_active = 1
@@ -234,4 +245,4 @@ def get_user_by_api_key(raw_key: str | None, origin: str | None) -> dict | None:
     allowed_origin = row["origin"]
     if allowed_origin and origin and allowed_origin != origin:
         return None
-    return {"id": row["id"], "username": row["username"], "role": row["role"]}
+    return {"id": row["id"], "username": row["username"], "role": row["role"], "display_name": row["display_name"], "icon_url": row["icon_url"]}
