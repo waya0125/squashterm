@@ -495,12 +495,27 @@ def get_admin_users(
     user = resolve_current_user(session_token, authorization, x_api_key, origin)
     require_admin(user)
     users = list_users()
+    user_map = {row["id"]: row["username"] for row in users}
+    track_map = {track.id: track.title for track in fetch_tracks()}
     playlist_map: dict[int, list[dict]] = {}
     for playlist in fetch_playlists():
         owner_id = playlist.get("owner_id")
         if owner_id is None:
             continue
-        playlist_map.setdefault(owner_id, []).append(playlist)
+        track_items = [
+            {"id": track_id, "title": track_map.get(track_id, "(不明な楽曲)")}
+            for track_id in playlist.get("track_ids", [])
+        ]
+        playlist_map.setdefault(owner_id, []).append(
+            {
+                "id": playlist.get("id"),
+                "name": playlist.get("name"),
+                "is_public": bool(playlist.get("is_public", True)),
+                "owner_id": owner_id,
+                "owner_name": user_map.get(owner_id, "(不明なユーザー)"),
+                "tracks": track_items,
+            }
+        )
     for row in users:
         row["playlists"] = playlist_map.get(row["id"], [])
     return users

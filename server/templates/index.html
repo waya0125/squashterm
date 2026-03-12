@@ -101,8 +101,12 @@
                 <input
                   type="search"
                   id="media-search"
+                  name="media-search"
                   class="search-input"
                   placeholder="曲を検索"
+                  autocomplete="off"
+                  autocapitalize="off"
+                  spellcheck="false"
                 />
                 <button
                   class="secondary"
@@ -340,12 +344,12 @@
           </section>
 
           <section class="panel" id="panel-admin" role="tabpanel">
-            <div class="panel-header"><div><h3>Admin</h3><p>ユーザー・APIキー管理</p></div></div>
+            <div class="panel-header"><div><h3>Admin</h3><p>ユーザー・APIキー・システム設定の管理</p></div></div>
             <div class="settings-grid">
               <div class="card">
                 <h4>ユーザー作成</h4>
-                <label><span>ユーザー名</span><input type="text" id="admin-user-name" /></label>
-                <label><span>パスワード</span><input type="password" id="admin-user-password" /></label>
+                <label><span>ユーザー名</span><input type="text" id="admin-user-name" autocomplete="off" /></label>
+                <label><span>パスワード</span><input type="password" id="admin-user-password" autocomplete="new-password" /></label>
                 <label><span>権限</span><select id="admin-user-role"><option value="user">user</option><option value="admin">admin</option></select></label>
                 <button class="secondary" type="button" id="admin-user-create">作成</button>
               </div>
@@ -358,29 +362,6 @@
                 <p id="admin-api-key-plain"></p>
               </div>
               <div class="card"><h4>APIキー管理</h4><div id="admin-api-key-list"></div></div>
-            </div>
-          </section>
-
-          <section class="panel" id="panel-settings" role="tabpanel">
-            <div class="panel-header">
-              <div>
-                <h3>設定</h3>
-                <p>設定項目を変更します。</p>
-              </div>
-              <button class="secondary">設定を保存</button>
-            </div>
-            <div class="settings-grid">
-              <div class="card">
-                <h4>バージョン情報</h4>
-                <ul id="settings-version-list"></ul>
-              </div>
-              <div class="card">
-                <h4>ストレージ</h4>
-                <div class="progress">
-                  <div class="progress-bar" id="settings-storage-bar"></div>
-                </div>
-                <p id="settings-storage-text"></p>
-              </div>
               <div class="card">
                 <h4>システム情報</h4>
                 <ul id="system-info-list"></ul>
@@ -426,6 +407,28 @@
               </div>
             </div>
           </section>
+
+          <section class="panel" id="panel-settings" role="tabpanel">
+            <div class="panel-header">
+              <div>
+                <h3>設定</h3>
+                <p>基本情報を表示します。</p>
+              </div>
+            </div>
+            <div class="settings-grid">
+              <div class="card">
+                <h4>バージョン情報</h4>
+                <ul id="settings-version-list"></ul>
+              </div>
+              <div class="card">
+                <h4>ストレージ</h4>
+                <div class="progress">
+                  <div class="progress-bar" id="settings-storage-bar"></div>
+                </div>
+                <p id="settings-storage-text"></p>
+              </div>
+            </div>
+          </section>
         </main>
       </div>
     </div>
@@ -437,6 +440,16 @@
         <label><span>パスワード</span><input type="password" id="auth-password" required /></label>
         <div style="display:flex;gap:.5rem;justify-content:flex-end;"><button type="button" class="secondary" id="auth-login-cancel">キャンセル</button><button type="submit" class="primary">ログイン</button></div>
       </form>
+    </dialog>
+
+    <dialog id="admin-playlist-dialog" class="admin-dialog">
+      <div class="card admin-dialog-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;">
+          <h4 id="admin-playlist-dialog-title" style="margin:0;">プレイリスト管理</h4>
+          <button type="button" class="secondary" id="admin-playlist-dialog-close">閉じる</button>
+        </div>
+        <div id="admin-playlist-dialog-body" style="margin-top:0.75rem;"></div>
+      </div>
     </dialog>
 
     <section class="player-overlay" id="player-overlay" aria-hidden="true">

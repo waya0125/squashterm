@@ -94,6 +94,10 @@ const adminApiKeyOrigin = document.getElementById("admin-api-key-origin");
 const adminApiKeyCreate = document.getElementById("admin-api-key-create");
 const adminApiKeyPlain = document.getElementById("admin-api-key-plain");
 const adminApiKeyList = document.getElementById("admin-api-key-list");
+const adminPlaylistDialog = document.getElementById("admin-playlist-dialog");
+const adminPlaylistDialogTitle = document.getElementById("admin-playlist-dialog-title");
+const adminPlaylistDialogBody = document.getElementById("admin-playlist-dialog-body");
+const adminPlaylistDialogClose = document.getElementById("admin-playlist-dialog-close");
 
 const audioPlayer = document.getElementById("audio-player");
 const playerOverlay = document.getElementById("player-overlay");
@@ -2357,6 +2361,37 @@ const fetchAuthMe = async () => {
   applyAuthUi();
 };
 
+const showAdminPlaylistDialog = (userItem) => {
+  if (!adminPlaylistDialog || !adminPlaylistDialogBody || !adminPlaylistDialogTitle) {
+    return;
+  }
+  adminPlaylistDialogTitle.textContent = `${userItem.username} のプレイリスト`;
+  const playlists = userItem.playlists || [];
+  if (playlists.length === 0) {
+    adminPlaylistDialogBody.innerHTML = "<p>プレイリストはありません。</p>";
+    adminPlaylistDialog.showModal();
+    return;
+  }
+  const blocks = playlists.map((playlistItem) => {
+    const tracks = playlistItem.tracks || [];
+    const trackLines = tracks.length
+      ? `<ul>${tracks.map((trackItem) => `<li>${trackItem.title}</li>`).join("")}</ul>`
+      : "<p>楽曲なし</p>";
+    const visibility = playlistItem.is_public ? "公開" : "非公開";
+    return `
+      <div style="padding:0.75rem;border:1px solid var(--border-color);border-radius:12px;margin-bottom:0.75rem;">
+        <p><strong>タイトル:</strong> ${playlistItem.name || "(無題)"}</p>
+        <p><strong>公開設定:</strong> ${visibility}</p>
+        <p><strong>所有者:</strong> ${playlistItem.owner_name || "(不明)"}</p>
+        <p><strong>内容:</strong></p>
+        ${trackLines}
+      </div>
+    `;
+  });
+  adminPlaylistDialogBody.innerHTML = blocks.join("");
+  adminPlaylistDialog.showModal();
+};
+
 const renderAdminUsers = (users) => {
   if (!adminUserList) return;
   adminUserList.innerHTML = "";
@@ -2365,6 +2400,10 @@ const renderAdminUsers = (users) => {
     row.style.marginBottom = "0.75rem";
     const playlistCount = (userItem.playlists || []).length;
     row.innerHTML = `<div><strong>${userItem.username}</strong> (${userItem.role}) / playlists: ${playlistCount}</div>`;
+    const playlistBtn = document.createElement("button");
+    playlistBtn.className = "secondary";
+    playlistBtn.textContent = "プレイリスト管理";
+    playlistBtn.addEventListener("click", () => showAdminPlaylistDialog(userItem));
     const disableBtn = document.createElement("button");
     disableBtn.className = "secondary";
     disableBtn.textContent = userItem.is_active ? "無効化" : "有効化";
@@ -2379,6 +2418,7 @@ const renderAdminUsers = (users) => {
       await requestJson(`/api/admin/users/${userItem.id}`, null, "DELETE");
       await refreshAdminData();
     });
+    row.appendChild(playlistBtn);
     row.appendChild(disableBtn);
     row.appendChild(delBtn);
     adminUserList.appendChild(row);
@@ -2415,14 +2455,13 @@ const bindAuthAdminEvents = () => {
   authLoginButton?.addEventListener("click", async () => {
     if (state.authUser) {
       await fetch("/api/auth/logout", { method: "POST" });
-      state.authUser = null;
-      state.role = "guest";
-      applyAuthUi();
+      window.location.href = "/";
       return;
     }
     authLoginDialog?.showModal();
   });
   authLoginCancel?.addEventListener("click", () => authLoginDialog?.close());
+  adminPlaylistDialogClose?.addEventListener("click", () => adminPlaylistDialog?.close());
   authLoginForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
     await requestJson("/api/auth/login", { username: authUsername.value.trim(), password: authPassword.value }, "POST");
