@@ -1814,14 +1814,14 @@ body.has-mini-player .content {
   }
 
   body.has-mini-player .sidebar {
-    bottom: 112px;
+    bottom: 160px;
     height: auto;
     max-height: none;
     padding-bottom: 12px;
   }
 
   body.has-mini-player .content {
-    padding-bottom: 220px;
+    padding-bottom: 240px;
   }
 
   .player-overlay-open .sidebar {
