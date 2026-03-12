@@ -2384,7 +2384,6 @@ const renderAdminUsers = (users) => {
     const row = document.createElement("div");
     row.className = "card";
     row.style.marginBottom = "0.75rem";
-    row.style.border = "1px solid var(--border-color)";
     const playlistCount = (userItem.playlists || []).length;
     row.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;"><div style="display:flex;align-items:center;gap:0.5rem;"><img src="${userItem.icon_url || "/static/images/icon.png"}" alt="" style="width:36px;height:36px;border-radius:999px;object-fit:cover;border:1px solid var(--border-color);" /><div><strong>${userItem.display_name || userItem.username}</strong><div style="font-size:0.8rem;color:var(--text-secondary);">@${userItem.username} / ${userItem.role} / playlists: ${playlistCount}</div></div></div></div>`;
     const actionWrap = document.createElement("div");
