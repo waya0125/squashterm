@@ -1426,12 +1426,13 @@ input[type="file"] {
 
 .mini-player {
   position: fixed;
-  left: 24px;
-  right: 24px;
-  bottom: 24px;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: #111;
-  border-radius: 20px;
-  padding: 12px 16px;
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 0;
+  padding: 12px 24px;
   display: grid;
   grid-template-columns: 1fr auto;
   grid-template-areas:
@@ -1449,6 +1450,15 @@ input[type="file"] {
 .mini-player.is-active {
   opacity: 1;
   pointer-events: auto;
+}
+
+
+body.has-mini-player .app {
+  padding-bottom: 196px;
+}
+
+body.has-mini-player .content {
+  padding-bottom: 196px;
 }
 
 .mini-info {
@@ -1627,9 +1637,9 @@ input[type="file"] {
   }
 
   .mini-player {
-    left: 16px;
-    right: 16px;
-    bottom: max(12px, env(safe-area-inset-bottom));
+    left: 0;
+    right: 0;
+    bottom: 0;
     grid-template-columns: 1fr;
     grid-template-areas:
       "info"
@@ -1643,8 +1653,12 @@ input[type="file"] {
     justify-content: flex-start;
   }
 
-  body.has-mini-player #panel-media {
-    padding-bottom: 132px;
+  body.has-mini-player .app {
+    padding-bottom: calc(220px + env(safe-area-inset-bottom));
+  }
+
+  body.has-mini-player .content {
+    padding-bottom: calc(220px + env(safe-area-inset-bottom));
   }
 
   .player-overlay-open .sidebar {
