@@ -47,8 +47,10 @@ from auth_service import (
     list_users,
     revoke_session,
     authenticate_user,
+    get_user_by_id,
     update_api_key,
     update_user,
+    update_user_profile,
 )
 from models import (
     ApiKeyCreateRequest,
@@ -486,6 +488,79 @@ def logout(response: Response, session_token: str | None = Cookie(default=None))
         revoke_session(session_token)
     response.delete_cookie("session_token")
     return {"ok": True}
+
+
+
+
+@app.put("/api/auth/profile")
+def update_auth_profile(
+    payload: dict,
+    session_token: str | None = Cookie(default=None),
+    authorization: str | None = Header(default=None),
+    x_api_key: str | None = Header(default=None),
+    origin: str | None = Header(default=None),
+):
+    user = resolve_current_user(session_token, authorization, x_api_key, origin)
+    user = require_login(user)
+    display_name = payload.get("display_name")
+    if display_name is not None:
+        display_name = str(display_name).strip()
+    updated = update_user_profile(user["id"], display_name=display_name)
+    if not updated:
+        raise HTTPException(status_code=404, detail="User not found")
+    return updated
+
+
+@app.post("/api/auth/profile/icon")
+async def upload_auth_profile_icon(
+    file: UploadFile = File(...),
+    session_token: str | None = Cookie(default=None),
+    authorization: str | None = Header(default=None),
+    x_api_key: str | None = Header(default=None),
+    origin: str | None = Header(default=None),
+):
+    user = resolve_current_user(session_token, authorization, x_api_key, origin)
+    user = require_login(user)
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="icon file is required")
+    extension = Path(file.filename).suffix.lower() or ".png"
+    icon_dir = MEDIA_DIR / "user_icons"
+    icon_dir.mkdir(parents=True, exist_ok=True)
+    icon_path = icon_dir / f"user_{user['id']}{extension}"
+    with icon_path.open("wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    icon_url = f"/media/user_icons/{icon_path.name}"
+    updated = update_user_profile(user["id"], icon_url=icon_url)
+    if not updated:
+        raise HTTPException(status_code=404, detail="User not found")
+    return updated
+
+
+@app.post("/api/admin/users/{user_id}/icon")
+async def upload_admin_user_icon(
+    user_id: int,
+    file: UploadFile = File(...),
+    session_token: str | None = Cookie(default=None),
+    authorization: str | None = Header(default=None),
+    x_api_key: str | None = Header(default=None),
+    origin: str | None = Header(default=None),
+):
+    actor = resolve_current_user(session_token, authorization, x_api_key, origin)
+    require_admin(actor)
+    target = get_user_by_id(user_id)
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="icon file is required")
+    extension = Path(file.filename).suffix.lower() or ".png"
+    icon_dir = MEDIA_DIR / "user_icons"
+    icon_dir.mkdir(parents=True, exist_ok=True)
+    icon_path = icon_dir / f"user_{user_id}{extension}"
+    with icon_path.open("wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    icon_url = f"/media/user_icons/{icon_path.name}"
+    updated = update_user_profile(user_id, icon_url=icon_url)
+    return updated
 
 
 @app.get("/api/admin/users")

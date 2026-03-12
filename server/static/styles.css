@@ -1556,7 +1556,8 @@ body.has-mini-player .content {
     border-radius: 0;
     padding: calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));
     z-index: 90;
-    height: 100dvh;
+    height: auto;
+    max-height: none;
     transform: translateX(-120%);
     opacity: 0;
     pointer-events: none;
@@ -1802,7 +1803,7 @@ body.has-mini-player .content {
     height: 100vh;
     max-height: 100vh;
     border-radius: 0;
-    z-index: 40;
+    z-index: 15;
   }
 
   .content {
@@ -1812,8 +1813,9 @@ body.has-mini-player .content {
   }
 
   body.has-mini-player .sidebar {
-    height: calc(100vh - 96px);
-    max-height: calc(100vh - 96px);
+    height: calc(100vh - 196px);
+    max-height: calc(100vh - 196px);
+    padding-bottom: 8px;
   }
 
   body.has-mini-player .content {

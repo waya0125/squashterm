@@ -69,6 +69,10 @@ const statusTime = document.getElementById("status-time");
 const settingsVersionList = document.getElementById("settings-version-list");
 const settingsStorageBar = document.getElementById("settings-storage-bar");
 const settingsStorageText = document.getElementById("settings-storage-text");
+const settingsDisplayNameInput = document.getElementById("settings-display-name");
+const settingsUserIcon = document.getElementById("settings-user-icon");
+const settingsUserIconFile = document.getElementById("settings-user-icon-file");
+const settingsProfileSave = document.getElementById("settings-profile-save");
 const settingsPlaybackOptions = document.getElementById("settings-playback-options");
 const systemInfoList = document.getElementById("system-info-list");
 const settingsBaseUrlInput = document.getElementById("settings-base-url");
@@ -90,7 +94,7 @@ const adminUserName = document.getElementById("admin-user-name");
 const adminUserPassword = document.getElementById("admin-user-password");
 const adminUserRole = document.getElementById("admin-user-role");
 const adminUserDisplayName = document.getElementById("admin-user-display-name");
-const adminUserIconUrl = document.getElementById("admin-user-icon-url");
+const adminUserIconFile = document.getElementById("admin-user-icon-file");
 const adminUserCreate = document.getElementById("admin-user-create");
 const adminUserList = document.getElementById("admin-user-list");
 const adminApiKeyName = document.getElementById("admin-api-key-name");
@@ -2325,6 +2329,12 @@ const applyAuthUi = () => {
   if (adminTabButton) {
     adminTabButton.style.display = state.role === "admin" ? "" : "none";
   }
+  if (settingsDisplayNameInput) {
+    settingsDisplayNameInput.value = state.authUser?.display_name || state.authUser?.username || "";
+  }
+  if (settingsUserIcon) {
+    settingsUserIcon.src = state.authUser?.icon_url || "/static/images/icon.png";
+  }
 };
 
 const fetchAuthMe = async () => {
@@ -2367,21 +2377,46 @@ const renderAdminUsers = (users) => {
   adminUserList.innerHTML = "";
   users.forEach((userItem) => {
     const row = document.createElement("div");
+    row.className = "card";
     row.style.marginBottom = "0.75rem";
     const playlistCount = (userItem.playlists || []).length;
-    row.innerHTML = `<div style="display:flex;align-items:center;gap:0.5rem;"><img src="${userItem.icon_url || "/static/images/icon.png"}" alt="" style="width:24px;height:24px;border-radius:999px;object-fit:cover;" /><strong>${userItem.display_name || userItem.username}</strong> (${userItem.role}) / playlists: ${playlistCount}</div>`;
+    row.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;"><div style="display:flex;align-items:center;gap:0.5rem;"><img src="${userItem.icon_url || "/static/images/icon.png"}" alt="" style="width:36px;height:36px;border-radius:999px;object-fit:cover;border:1px solid var(--border-color);" /><div><strong>${userItem.display_name || userItem.username}</strong><div style="font-size:0.8rem;color:var(--text-secondary);">@${userItem.username} / ${userItem.role} / playlists: ${playlistCount}</div></div></div></div>`;
+    const actionWrap = document.createElement("div");
+    actionWrap.style.display = "flex";
+    actionWrap.style.gap = "0.5rem";
+    actionWrap.style.flexWrap = "wrap";
     const playlistBtn = document.createElement("button");
     playlistBtn.className = "secondary";
     playlistBtn.textContent = "プレイリスト管理";
     playlistBtn.addEventListener("click", () => showAdminPlaylistDialog(userItem));
     const editBtn = document.createElement("button");
     editBtn.className = "secondary";
-    editBtn.textContent = "ユーザー編集";
+    editBtn.textContent = "表示名編集";
     editBtn.addEventListener("click", async () => {
       const nextDisplayName = window.prompt("表示名", userItem.display_name || "") ?? userItem.display_name;
-      const nextIconUrl = window.prompt("アイコンURL", userItem.icon_url || "") ?? userItem.icon_url;
-      await requestJson(`/api/admin/users/${userItem.id}`, { display_name: nextDisplayName, icon_url: nextIconUrl }, "PUT");
+      await requestJson(`/api/admin/users/${userItem.id}`, { display_name: nextDisplayName }, "PUT");
       await refreshAdminData();
+    });
+    const iconInput = document.createElement("input");
+    iconInput.type = "file";
+    iconInput.accept = "image/*";
+    const iconUploadBtn = document.createElement("button");
+    iconUploadBtn.className = "secondary";
+    iconUploadBtn.textContent = "アイコン再アップロード";
+    iconUploadBtn.addEventListener("click", async () => {
+      const file = iconInput.files?.[0];
+      if (!file) {
+        window.alert("先に画像ファイルを選択してください。");
+        return;
+      }
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await fetch(`/api/admin/users/${userItem.id}/icon`, { method: "POST", body: formData });
+      if (!response.ok) {
+        throw new Error("アイコン更新に失敗しました。");
+      }
+      await refreshAdminData();
+      await fetchAuthMe();
     });
     const disableBtn = document.createElement("button");
     disableBtn.className = "secondary";
@@ -2397,10 +2432,13 @@ const renderAdminUsers = (users) => {
       await requestJson(`/api/admin/users/${userItem.id}`, null, "DELETE");
       await refreshAdminData();
     });
-    row.appendChild(playlistBtn);
-    row.appendChild(editBtn);
-    row.appendChild(disableBtn);
-    row.appendChild(delBtn);
+    actionWrap.appendChild(playlistBtn);
+    actionWrap.appendChild(editBtn);
+    actionWrap.appendChild(iconInput);
+    actionWrap.appendChild(iconUploadBtn);
+    actionWrap.appendChild(disableBtn);
+    actionWrap.appendChild(delBtn);
+    row.appendChild(actionWrap);
     adminUserList.appendChild(row);
   });
 };
@@ -2483,10 +2521,16 @@ const bindAuthAdminEvents = () => {
     await refreshAdminData();
   });
   adminUserCreate?.addEventListener("click", async () => {
-    await requestJson("/api/admin/users", { username: adminUserName.value.trim(), password: adminUserPassword.value, role: adminUserRole.value, display_name: adminUserDisplayName?.value?.trim() || null, icon_url: adminUserIconUrl?.value?.trim() || null }, "POST");
+    const createdUser = await requestJson("/api/admin/users", { username: adminUserName.value.trim(), password: adminUserPassword.value, role: adminUserRole.value, display_name: adminUserDisplayName?.value?.trim() || null }, "POST");
+    const iconFile = adminUserIconFile?.files?.[0];
+    if (iconFile) {
+      const formData = new FormData();
+      formData.append("file", iconFile);
+      await fetch(`/api/admin/users/${createdUser.id}/icon`, { method: "POST", body: formData });
+    }
     adminUserPassword.value = "";
     if (adminUserDisplayName) adminUserDisplayName.value = "";
-    if (adminUserIconUrl) adminUserIconUrl.value = "";
+    if (adminUserIconFile) adminUserIconFile.value = "";
     await refreshAdminData();
   });
   adminApiKeyCreate?.addEventListener("click", async () => {
@@ -3381,6 +3425,29 @@ if (supportsMediaSession) {
 
 bindAuthAdminEvents();
 init();
+
+if (settingsProfileSave) {
+  settingsProfileSave.addEventListener("click", async () => {
+    try {
+      await requestJson("/api/auth/profile", { display_name: settingsDisplayNameInput?.value?.trim() || null }, "PUT");
+      const iconFile = settingsUserIconFile?.files?.[0];
+      if (iconFile) {
+        const formData = new FormData();
+        formData.append("file", iconFile);
+        const response = await fetch("/api/auth/profile/icon", { method: "POST", body: formData });
+        if (!response.ok) {
+          throw new Error("アイコンアップロードに失敗しました。");
+        }
+      }
+      await fetchAuthMe();
+      await refreshAdminData();
+      appendImportLog("プロフィールを保存しました。", { append: true });
+    } catch (error) {
+      console.error(error);
+    }
+  });
+}
+
 if (designColorsSave) {
   designColorsSave.addEventListener("click", async () => {
     const payload = {

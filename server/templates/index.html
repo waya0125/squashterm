@@ -364,7 +364,7 @@
                 <label><span>ユーザー名</span><input type="text" id="admin-user-name" autocomplete="off" /></label>
                 <label><span>パスワード</span><input type="password" id="admin-user-password" autocomplete="new-password" /></label>
                 <label><span>表示名</span><input type="text" id="admin-user-display-name" /></label>
-                <label><span>アイコンURL</span><input type="url" id="admin-user-icon-url" placeholder="https://..." /></label>
+                <label><span>アイコン画像</span><input type="file" id="admin-user-icon-file" accept="image/*" /></label>
                 <label><span>権限</span><select id="admin-user-role"><option value="user">user</option><option value="admin">admin</option></select></label>
                 <button class="secondary" type="button" id="admin-user-create">作成</button>
               </div>
@@ -441,6 +441,13 @@
                   <div class="progress-bar" id="settings-storage-bar"></div>
                 </div>
                 <p id="settings-storage-text"></p>
+              </div>
+              <div class="card">
+                <h4>プロフィール</h4>
+                <label><span>表示名</span><input type="text" id="settings-display-name" /></label>
+                <label><span>現在のアイコン</span><img id="settings-user-icon" src="/static/images/icon.png" alt="user icon" style="width:56px;height:56px;border-radius:999px;object-fit:cover;" /></label>
+                <label><span>アイコン画像アップロード</span><input type="file" id="settings-user-icon-file" accept="image/*" /></label>
+                <button class="secondary" type="button" id="settings-profile-save">プロフィールを保存</button>
               </div>
             </div>
           </section>

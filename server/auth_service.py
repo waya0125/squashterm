@@ -127,6 +127,21 @@ def update_user(user_id: int, username: str | None, password: str | None, role: 
     return dict(row)
 
 
+
+
+def get_user_by_id(user_id: int) -> dict | None:
+    with _connect() as conn:
+        row = conn.execute(
+            "SELECT id, username, role, is_active, display_name, icon_url, created_at FROM users WHERE id = ?",
+            (user_id,),
+        ).fetchone()
+    return dict(row) if row else None
+
+
+def update_user_profile(user_id: int, display_name: str | None = None, icon_url: str | None = None) -> dict | None:
+    return update_user(user_id, None, None, None, None, display_name, icon_url)
+
+
 def delete_user(user_id: int) -> bool:
     with _connect() as conn:
         if conn.execute("SELECT username FROM users WHERE id = ?", (user_id,)).fetchone() is None:
