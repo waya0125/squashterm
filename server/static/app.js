@@ -583,6 +583,18 @@ const syncPlayerVideoWithAudio = () => {
   }
 };
 
+const syncVideoStateWithAudioPlayback = () => {
+  if (!audioPlayer || !playerVideo || !playerVideo.classList.contains("is-visible")) {
+    return;
+  }
+  syncPlayerVideoWithAudio();
+  if (audioPlayer.paused) {
+    playerVideo.pause();
+    return;
+  }
+  playerVideo.play().catch(() => {});
+};
+
 const updatePlayerVisual = (track) => {
   const videoUrl = shouldShowVideoOnPlayer() ? resolveTrackVideoUrl(track) : null;
   if (playerVideo) {
@@ -797,6 +809,7 @@ const closePlayerOverlay = () => {
     playerOverlay.classList.remove("is-active");
     playerOverlay.setAttribute("aria-hidden", "true");
   }
+  syncVideoStateWithAudioPlayback();
   if (playerVideo) {
     playerVideo.pause();
   }
@@ -826,9 +839,7 @@ const openPlayerOverlay = () => {
   }
   document.body?.classList.add("player-overlay-open");
   updatePlayerUI();
-  if (playerVideo?.classList.contains("is-visible")) {
-    playerVideo.play().catch(() => {});
-  }
+  syncVideoStateWithAudioPlayback();
   updatePlayerButtons();
   updateFavoriteButtons();
 };
