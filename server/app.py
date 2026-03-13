@@ -24,7 +24,6 @@ from library_service import (
     batch_download_playlist,
     build_upload_track,
     ensure_data_dirs,
-    fetch_favorites,
     fetch_playlists,
     fetch_tracks,
     import_local_folder,
@@ -51,6 +50,9 @@ from auth_service import (
     update_api_key,
     update_user,
     update_user_profile,
+    fetch_user_favorites,
+    save_user_favorites,
+    remove_track_from_all_user_favorites,
 )
 from models import (
     ApiKeyCreateRequest,
@@ -776,12 +778,12 @@ def delete_track(track_id: str, delete_file: bool = True, session_token: str | N
     if target_index is None:
         raise HTTPException(status_code=404, detail="Track not found")
     removed = tracks.pop(target_index)
-    data["favorites"] = [item for item in data.get("favorites", []) if item != track_id]
     for playlist in data.get("playlists", []):
         playlist["track_ids"] = [
             item for item in playlist.get("track_ids", []) if item != track_id
         ]
     save_library(data)
+    remove_track_from_all_user_favorites(track_id)
     if delete_file:
         remove_media_asset(removed.get("file_path"))
         remove_media_asset(removed.get("cover"))
@@ -932,18 +934,18 @@ def sync_playlist(playlist_id: str, session_token: str | None = Cookie(default=N
 
 
 @app.get("/api/favorites")
-def get_favorites():
-    return fetch_favorites()
+def get_favorites(session_token: str | None = Cookie(default=None), authorization: str | None = Header(default=None), x_api_key: str | None = Header(default=None), origin: str | None = Header(default=None)):
+    user = resolve_current_user(session_token, authorization, x_api_key, origin)
+    if not user:
+        return []
+    return fetch_user_favorites(user["id"])
 
 
 @app.put("/api/favorites")
 def update_favorites(payload: FavoritesUpdate, session_token: str | None = Cookie(default=None), authorization: str | None = Header(default=None), x_api_key: str | None = Header(default=None), origin: str | None = Header(default=None)):
     user = resolve_current_user(session_token, authorization, x_api_key, origin)
-    require_login(user)
-    data = load_library()
-    data["favorites"] = payload.track_ids
-    save_library(data)
-    return data["favorites"]
+    user = require_login(user)
+    return save_user_favorites(user["id"], payload.track_ids)
 
 
 @app.get("/api/status")
@@ -990,9 +992,16 @@ def update_playback_options(payload: dict):
 @app.get("/api/system")
 def get_system(session_token: str | None = Cookie(default=None), authorization: str | None = Header(default=None), x_api_key: str | None = Header(default=None), origin: str | None = Header(default=None)):
     user = resolve_current_user(session_token, authorization, x_api_key, origin)
+    payload = build_system_payload()
     if not user or user.get("role") != "admin":
-        return {"storage": None, "os": None, "hostname": None, "forbidden": True}
-    return build_system_payload()
+        return {
+            "storage": payload.get("storage"),
+            "os": None,
+            "hostname": None,
+            "forbidden": True,
+        }
+    payload["forbidden"] = False
+    return payload
 
 
 @app.post("/api/library/download")

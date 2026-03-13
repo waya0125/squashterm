@@ -70,6 +70,13 @@ def init_auth_db() -> None:
                 created_at TEXT NOT NULL,
                 FOREIGN KEY(created_by) REFERENCES users(id)
             );
+            CREATE TABLE IF NOT EXISTS user_favorites (
+                user_id INTEGER NOT NULL,
+                track_id TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                PRIMARY KEY (user_id, track_id),
+                FOREIGN KEY(user_id) REFERENCES users(id)
+            );
             """
         )
         columns = {row[1] for row in conn.execute("PRAGMA table_info(users)").fetchall()}
@@ -157,6 +164,33 @@ def delete_user(user_id: int) -> bool:
         conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
     return True
 
+
+
+
+def fetch_user_favorites(user_id: int) -> list[str]:
+    with _connect() as conn:
+        rows = conn.execute(
+            "SELECT track_id FROM user_favorites WHERE user_id = ? ORDER BY created_at ASC",
+            (user_id,),
+        ).fetchall()
+    return [row["track_id"] for row in rows]
+
+
+def save_user_favorites(user_id: int, track_ids: list[str]) -> list[str]:
+    with _connect() as conn:
+        conn.execute("DELETE FROM user_favorites WHERE user_id = ?", (user_id,))
+        now = _utcnow()
+        for track_id in track_ids:
+            conn.execute(
+                "INSERT INTO user_favorites (user_id, track_id, created_at) VALUES (?, ?, ?)",
+                (user_id, track_id, now),
+            )
+    return track_ids
+
+
+def remove_track_from_all_user_favorites(track_id: str) -> None:
+    with _connect() as conn:
+        conn.execute("DELETE FROM user_favorites WHERE track_id = ?", (track_id,))
 
 def authenticate_user(username: str, password: str) -> dict | None:
     with _connect() as conn:
