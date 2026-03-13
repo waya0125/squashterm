@@ -77,6 +77,8 @@ def init_auth_db() -> None:
             conn.execute("ALTER TABLE users ADD COLUMN display_name TEXT")
         if "icon_url" not in columns:
             conn.execute("ALTER TABLE users ADD COLUMN icon_url TEXT")
+        if "show_video_on_player" not in columns:
+            conn.execute("ALTER TABLE users ADD COLUMN show_video_on_player INTEGER NOT NULL DEFAULT 1")
         admin = conn.execute("SELECT id FROM users WHERE username = ?", ("admin",)).fetchone()
         if admin is None:
             conn.execute(
@@ -88,7 +90,7 @@ def init_auth_db() -> None:
 def list_users() -> list[dict]:
     with _connect() as conn:
         rows = conn.execute(
-            "SELECT id, username, role, is_active, display_name, icon_url, created_at FROM users ORDER BY id"
+            "SELECT id, username, role, is_active, display_name, icon_url, show_video_on_player, created_at FROM users ORDER BY id"
         ).fetchall()
     return [dict(row) for row in rows]
 
@@ -100,13 +102,13 @@ def create_user(username: str, password: str, role: str, display_name: str | Non
             (username, _hash_password(password), role, display_name, icon_url, _utcnow()),
         )
         row = conn.execute(
-            "SELECT id, username, role, is_active, display_name, icon_url, created_at FROM users WHERE username = ?",
+            "SELECT id, username, role, is_active, display_name, icon_url, show_video_on_player, created_at FROM users WHERE username = ?",
             (username,),
         ).fetchone()
     return dict(row)
 
 
-def update_user(user_id: int, username: str | None, password: str | None, role: str | None, is_active: bool | None, display_name: str | None, icon_url: str | None) -> dict | None:
+def update_user(user_id: int, username: str | None, password: str | None, role: str | None, is_active: bool | None, display_name: str | None, icon_url: str | None, show_video_on_player: bool | None = None) -> dict | None:
     with _connect() as conn:
         current = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
         if current is None:
@@ -117,12 +119,17 @@ def update_user(user_id: int, username: str | None, password: str | None, role: 
         next_is_active = int(is_active) if is_active is not None else current["is_active"]
         next_display_name = display_name if display_name is not None else current["display_name"]
         next_icon_url = icon_url if icon_url is not None else current["icon_url"]
+        next_show_video_on_player = (
+            int(show_video_on_player)
+            if show_video_on_player is not None
+            else int(current["show_video_on_player"])
+        )
         conn.execute(
-            "UPDATE users SET username = ?, password_hash = ?, role = ?, is_active = ?, display_name = ?, icon_url = ? WHERE id = ?",
-            (next_username, next_hash, next_role, next_is_active, next_display_name, next_icon_url, user_id),
+            "UPDATE users SET username = ?, password_hash = ?, role = ?, is_active = ?, display_name = ?, icon_url = ?, show_video_on_player = ? WHERE id = ?",
+            (next_username, next_hash, next_role, next_is_active, next_display_name, next_icon_url, next_show_video_on_player, user_id),
         )
         row = conn.execute(
-            "SELECT id, username, role, is_active, display_name, icon_url, created_at FROM users WHERE id = ?", (user_id,)
+            "SELECT id, username, role, is_active, display_name, icon_url, show_video_on_player, created_at FROM users WHERE id = ?", (user_id,)
         ).fetchone()
     return dict(row)
 
@@ -132,14 +139,14 @@ def update_user(user_id: int, username: str | None, password: str | None, role: 
 def get_user_by_id(user_id: int) -> dict | None:
     with _connect() as conn:
         row = conn.execute(
-            "SELECT id, username, role, is_active, display_name, icon_url, created_at FROM users WHERE id = ?",
+            "SELECT id, username, role, is_active, display_name, icon_url, show_video_on_player, created_at FROM users WHERE id = ?",
             (user_id,),
         ).fetchone()
     return dict(row) if row else None
 
 
-def update_user_profile(user_id: int, display_name: str | None = None, icon_url: str | None = None) -> dict | None:
-    return update_user(user_id, None, None, None, None, display_name, icon_url)
+def update_user_profile(user_id: int, display_name: str | None = None, icon_url: str | None = None, show_video_on_player: bool | None = None) -> dict | None:
+    return update_user(user_id, None, None, None, None, display_name, icon_url, show_video_on_player)
 
 
 def delete_user(user_id: int) -> bool:
@@ -164,6 +171,7 @@ def authenticate_user(username: str, password: str) -> dict | None:
         "role": row["role"],
         "display_name": row["display_name"],
         "icon_url": row["icon_url"],
+        "show_video_on_player": bool(row["show_video_on_player"]),
     }
 
 
@@ -189,7 +197,7 @@ def get_session_user(token: str | None) -> dict | None:
     with _connect() as conn:
         row = conn.execute(
             """
-            SELECT users.id, users.username, users.role, users.display_name, users.icon_url
+            SELECT users.id, users.username, users.role, users.display_name, users.icon_url, users.show_video_on_player
             FROM sessions
             JOIN users ON users.id = sessions.user_id
             WHERE sessions.token = ? AND sessions.expires_at > ? AND users.is_active = 1
@@ -248,7 +256,7 @@ def get_user_by_api_key(raw_key: str | None, origin: str | None) -> dict | None:
     with _connect() as conn:
         row = conn.execute(
             """
-            SELECT users.id, users.username, users.role, users.display_name, users.icon_url, api_keys.origin
+            SELECT users.id, users.username, users.role, users.display_name, users.icon_url, users.show_video_on_player, api_keys.origin
             FROM api_keys
             JOIN users ON users.id = api_keys.created_by
             WHERE api_keys.key_hash = ? AND api_keys.is_active = 1 AND users.is_active = 1
@@ -260,4 +268,4 @@ def get_user_by_api_key(raw_key: str | None, origin: str | None) -> dict | None:
     allowed_origin = row["origin"]
     if allowed_origin and origin and allowed_origin != origin:
         return None
-    return {"id": row["id"], "username": row["username"], "role": row["role"], "display_name": row["display_name"], "icon_url": row["icon_url"]}
+    return {"id": row["id"], "username": row["username"], "role": row["role"], "display_name": row["display_name"], "icon_url": row["icon_url"], "show_video_on_player": bool(row["show_video_on_player"])}

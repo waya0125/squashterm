@@ -539,7 +539,14 @@ def update_auth_profile(
     display_name = payload.get("display_name")
     if display_name is not None:
         display_name = str(display_name).strip()
-    updated = update_user_profile(user["id"], display_name=display_name)
+    show_video_on_player = payload.get("show_video_on_player")
+    if show_video_on_player is not None:
+        show_video_on_player = bool(show_video_on_player)
+    updated = update_user_profile(
+        user["id"],
+        display_name=display_name,
+        show_video_on_player=show_video_on_player,
+    )
     if not updated:
         raise HTTPException(status_code=404, detail="User not found")
     return updated
@@ -983,7 +990,8 @@ def update_playback_options(payload: dict):
 @app.get("/api/system")
 def get_system(session_token: str | None = Cookie(default=None), authorization: str | None = Header(default=None), x_api_key: str | None = Header(default=None), origin: str | None = Header(default=None)):
     user = resolve_current_user(session_token, authorization, x_api_key, origin)
-    require_admin(user)
+    if not user or user.get("role") != "admin":
+        return {"storage": None, "os": None, "hostname": None, "forbidden": True}
     return build_system_payload()
 
 

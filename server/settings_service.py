@@ -35,11 +35,6 @@ DEFAULT_SETTINGS = {
             "label": "自動ライブラリスキャン",
             "enabled": False,
         },
-        {
-            "id": "show_video_on_player",
-            "label": "全画面プレイヤーで動画を優先表示",
-            "enabled": False,
-        },
     ],
 }
 

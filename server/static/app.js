@@ -566,7 +566,22 @@ const resolveTrackVideoUrl = (track) => {
   return null;
 };
 
-const shouldShowVideoOnPlayer = () => Boolean(settingsShowVideoOnPlayer?.checked);
+const shouldShowVideoOnPlayer = () => Boolean(state.authUser?.show_video_on_player ?? true);
+
+const syncPlayerVideoWithAudio = () => {
+  if (!audioPlayer || !playerVideo || !playerVideo.classList.contains("is-visible")) {
+    return;
+  }
+  const audioTime = Number(audioPlayer.currentTime || 0);
+  const videoTime = Number(playerVideo.currentTime || 0);
+  if (Math.abs(videoTime - audioTime) > 0.25) {
+    try {
+      playerVideo.currentTime = audioTime;
+    } catch (_error) {
+      // メタデータ未読み込み時は無視し、次回同期で再調整する
+    }
+  }
+};
 
 const updatePlayerVisual = (track) => {
   const videoUrl = shouldShowVideoOnPlayer() ? resolveTrackVideoUrl(track) : null;
@@ -577,9 +592,18 @@ const updatePlayerVisual = (track) => {
         playerVideo.load();
       }
       playerVideo.classList.add("is-visible");
-      playerVideo.play().catch(() => {});
+      playerVideo.onloadedmetadata = () => {
+        syncPlayerVideoWithAudio();
+      };
+      syncPlayerVideoWithAudio();
+      if (audioPlayer?.paused) {
+        playerVideo.pause();
+      } else {
+        playerVideo.play().catch(() => {});
+      }
     } else {
       playerVideo.pause();
+      playerVideo.onloadedmetadata = null;
       playerVideo.removeAttribute("src");
       playerVideo.load();
       playerVideo.classList.remove("is-visible");
@@ -904,6 +928,7 @@ const seekBySeconds = (deltaSeconds) => {
     ? Math.min(Math.max(current + deltaSeconds, 0), duration)
     : Math.max(current + deltaSeconds, 0);
   audioPlayer.currentTime = next;
+  syncPlayerVideoWithAudio();
   updateMediaSessionPosition();
 };
 
@@ -1933,11 +1958,8 @@ const renderSettings = (settings) => {
   if (designAccentColorInput) {
     designAccentColorInput.value = settings?.design?.accent_color || "#38bdf8";
   }
-  const showVideoOption = (settings?.playback_options || []).find(
-    (option) => option.id === "show_video_on_player"
-  );
   if (settingsShowVideoOnPlayer) {
-    settingsShowVideoOnPlayer.checked = Boolean(showVideoOption?.enabled);
+    settingsShowVideoOnPlayer.checked = Boolean(state.authUser?.show_video_on_player ?? true);
   }
   applyDesignTheme(settings?.design);
   if (settingsPlaybackOptions) {
@@ -2510,6 +2532,9 @@ const applyAuthUi = () => {
   }
   if (settingsUserIcon) {
     settingsUserIcon.src = state.authUser?.icon_url || "/static/images/icon.png";
+  }
+  if (settingsShowVideoOnPlayer) {
+    settingsShowVideoOnPlayer.checked = Boolean(state.authUser?.show_video_on_player ?? true);
   }
   updateBulkBar();
   renderPlaylists();
@@ -3165,12 +3190,19 @@ if (audioPlayer) {
     playerState.isPlaying = true;
     updatePlayerButtons();
     updateMediaSessionPlaybackState();
+    if (playerVideo?.classList.contains("is-visible")) {
+      syncPlayerVideoWithAudio();
+      playerVideo.play().catch(() => {});
+    }
   });
 
   audioPlayer.addEventListener("pause", () => {
     playerState.isPlaying = false;
     updatePlayerButtons();
     updateMediaSessionPlaybackState();
+    if (playerVideo?.classList.contains("is-visible")) {
+      playerVideo.pause();
+    }
   });
 
   audioPlayer.addEventListener("timeupdate", () => {
@@ -3231,6 +3263,7 @@ if (playerSeek && audioPlayer) {
     const value = Number(event.target.value);
     if (Number.isFinite(value) && audioPlayer.duration) {
       audioPlayer.currentTime = (value / 100) * audioPlayer.duration;
+      syncPlayerVideoWithAudio();
       updateMediaSessionPosition();
     }
   });
@@ -3241,6 +3274,7 @@ if (miniSeek && audioPlayer) {
     const value = Number(event.target.value);
     if (Number.isFinite(value) && audioPlayer.duration) {
       audioPlayer.currentTime = Math.round((value / 100) * audioPlayer.duration);
+      syncPlayerVideoWithAudio();
       updateMediaSessionPosition();
     }
   });
@@ -3700,15 +3734,17 @@ init();
 
 if (settingsShowVideoOnPlayer) {
   settingsShowVideoOnPlayer.addEventListener("change", async () => {
+    const nextValue = Boolean(settingsShowVideoOnPlayer.checked);
     try {
-      await requestJson(
-        "/api/settings/playback-options",
-        { option_id: "show_video_on_player", enabled: settingsShowVideoOnPlayer.checked },
+      const updated = await requestJson(
+        "/api/auth/profile",
+        { show_video_on_player: nextValue },
         "PUT"
       );
+      state.authUser = updated;
       updatePlayerUI();
     } catch (error) {
-      settingsShowVideoOnPlayer.checked = !settingsShowVideoOnPlayer.checked;
+      settingsShowVideoOnPlayer.checked = !nextValue;
       appendImportLog(`設定の保存に失敗しました: ${error.message}`, { append: true });
     }
   });
