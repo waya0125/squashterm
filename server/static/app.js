@@ -235,6 +235,9 @@ const canManagePlaylist = (playlist) => {
   if (!hasLogin()) {
     return false;
   }
+  if (playlist.is_public) {
+    return false;
+  }
   return playlist.owner_id === state.authUser?.id;
 };
 
