@@ -224,6 +224,7 @@ const searchState = {
 };
 
 let playerVideoSyncPending = false;
+let lastPlayerVideoSyncMs = 0;
 
 const hasLogin = () => Boolean(state.authUser);
 
@@ -570,15 +571,21 @@ const resolveTrackVideoUrl = (track) => {
 
 const shouldShowVideoOnPlayer = () => Boolean(state.authUser?.show_video_on_player ?? true);
 
-const syncPlayerVideoWithAudio = () => {
+const syncPlayerVideoWithAudio = (options = {}) => {
   if (!audioPlayer || !playerVideo || !playerVideo.classList.contains("is-visible")) {
+    return;
+  }
+  const { force = false } = options;
+  const now = Date.now();
+  if (!force && now - lastPlayerVideoSyncMs < 500) {
     return;
   }
   const audioTime = Number(audioPlayer.currentTime || 0);
   const videoTime = Number(playerVideo.currentTime || 0);
-  if (Math.abs(videoTime - audioTime) > 0.25) {
+  if (Math.abs(videoTime - audioTime) > (force ? 0.2 : 0.8)) {
     try {
       playerVideo.currentTime = audioTime;
+      lastPlayerVideoSyncMs = now;
     } catch (_error) {
       // メタデータ未読み込み時は無視し、次回同期で再調整する
     }
@@ -598,7 +605,7 @@ const applyPlayerVideoSync = () => {
     playerVideoSyncPending = true;
     return;
   }
-  syncPlayerVideoWithAudio();
+  syncPlayerVideoWithAudio({ force: true });
   if (audioPlayer.paused) {
     playerVideo.pause();
     playerVideoSyncPending = false;
@@ -954,7 +961,7 @@ const seekBySeconds = (deltaSeconds) => {
     ? Math.min(Math.max(current + deltaSeconds, 0), duration)
     : Math.max(current + deltaSeconds, 0);
   audioPlayer.currentTime = next;
-  syncPlayerVideoWithAudio();
+  syncPlayerVideoWithAudio({ force: true });
   updateMediaSessionPosition();
 };
 
@@ -3238,12 +3245,8 @@ if (audioPlayer) {
     if (miniDuration) {
       miniDuration.textContent = formatTime(duration);
     }
-    if (playerVideo?.classList.contains("is-visible")) {
-      if (playerVideoSyncPending) {
-        syncVideoStateWithAudioPlayback();
-      } else {
-        syncPlayerVideoWithAudio();
-      }
+    if (playerVideo?.classList.contains("is-visible") && playerVideoSyncPending) {
+      syncVideoStateWithAudioPlayback();
     }
     updateMediaSessionPosition();
     
@@ -3282,7 +3285,7 @@ if (playerSeek && audioPlayer) {
     const value = Number(event.target.value);
     if (Number.isFinite(value) && audioPlayer.duration) {
       audioPlayer.currentTime = (value / 100) * audioPlayer.duration;
-      syncPlayerVideoWithAudio();
+      syncPlayerVideoWithAudio({ force: true });
       updateMediaSessionPosition();
     }
   });
@@ -3293,7 +3296,7 @@ if (miniSeek && audioPlayer) {
     const value = Number(event.target.value);
     if (Number.isFinite(value) && audioPlayer.duration) {
       audioPlayer.currentTime = Math.round((value / 100) * audioPlayer.duration);
-      syncPlayerVideoWithAudio();
+      syncPlayerVideoWithAudio({ force: true });
       updateMediaSessionPosition();
     }
   });
