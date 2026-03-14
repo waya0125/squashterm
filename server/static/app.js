@@ -587,12 +587,19 @@ const syncVideoStateWithAudioPlayback = () => {
   if (!audioPlayer || !playerVideo || !playerVideo.classList.contains("is-visible")) {
     return;
   }
-  syncPlayerVideoWithAudio();
-  if (audioPlayer.paused) {
-    playerVideo.pause();
+  const applySync = () => {
+    syncPlayerVideoWithAudio();
+    if (audioPlayer.paused) {
+      playerVideo.pause();
+      return;
+    }
+    playerVideo.play().catch(() => {});
+  };
+  if (playerVideo.readyState >= 1) {
+    applySync();
     return;
   }
-  playerVideo.play().catch(() => {});
+  playerVideo.addEventListener("loadedmetadata", applySync, { once: true });
 };
 
 const updatePlayerVisual = (track) => {
@@ -809,7 +816,6 @@ const closePlayerOverlay = () => {
     playerOverlay.classList.remove("is-active");
     playerOverlay.setAttribute("aria-hidden", "true");
   }
-  syncVideoStateWithAudioPlayback();
   if (playerVideo) {
     playerVideo.pause();
   }
@@ -2552,7 +2558,6 @@ const applyAuthUi = () => {
   renderPlaylistDetail();
   renderPlaylistModalList();
   renderPlaylistSelectOptions();
-  renderSystem(null);
 };
 
 const fetchAuthMe = async () => {
@@ -2560,14 +2565,10 @@ const fetchAuthMe = async () => {
   state.authUser = auth.user;
   state.role = auth.role;
   applyAuthUi();
-  if (state.role === "admin") {
-    try {
-      const system = await fetchJson("/api/system");
-      renderSystem(system);
-    } catch (_error) {
-      renderSystem(null);
-    }
-  } else {
+  try {
+    const system = await fetchJson("/api/system");
+    renderSystem(system);
+  } catch (_error) {
     renderSystem(null);
   }
 };
@@ -2854,14 +2855,10 @@ const init = async () => {
       statusTime.textContent = status.time;
     }
     renderSettings(settings);
-    if (state.role === "admin") {
-      try {
-        const system = await fetchJson("/api/system");
-        renderSystem(system);
-      } catch (error) {
-        renderSystem(null);
-      }
-    } else {
+    try {
+      const system = await fetchJson("/api/system");
+      renderSystem(system);
+    } catch (_error) {
       renderSystem(null);
     }
     await refreshAdminData();
