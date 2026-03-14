@@ -224,6 +224,7 @@ const searchState = {
 };
 
 let playerVideoSyncPending = false;
+let playerVideoSeekInProgress = false;
 let lastPlayerVideoSyncMs = 0;
 
 const hasLogin = () => Boolean(state.authUser);
@@ -598,6 +599,10 @@ const applyPlayerVideoSync = () => {
     return;
   }
   if (document.visibilityState !== "visible") {
+    playerVideoSyncPending = true;
+    return;
+  }
+  if (playerVideoSeekInProgress) {
     playerVideoSyncPending = true;
     return;
   }
@@ -3224,6 +3229,20 @@ if (audioPlayer) {
     syncVideoStateWithAudioPlayback();
   });
 
+  audioPlayer.addEventListener("seeking", () => {
+    playerVideoSeekInProgress = true;
+    playerVideoSyncPending = true;
+    if (playerVideo?.classList.contains("is-visible")) {
+      playerVideo.pause();
+    }
+  });
+
+  audioPlayer.addEventListener("seeked", () => {
+    playerVideoSeekInProgress = false;
+    syncPlayerVideoWithAudio({ force: true });
+    syncVideoStateWithAudioPlayback();
+  });
+
   audioPlayer.addEventListener("timeupdate", () => {
     const { currentTime, duration } = audioPlayer;
     const percent = duration ? Math.floor((currentTime / duration) * 100) : 0;
@@ -3285,9 +3304,14 @@ if (playerSeek && audioPlayer) {
     const value = Number(event.target.value);
     if (Number.isFinite(value) && audioPlayer.duration) {
       audioPlayer.currentTime = (value / 100) * audioPlayer.duration;
-      syncPlayerVideoWithAudio({ force: true });
+      playerVideoSyncPending = true;
       updateMediaSessionPosition();
     }
+  });
+  playerSeek.addEventListener("change", () => {
+    playerVideoSeekInProgress = false;
+    syncPlayerVideoWithAudio({ force: true });
+    syncVideoStateWithAudioPlayback();
   });
 }
 
@@ -3296,9 +3320,14 @@ if (miniSeek && audioPlayer) {
     const value = Number(event.target.value);
     if (Number.isFinite(value) && audioPlayer.duration) {
       audioPlayer.currentTime = Math.round((value / 100) * audioPlayer.duration);
-      syncPlayerVideoWithAudio({ force: true });
+      playerVideoSyncPending = true;
       updateMediaSessionPosition();
     }
+  });
+  miniSeek.addEventListener("change", () => {
+    playerVideoSeekInProgress = false;
+    syncPlayerVideoWithAudio({ force: true });
+    syncVideoStateWithAudioPlayback();
   });
 }
 
