@@ -223,6 +223,8 @@ const searchState = {
   playlistTrackQuery: "",
 };
 
+let playerVideoSyncPending = false;
+
 const hasLogin = () => Boolean(state.authUser);
 
 const canManagePlaylist = (playlist) => {
@@ -583,23 +585,34 @@ const syncPlayerVideoWithAudio = () => {
   }
 };
 
-const syncVideoStateWithAudioPlayback = () => {
+const applyPlayerVideoSync = () => {
   if (!audioPlayer || !playerVideo || !playerVideo.classList.contains("is-visible")) {
+    playerVideoSyncPending = false;
     return;
   }
-  const applySync = () => {
-    syncPlayerVideoWithAudio();
-    if (audioPlayer.paused) {
-      playerVideo.pause();
-      return;
-    }
-    playerVideo.play().catch(() => {});
-  };
-  if (playerVideo.readyState >= 1) {
-    applySync();
+  if (document.visibilityState !== "visible") {
+    playerVideoSyncPending = true;
     return;
   }
-  playerVideo.addEventListener("loadedmetadata", applySync, { once: true });
+  if (playerVideo.readyState < 1) {
+    playerVideoSyncPending = true;
+    return;
+  }
+  syncPlayerVideoWithAudio();
+  if (audioPlayer.paused) {
+    playerVideo.pause();
+    playerVideoSyncPending = false;
+    return;
+  }
+  playerVideo.play().then(() => {
+    playerVideoSyncPending = false;
+  }).catch(() => {
+    playerVideoSyncPending = true;
+  });
+};
+
+const syncVideoStateWithAudioPlayback = () => {
+  applyPlayerVideoSync();
 };
 
 const updatePlayerVisual = (track) => {
@@ -612,16 +625,12 @@ const updatePlayerVisual = (track) => {
       }
       playerVideo.classList.add("is-visible");
       playerVideo.onloadedmetadata = () => {
-        syncPlayerVideoWithAudio();
+        applyPlayerVideoSync();
       };
-      syncPlayerVideoWithAudio();
-      if (audioPlayer?.paused) {
-        playerVideo.pause();
-      } else {
-        playerVideo.play().catch(() => {});
-      }
+      applyPlayerVideoSync();
     } else {
       playerVideo.pause();
+      playerVideoSyncPending = false;
       playerVideo.onloadedmetadata = null;
       playerVideo.removeAttribute("src");
       playerVideo.load();
@@ -3198,19 +3207,14 @@ if (audioPlayer) {
     playerState.isPlaying = true;
     updatePlayerButtons();
     updateMediaSessionPlaybackState();
-    if (playerVideo?.classList.contains("is-visible")) {
-      syncPlayerVideoWithAudio();
-      playerVideo.play().catch(() => {});
-    }
+    syncVideoStateWithAudioPlayback();
   });
 
   audioPlayer.addEventListener("pause", () => {
     playerState.isPlaying = false;
     updatePlayerButtons();
     updateMediaSessionPlaybackState();
-    if (playerVideo?.classList.contains("is-visible")) {
-      playerVideo.pause();
-    }
+    syncVideoStateWithAudioPlayback();
   });
 
   audioPlayer.addEventListener("timeupdate", () => {
@@ -3233,6 +3237,13 @@ if (audioPlayer) {
     }
     if (miniDuration) {
       miniDuration.textContent = formatTime(duration);
+    }
+    if (playerVideo?.classList.contains("is-visible")) {
+      if (playerVideoSyncPending) {
+        syncVideoStateWithAudioPlayback();
+      } else {
+        syncPlayerVideoWithAudio();
+      }
     }
     updateMediaSessionPosition();
     
@@ -3674,6 +3685,29 @@ document.addEventListener("keydown", (event) => {
     togglePlayback();
   }
 });
+
+window.addEventListener("pageshow", () => {
+  if (playerVideoSyncPending) {
+    syncVideoStateWithAudioPlayback();
+  }
+});
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "visible") {
+    return;
+  }
+  if (playerVideoSyncPending || playerVideo?.classList.contains("is-visible")) {
+    syncVideoStateWithAudioPlayback();
+  }
+});
+
+if (playerVideo) {
+  playerVideo.addEventListener("canplay", () => {
+    if (playerVideoSyncPending) {
+      syncVideoStateWithAudioPlayback();
+    }
+  });
+}
 
 if (supportsMediaSession) {
   const registerMediaSessionHandler = (action, handler) => {
