@@ -628,6 +628,25 @@ const syncVideoStateWithAudioPlayback = () => {
   applyPlayerVideoSync();
 };
 
+const warmupPlayerVideo = () => {
+  if (!playerVideo || !playerVideo.classList.contains("is-visible")) {
+    return;
+  }
+  if (playerVideo.readyState === 0) {
+    playerVideo.load();
+    return;
+  }
+  if (playerVideo.readyState >= 2) {
+    return;
+  }
+  playerVideo.play().then(() => {
+    playerVideo.pause();
+    syncPlayerVideoWithAudio({ force: true });
+  }).catch(() => {
+    playerVideoSyncPending = true;
+  });
+};
+
 const clearOverlayVideoSyncTimer = () => {
   if (overlayVideoSyncTimerId !== null) {
     window.clearTimeout(overlayVideoSyncTimerId);
@@ -667,6 +686,9 @@ const updatePlayerVisual = (track) => {
         applyPlayerVideoSync();
       };
       applyPlayerVideoSync();
+      if (!isPlayerOverlayActive()) {
+        warmupPlayerVideo();
+      }
     } else {
       playerVideo.pause();
       playerVideoSyncPending = false;
