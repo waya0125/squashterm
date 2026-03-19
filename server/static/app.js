@@ -226,6 +226,7 @@ const searchState = {
 let playerVideoSyncPending = false;
 let playerVideoSeekInProgress = false;
 let lastPlayerVideoSyncMs = 0;
+let overlayVideoSyncTimerId = null;
 
 const hasLogin = () => Boolean(state.authUser);
 
@@ -627,6 +628,32 @@ const syncVideoStateWithAudioPlayback = () => {
   applyPlayerVideoSync();
 };
 
+const clearOverlayVideoSyncTimer = () => {
+  if (overlayVideoSyncTimerId !== null) {
+    window.clearTimeout(overlayVideoSyncTimerId);
+    overlayVideoSyncTimerId = null;
+  }
+};
+
+const scheduleOverlayVideoSync = () => {
+  clearOverlayVideoSyncTimer();
+  let attempts = 0;
+  const run = () => {
+    if (!isPlayerOverlayActive()) {
+      clearOverlayVideoSyncTimer();
+      return;
+    }
+    syncVideoStateWithAudioPlayback();
+    attempts += 1;
+    if (attempts >= 20) {
+      clearOverlayVideoSyncTimer();
+      return;
+    }
+    overlayVideoSyncTimerId = window.setTimeout(run, 80);
+  };
+  run();
+};
+
 const updatePlayerVisual = (track) => {
   const videoUrl = shouldShowVideoOnPlayer() ? resolveTrackVideoUrl(track) : null;
   if (playerVideo) {
@@ -837,6 +864,7 @@ const closePlayerOverlay = () => {
     playerOverlay.classList.remove("is-active");
     playerOverlay.setAttribute("aria-hidden", "true");
   }
+  clearOverlayVideoSyncTimer();
   if (playerVideo) {
     playerVideo.pause();
   }
@@ -866,7 +894,7 @@ const openPlayerOverlay = () => {
   }
   document.body?.classList.add("player-overlay-open");
   updatePlayerUI();
-  syncVideoStateWithAudioPlayback();
+  scheduleOverlayVideoSync();
   updatePlayerButtons();
   updateFavoriteButtons();
 };
@@ -3719,6 +3747,10 @@ document.addEventListener("keydown", (event) => {
 });
 
 window.addEventListener("pageshow", () => {
+  if (isPlayerOverlayActive()) {
+    scheduleOverlayVideoSync();
+    return;
+  }
   if (playerVideoSyncPending) {
     syncVideoStateWithAudioPlayback();
   }
@@ -3726,6 +3758,10 @@ window.addEventListener("pageshow", () => {
 
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState !== "visible") {
+    return;
+  }
+  if (isPlayerOverlayActive()) {
+    scheduleOverlayVideoSync();
     return;
   }
   if (playerVideoSyncPending || playerVideo?.classList.contains("is-visible")) {
