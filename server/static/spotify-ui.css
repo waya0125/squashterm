@@ -459,13 +459,97 @@ body {
 }
 
 
-.playlist-list,
-.favorites {
+.playlist-list {
   background: #222;
   border-radius: 18px;
   padding: 16px;
   display: grid;
   gap: 12px;
+  max-height: min(60vh, 500px);
+  overflow-y: auto;
+}
+
+.playlist-item--pinned {
+  border-color: rgba(96, 165, 250, 0.25);
+}
+
+.playlist-sync-badge {
+  display: inline-block;
+  font-size: 12px;
+  vertical-align: middle;
+  margin-left: 4px;
+}
+
+.playlist-sync-badge--active {
+  color: #60a5fa;
+}
+
+.playlist-sync-badge--error {
+  color: #fca5a5;
+}
+
+.playlist-item-menu {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.playlist-item-dots {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  font-size: 14px;
+  background: rgba(15, 23, 42, 0.4);
+  color: #94a3b8;
+}
+
+.playlist-item-dots:hover {
+  background: rgba(37, 99, 235, 0.2);
+  color: #e2e8f0;
+}
+
+.playlist-item-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 200;
+  background: #1d1d1d;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 10px;
+  padding: 6px;
+  display: grid;
+  gap: 2px;
+  min-width: 140px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.playlist-item-dropdown-item {
+  background: none;
+  border: none;
+  padding: 8px 12px;
+  text-align: left;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #e2e8f0;
+  cursor: pointer;
+  width: 100%;
+}
+
+.playlist-item-dropdown-item:hover {
+  background: rgba(37, 99, 235, 0.2);
+}
+
+.playlist-item-dropdown-item--danger {
+  color: #fca5a5;
+}
+
+.playlist-item-dropdown-item--danger:hover {
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.playlist-modal-sync-status {
+  font-size: 13px;
+  color: #94a3b8;
+  margin: 0;
 }
 
 .playlist-section-title {
@@ -1875,10 +1959,9 @@ input[type="file"] {
     grid-template-columns: 1fr;
   }
 
-  .playlist-list,
-  .favorites {
+  .playlist-list {
     max-height: 220px;
-    overflow: auto;
+    overflow-y: auto;
   }
 
   .mini-player {
@@ -3765,8 +3848,7 @@ body.theme-spotify .playlist-sidebar {
   gap: 8px;
 }
 
-body.theme-spotify .playlist-list,
-body.theme-spotify .favorites {
+body.theme-spotify .playlist-list {
   background: #181818;
   border-radius: 8px;
   padding: 8px;

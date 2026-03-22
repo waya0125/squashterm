@@ -27,6 +27,18 @@ const favorites = document.getElementById("favorites");
 const playlistCreateToggle = document.getElementById("playlist-create-toggle");
 const playlistCreateForm = document.getElementById("playlist-create-form");
 const playlistNameInput = document.getElementById("playlist-name");
+const playlistEditModal = document.getElementById("playlist-edit-modal");
+const playlistEditModalTitle = document.getElementById("playlist-edit-modal-title");
+const playlistEditForm = document.getElementById("playlist-edit-form");
+const playlistModalName = document.getElementById("playlist-modal-name");
+const playlistModalUrl = document.getElementById("playlist-modal-url");
+const playlistModalInterval = document.getElementById("playlist-modal-interval");
+const playlistModalAutosync = document.getElementById("playlist-modal-autosync");
+const playlistModalSubmit = document.getElementById("playlist-modal-submit");
+const playlistModalCancel = document.getElementById("playlist-modal-cancel");
+const playlistModalClose = document.getElementById("playlist-edit-modal-close");
+const playlistModalSyncBtn = document.getElementById("playlist-modal-sync");
+const playlistModalSyncStatus = document.getElementById("playlist-modal-sync-status");
 const playlistSearchInput = document.getElementById("playlist-search");
 const playlistDetailTitle = document.getElementById("playlist-detail-title");
 const playlistDetailDesc = document.getElementById("playlist-detail-desc");
@@ -1644,8 +1656,8 @@ const renderPlaylistDetail = () => {
     if (playlistManageToggle) playlistManageToggle.hidden = true;
     return;
   }
-  playlistDetailTitle.textContent = selected.name;
-  playlistDetailDesc.textContent = `収録曲数: ${selected.track_ids.length}`;
+  playlistDetailTitle.textContent = `${selected.name} (${selected.track_ids.length}曲)`;
+  playlistDetailDesc.textContent = "";
   // 管理ボタンを表示し、現在の管理モード状態を反映
   if (playlistManageToggle) {
     playlistManageToggle.hidden = false;
@@ -1653,7 +1665,7 @@ const renderPlaylistDetail = () => {
     playlistManageToggle.classList.toggle("is-active", playlistManageState.active);
   }
   if (selected.id !== "favorites") {
-    playlistDetailBody.appendChild(buildPlaylistSyncCard(selected));
+    // sync settings moved to modal
   }
   const visibleTrackIds = selected.track_ids.filter((trackId) => {
     const track = state.tracks.find((item) => item.id === trackId);
@@ -1740,20 +1752,72 @@ const renderPlaylistDetail = () => {
   updateMediaPlayingIndicator();
 };
 
+let _playlistEditTarget = null;
+
+const closePlaylistEditModal = () => {
+  if (!playlistEditModal) return;
+  playlistEditModal.classList.remove("is-open");
+  playlistEditModal.setAttribute("aria-hidden", "true");
+  _playlistEditTarget = null;
+};
+
+const openPlaylistModal = (mode, playlist = null) => {
+  if (!playlistEditModal) return;
+  _playlistEditTarget = mode === "edit" ? playlist : null;
+  if (playlistEditModalTitle) {
+    playlistEditModalTitle.textContent =
+      mode === "edit" ? "プレイリスト設定" : "新規プレイリスト作成";
+  }
+  if (playlistModalSubmit) {
+    playlistModalSubmit.textContent = mode === "edit" ? "保存する" : "作成する";
+  }
+  if (playlistModalName) playlistModalName.value = playlist?.name || "";
+  if (playlistModalUrl) playlistModalUrl.value = playlist?.auto_sync_url || "";
+  if (playlistModalInterval) {
+    playlistModalInterval.value = playlist?.auto_sync_interval_minutes || "";
+  }
+  if (playlistModalAutosync) {
+    playlistModalAutosync.checked = Boolean(playlist?.auto_sync_enabled);
+  }
+  if (playlistModalSyncBtn) {
+    playlistModalSyncBtn.hidden = !(mode === "edit" && playlist?.auto_sync_url);
+  }
+  if (playlistModalSyncStatus) {
+    playlistModalSyncStatus.hidden = true;
+    playlistModalSyncStatus.textContent = "";
+  }
+  playlistEditModal.classList.add("is-open");
+  playlistEditModal.setAttribute("aria-hidden", "false");
+  if (playlistModalName) playlistModalName.focus();
+};
+
 const renderPlaylists = () => {
   playlistList.innerHTML = "";
-  const title = document.createElement("h4");
-  title.className = "playlist-section-title";
-  title.textContent = "プレイリスト";
-  playlistList.appendChild(title);
+
+  // Favorites pinned item always at top
+  const favButton = document.createElement("button");
+  favButton.type = "button";
+  favButton.className = "playlist-item-main-only playlist-item--pinned";
+  if (state.selectedPlaylist?.type === "favorites") {
+    favButton.classList.add("is-active");
+  }
+  favButton.innerHTML = `
+    <span class="playlist-item-title">★ お気に入り</span>
+    <span class="playlist-item-meta">登録数: ${state.favorites.length}</span>
+  `;
+  favButton.addEventListener("click", () => {
+    setSelectedPlaylist("favorites", "favorites");
+  });
+  playlistList.appendChild(favButton);
+
   const visiblePlaylists = filterPlaylists(state.playlists, searchState.playlistQuery);
   if (visiblePlaylists.length === 0) {
-    const empty = document.createElement("div");
-    empty.className = "empty-state";
-    empty.textContent = searchState.playlistQuery
-      ? "該当するプレイリストがありません。"
-      : "項目が存在しません。";
-    playlistList.appendChild(empty);
+    if (searchState.playlistQuery) {
+      const empty = document.createElement("div");
+      empty.className = "empty-state";
+      empty.textContent = "該当するプレイリストがありません。";
+      playlistList.appendChild(empty);
+    }
     return;
   }
   visiblePlaylists.forEach((playlist) => {
@@ -1765,64 +1829,56 @@ const renderPlaylists = () => {
     ) {
       item.classList.add("is-active");
     }
+
+    let syncBadgeHtml = "";
+    if (playlist.auto_sync_last_error) {
+      const errTitle = playlist.auto_sync_last_error.replace(/"/g, "&quot;").split("\n")[0];
+      syncBadgeHtml = ` <span class="playlist-sync-badge playlist-sync-badge--error" title="${errTitle}">⚠</span>`;
+    } else if (playlist.auto_sync_enabled) {
+      syncBadgeHtml = ` <span class="playlist-sync-badge playlist-sync-badge--active" title="自動同期有効">⟳</span>`;
+    }
+
     const mainButton = document.createElement("button");
     mainButton.type = "button";
     mainButton.className = "playlist-item-main";
     mainButton.innerHTML = `
-      <span class="playlist-item-title">${playlist.name}</span>
-      <span class="playlist-item-meta">収録曲数: ${playlist.track_ids.length}</span>
+      <span class="playlist-item-title">${playlist.name}${syncBadgeHtml}</span>
+      <span class="playlist-item-meta">${playlist.track_ids.length}曲</span>
     `;
     mainButton.addEventListener("click", () => {
       setSelectedPlaylist("playlist", playlist.id);
     });
-    const actions = document.createElement("div");
-    actions.className = "playlist-item-actions";
-    const renameButton = document.createElement("button");
-    renameButton.type = "button";
-    renameButton.className = "icon-button playlist-action playlist-rename";
-    renameButton.setAttribute("aria-label", "プレイリスト名を変更");
-    renameButton.innerHTML = `
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path
-          d="M4 16.5V20h3.5l10-10-3.5-3.5-10 10zM19.5 7l-2.5-2.5 1.5-1.5a1 1 0 0 1 1.4 0l1.1 1.1a1 1 0 0 1 0 1.4L19.5 7z"
-        />
-      </svg>
-    `;
-    renameButton.addEventListener("click", async (event) => {
-      event.stopPropagation();
-      const nextName = window.prompt("新しいプレイリスト名を入力してください。", playlist.name);
-      if (!nextName) {
-        return;
-      }
-      const trimmedName = nextName.trim();
-      if (!trimmedName || trimmedName === playlist.name) {
-        return;
-      }
-      try {
-        const updated = await updatePlaylistSettings(playlist.id, { name: trimmedName });
-        const targetIndex = state.playlists.findIndex((item) => item.id === updated.id);
-        if (targetIndex >= 0) {
-          state.playlists[targetIndex] = updated;
-        }
-        renderPlaylists();
-        renderPlaylistDetail();
-      } catch (error) {
-        console.error(error);
-      }
+
+    const menuWrap = document.createElement("div");
+    menuWrap.className = "playlist-item-menu";
+
+    const menuBtn = document.createElement("button");
+    menuBtn.type = "button";
+    menuBtn.className = "icon-button playlist-item-dots";
+    menuBtn.setAttribute("aria-label", "オプション");
+    menuBtn.textContent = "⋯";
+
+    const dropdown = document.createElement("div");
+    dropdown.className = "playlist-item-dropdown";
+    dropdown.hidden = true;
+
+    const editOpt = document.createElement("button");
+    editOpt.type = "button";
+    editOpt.className = "playlist-item-dropdown-item";
+    editOpt.textContent = "設定を編集";
+    editOpt.addEventListener("click", (e) => {
+      e.stopPropagation();
+      dropdown.hidden = true;
+      openPlaylistModal("edit", playlist);
     });
-    const deleteButton = document.createElement("button");
-    deleteButton.type = "button";
-    deleteButton.className = "icon-button playlist-action playlist-delete";
-    deleteButton.setAttribute("aria-label", "プレイリストを削除");
-    deleteButton.innerHTML = `
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path
-          d="M7 6h10l-1 14H8L7 6zm9.5-3H7.5l-1 2H4v2h16V5h-2.5l-1-2z"
-        />
-      </svg>
-    `;
-    deleteButton.addEventListener("click", async (event) => {
-      event.stopPropagation();
+
+    const delOpt = document.createElement("button");
+    delOpt.type = "button";
+    delOpt.className = "playlist-item-dropdown-item playlist-item-dropdown-item--danger";
+    delOpt.textContent = "削除";
+    delOpt.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      dropdown.hidden = true;
       const result = await showConfirmDialog({
         title: "プレイリストを削除",
         message: `プレイリスト「${playlist.name}」を削除しますか？`,
@@ -1837,43 +1893,35 @@ const renderPlaylists = () => {
       }
       try {
         await deletePlaylist(playlist.id);
-        state.playlists = state.playlists.filter((item) => item.id !== playlist.id);
+        state.playlists = state.playlists.filter((p) => p.id !== playlist.id);
         ensureSelectedPlaylist();
         renderPlaylists();
         renderPlaylistDetail();
-        renderFavorites();
       } catch (error) {
         console.error(error);
       }
     });
-    actions.appendChild(renameButton);
-    actions.appendChild(deleteButton);
+
+    menuBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      document.querySelectorAll(".playlist-item-dropdown:not([hidden])").forEach((d) => {
+        if (d !== dropdown) d.hidden = true;
+      });
+      dropdown.hidden = !dropdown.hidden;
+    });
+
+    dropdown.appendChild(editOpt);
+    dropdown.appendChild(delOpt);
+    menuWrap.appendChild(menuBtn);
+    menuWrap.appendChild(dropdown);
     item.appendChild(mainButton);
-    item.appendChild(actions);
+    item.appendChild(menuWrap);
     playlistList.appendChild(item);
   });
 };
 
 const renderFavorites = () => {
-  favorites.innerHTML = "";
-  const title = document.createElement("h4");
-  title.className = "playlist-section-title";
-  title.textContent = "お気に入り";
-  favorites.appendChild(title);
-  const button = document.createElement("button");
-  button.type = "button";
-  button.className = "playlist-item playlist-item-main-only";
-  if (state.selectedPlaylist?.type === "favorites") {
-    button.classList.add("is-active");
-  }
-  button.innerHTML = `
-    <span class="playlist-item-title">お気に入り</span>
-    <span class="playlist-item-meta">登録数: ${state.favorites.length}</span>
-  `;
-  button.addEventListener("click", () => {
-    setSelectedPlaylist("favorites", "favorites");
-  });
-  favorites.appendChild(button);
+  renderPlaylists();
 };
 
 const renderPlaylistModalList = () => {
@@ -2834,19 +2882,87 @@ if (settingsBaseUrlSave) {
   });
 }
 
-if (playlistCreateToggle && playlistCreateForm) {
+if (playlistCreateToggle) {
   playlistCreateToggle.addEventListener("click", () => {
-    const isOpen = playlistCreateForm.classList.toggle("is-open");
-    playlistCreateForm.setAttribute("aria-hidden", isOpen ? "false" : "true");
+    openPlaylistModal("create");
   });
 }
 
-if (playlistCreateForm) {
-  playlistCreateForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-    handlePlaylistCreate();
+if (playlistModalClose) {
+  playlistModalClose.addEventListener("click", closePlaylistEditModal);
+}
+
+if (playlistModalCancel) {
+  playlistModalCancel.addEventListener("click", closePlaylistEditModal);
+}
+
+if (playlistEditModal) {
+  playlistEditModal.addEventListener("click", (event) => {
+    if (event.target === playlistEditModal) closePlaylistEditModal();
   });
 }
+
+if (playlistModalSyncBtn) {
+  playlistModalSyncBtn.addEventListener("click", async () => {
+    if (!_playlistEditTarget) return;
+    if (playlistModalSyncStatus) {
+      playlistModalSyncStatus.textContent = "同期中...";
+      playlistModalSyncStatus.hidden = false;
+    }
+    try {
+      await syncPlaylistNow(_playlistEditTarget.id);
+      await refreshLibrary();
+      closePlaylistEditModal();
+    } catch (error) {
+      if (playlistModalSyncStatus) {
+        playlistModalSyncStatus.textContent = `同期に失敗しました: ${error.message}`;
+      }
+    }
+  });
+}
+
+if (playlistEditForm) {
+  playlistEditForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const name = playlistModalName?.value.trim();
+    if (!name) return;
+    const autoSyncUrl = playlistModalUrl?.value.trim() || null;
+    const intervalValue = playlistModalInterval?.value.trim();
+    const parsedInterval = intervalValue ? Number(intervalValue) : null;
+    const autoSyncEnabled = Boolean(playlistModalAutosync?.checked) && Boolean(autoSyncUrl);
+    const payload = {
+      name,
+      auto_sync_url: autoSyncUrl || null,
+      auto_sync_interval_minutes: Number.isFinite(parsedInterval) ? parsedInterval : null,
+      auto_sync_enabled: autoSyncEnabled,
+    };
+    try {
+      if (_playlistEditTarget) {
+        const updated = await updatePlaylistSettings(_playlistEditTarget.id, payload);
+        const targetIndex = state.playlists.findIndex((p) => p.id === updated.id);
+        if (targetIndex >= 0) state.playlists[targetIndex] = updated;
+        renderPlaylistDetail();
+      } else {
+        const playlist = await requestJson("/api/playlists", { ...payload, track_ids: [] }, "POST");
+        state.playlists.push(playlist);
+        setSelectedPlaylist("playlist", playlist.id);
+        renderPlaylistSelectOptions();
+        renderPlaylistModalList();
+      }
+      closePlaylistEditModal();
+      renderPlaylists();
+    } catch (error) {
+      console.error(error);
+    }
+  });
+}
+
+// Close playlist sidebar dropdowns when clicking elsewhere
+document.addEventListener("click", () => {
+  document.querySelectorAll(".playlist-item-dropdown:not([hidden])").forEach((d) => {
+    d.hidden = true;
+  });
+});
 
 if (mediaSearchInput) {
   mediaSearchInput.addEventListener("input", (event) => {

@@ -177,14 +177,6 @@
             </div>
             <div class="playlist-layout">
               <div class="playlist-sidebar">
-                <form class="card playlist-create" id="playlist-create-form" aria-hidden="true">
-                  <h4>新規プレイリスト</h4>
-                  <label>
-                    <span>プレイリスト名</span>
-                    <input type="text" id="playlist-name" placeholder="プレイリスト名" />
-                  </label>
-                  <button class="primary" type="submit">作成する</button>
-                </form>
                 <label class="search-field">
                   <span>プレイリスト検索</span>
                   <input
@@ -195,7 +187,6 @@
                   />
                 </label>
                 <div class="playlist-list" id="playlist-list"></div>
-                <div class="favorites" id="favorites"></div>
               </div>
               <div class="playlist-detail">
                 <div class="playlist-detail-header">
@@ -840,6 +831,49 @@
           <p>ボタンを押してリンクをコピーしてください。</p>
           <input type="text" id="share-dialog-url" readonly />
           <button type="button" class="primary" id="share-dialog-copy">リンクをコピー</button>
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="modal-overlay"
+      id="playlist-edit-modal"
+      aria-hidden="true"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 id="playlist-edit-modal-title">新規プレイリスト作成</h3>
+          <button type="button" class="icon-button" id="playlist-edit-modal-close" aria-label="閉じる">
+            ×
+          </button>
+        </div>
+        <div class="modal-body">
+          <form class="modal-form" id="playlist-edit-form">
+            <label>
+              <span>プレイリスト名</span>
+              <input type="text" id="playlist-modal-name" placeholder="プレイリスト名" required />
+            </label>
+            <label>
+              <span>同期先 URL</span>
+              <input type="url" id="playlist-modal-url" placeholder="https://www.youtube.com/playlist?list=..." />
+            </label>
+            <label>
+              <span>同期間隔（分）</span>
+              <input type="number" id="playlist-modal-interval" min="1" step="1" placeholder="60" />
+            </label>
+            <label class="checkbox">
+              <input type="checkbox" id="playlist-modal-autosync" />
+              <span>自動同期を有効にする</span>
+            </label>
+            <p class="playlist-modal-sync-status" id="playlist-modal-sync-status" hidden></p>
+            <div class="modal-actions">
+              <button type="button" class="secondary" id="playlist-modal-sync" hidden>今すぐ同期する</button>
+              <button type="button" class="secondary" id="playlist-modal-cancel">キャンセル</button>
+              <button type="submit" class="primary" id="playlist-modal-submit">作成する</button>
+            </div>
+          </form>
         </div>
       </div>
     </div>
