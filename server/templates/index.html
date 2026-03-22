@@ -435,6 +435,21 @@
     <section class="player-overlay" id="player-overlay" aria-hidden="true">
       <div class="player-overlay-content">
         <div class="player-menu">
+          <!-- キューを見るボタン: ⋯の隣に独立配置 -->
+          <button
+            class="icon-button player-queue-btn"
+            type="button"
+            id="player-queue-view"
+            aria-label="キューを見る"
+            aria-pressed="false"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 6h18M3 12h12M3 18h8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M18 11v6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="18" cy="19" r="2" fill="currentColor"/>
+            </svg>
+            <span class="sr-only">キューを見る</span>
+          </button>
           <button
             class="icon-button player-menu-toggle"
             type="button"

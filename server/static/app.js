@@ -98,6 +98,7 @@ const playerShuffle = document.getElementById("player-shuffle");
 const playerFavorite = document.getElementById("player-favorite");
 const playerMenuToggle = document.getElementById("player-menu-toggle");
 const playerMenuPanel = document.getElementById("player-menu-panel");
+const playerQueueView = document.getElementById("player-queue-view");
 const playerDownload = document.getElementById("player-download");
 const playerAddPlaylist = document.getElementById("player-add-playlist");
 const playerOpenSource = document.getElementById("player-open-source");
@@ -971,11 +972,19 @@ const renderMedia = () => {
   if (mediaViewState.mode === "list") {
     const list = document.createElement("div");
     list.className = selectionState.active ? "media-list media-list--selecting" : "media-list";
-    list.innerHTML = `
+    const isSpotify = window._sqTheme?.spotify;
+    list.innerHTML = isSpotify ? `
       <div class="media-list-header">
         <span>#</span>
         <span class="col-title" data-sort="title">タイトル</span>
         <span class="col-album" data-sort="album">アルバム</span>
+        <span data-sort="duration">再生時間</span>
+      </div>
+    ` : `
+      <div class="media-list-header">
+        <span>#</span>
+        <span class="col-title" data-sort="title">タイトル</span>
+        <span class="col-artist" data-sort="artist">アーティスト</span>
         <span data-sort="duration">再生時間</span>
       </div>
     `;
@@ -1000,15 +1009,23 @@ const renderMedia = () => {
           <span class="num-text">${idx + 1}</span>
           <svg class="num-play" viewBox="0 0 24 24"><polygon points="8,5 19,12 8,19"/></svg>
         </span>`;
-      const titleCellHtml = `
+      const titleCellHtml = isSpotify ? `
         <span class="media-list-title-cell">
           <img class="media-list-cover" src="${track.cover}" alt="" loading="lazy" />
           <span class="media-list-title-stack">
             <span class="media-list-title">${track.title}</span>
             <span class="media-list-artist">${track.artist}</span>
           </span>
+        </span>` : `
+        <span class="media-list-title-cell">
+          <img class="media-list-cover" src="${track.cover}" alt="" loading="lazy" />
+          <span class="media-list-title-stack">
+            <span class="media-list-title">${track.title}</span>
+          </span>
         </span>`;
-      const albumHtml = `<span class="media-list-album">${track.album || ''}</span>`;
+      const secondColHtml = isSpotify
+        ? `<span class="media-list-album">${track.album || ''}</span>`
+        : `<span class="media-list-artist-col">${track.artist}</span>`;
       const durationHtml = `<span class="media-list-duration">${track.duration}</span>`;
 
       const menuBtnHtml = `<button class="track-menu-btn" type="button" data-track-id="${track.id}" aria-label="曲のメニュー" tabindex="-1">
@@ -1016,7 +1033,7 @@ const renderMedia = () => {
       </button>`;
 
       if (selectionState.active) {
-        // 選択モード: checkbox | # | title-cell | album | duration
+        // 選択モード: checkbox | # | title-cell | second-col | duration
         const checkbox = document.createElement("input");
         checkbox.type = "checkbox";
         checkbox.className = "media-list-checkbox";
@@ -1032,7 +1049,7 @@ const renderMedia = () => {
           updateBulkBar();
         });
         row.appendChild(checkbox);
-        row.insertAdjacentHTML("beforeend", numHtml + titleCellHtml + albumHtml + durationHtml);
+        row.insertAdjacentHTML("beforeend", numHtml + titleCellHtml + secondColHtml + durationHtml);
         row.style.cursor = "pointer";
         row.addEventListener("click", (e) => {
           if (e.target.type === "checkbox") return;
@@ -1040,8 +1057,8 @@ const renderMedia = () => {
           checkbox.dispatchEvent(new Event("change"));
         });
       } else {
-        // 通常モード: # | title-cell | album | duration | ⋯
-        row.innerHTML = numHtml + titleCellHtml + albumHtml + durationHtml + menuBtnHtml;
+        // 通常モード: # | title-cell | second-col | duration | ⋯
+        row.innerHTML = numHtml + titleCellHtml + secondColHtml + durationHtml + menuBtnHtml;
         if (hasAudio) {
           row.addEventListener("click", (e) => {
             if (e.target.closest(".track-menu-btn")) return;
@@ -3742,6 +3759,16 @@ if (mobilePlayerMenuPanel) {
       toggleUpNextPanel();
     });
   }
+
+  // 標準UIプレイヤーメニューの「キューを見る」
+  if (playerQueueView) {
+    playerQueueView.addEventListener("click", () => {
+      const isOpen = document.getElementById("up-next-panel")?.getAttribute("aria-hidden") === "false";
+      toggleUpNextPanel();
+      playerQueueView.setAttribute("aria-pressed", isOpen ? "false" : "true");
+    });
+  }
+
   // モバイルプレイヤー内の Up Next ボタン
   const mobileQueueBtn = document.getElementById("mobile-player-queue");
   if (mobileQueueBtn) {
@@ -3764,16 +3791,20 @@ if (mobilePlayerMenuPanel) {
     const panel = document.getElementById("up-next-panel");
     const queueBtn = document.getElementById("sp-queue");
     const mobileQueueBtnEl = document.getElementById("mobile-player-queue");
+    const stdQueueViewBtn = document.getElementById("player-queue-view");
     if (
       panel &&
       panel.getAttribute("aria-hidden") === "false" &&
       !panel.contains(e.target) &&
       e.target !== queueBtn &&
+      e.target !== stdQueueViewBtn &&
+      !stdQueueViewBtn?.contains(e.target) &&
       e.target !== mobileQueueBtnEl &&
       !mobileQueueBtnEl?.contains(e.target)
     ) {
       closeUpNextPanel();
       mobileQueueBtnEl?.setAttribute("aria-pressed", "false");
+      stdQueueViewBtn?.setAttribute("aria-pressed", "false");
     }
   });
 }
