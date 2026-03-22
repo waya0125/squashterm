@@ -189,7 +189,7 @@ const playerState = {
 };
 
 const mediaViewState = {
-  mode: "grid",
+  mode: localStorage.getItem("mediaViewMode") || "grid",
 };
 
 const searchState = {
@@ -1461,6 +1461,8 @@ const closeUpNextPanel = () => {
   if (!panel) return;
   panel.setAttribute("aria-hidden", "true");
   document.getElementById("sp-queue")?.setAttribute("aria-pressed", "false");
+  document.getElementById("player-queue-view")?.setAttribute("aria-pressed", "false");
+  document.getElementById("mobile-player-queue")?.setAttribute("aria-pressed", "false");
 };
 
 const toggleUpNextPanel = () => {
@@ -3057,6 +3059,7 @@ if (tagSave) {
 if (mediaViewToggle) {
   mediaViewToggle.addEventListener("click", () => {
     mediaViewState.mode = mediaViewState.mode === "list" ? "grid" : "list";
+    localStorage.setItem("mediaViewMode", mediaViewState.mode);
     updateMediaViewToggle();
     renderMedia();
   });
@@ -4335,6 +4338,27 @@ if (supportsMediaSession) {
       audioPlayer.currentTime = event.seekTime;
     }
     updateMediaSessionPosition();
+  });
+}
+
+
+// 画面サイズ変更時に全画面プレイヤーをモバイル/デスクトップ切り替え
+{
+  let _resizeTimer = null;
+  window.addEventListener("resize", () => {
+    clearTimeout(_resizeTimer);
+    _resizeTimer = setTimeout(() => {
+      if (isPlayerOverlayActive() && isMobileDevice()) {
+        closePlayerOverlay();
+        openMobilePlayer();
+      } else if (
+        mobilePlayerOverlay?.getAttribute("aria-hidden") === "false" &&
+        !isMobileDevice()
+      ) {
+        closeMobilePlayer();
+        openPlayerOverlay();
+      }
+    }, 200);
   });
 }
 
