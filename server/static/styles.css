@@ -2326,10 +2326,6 @@ input[type="file"] {
 .up-next-panel[aria-hidden="false"] {
   transform: translateX(0);
 }
-
-body.player-overlay-open .up-next-panel {
-  display: none !important;
-}
 .up-next-header {
   display: flex;
   align-items: center;

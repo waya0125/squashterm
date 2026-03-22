@@ -711,6 +711,7 @@ const openPlayerOverlay = () => {
     playerOverlay.setAttribute("aria-hidden", "false");
   }
   document.body?.classList.add("player-overlay-open");
+  closeUpNextPanel();
   updatePlayerUI();
   updatePlayerButtons();
   updateFavoriteButtons();

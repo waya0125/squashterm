@@ -3586,17 +3586,6 @@ body.theme-spotify .search-input::placeholder {
   color: var(--sp-text-muted);
 }
 
-/* Spotifyテーマ全体の .primary ボタンを緑基調に */
-body.theme-spotify .primary {
-  background: var(--sp-accent);
-  color: #000;
-  font-weight: 600;
-}
-
-body.theme-spotify .primary:hover {
-  background: #1ed760;
-}
-
 /* パネルヘッダーのボタン類 */
 body.theme-spotify .panel-header button.primary,
 body.theme-spotify .panel-header .panel-actions button.primary {
@@ -4538,8 +4527,9 @@ body.theme-spotify .settings-grid .checkbox span::after {
   transform: translateX(0);
 }
 
-body.player-overlay-open .up-next-panel {
-  display: none !important;
+/* Spotifyテーマの全画面プレイヤー内「次に再生」ボタンを非表示 */
+body.theme-spotify .player-overlay .player-queue-btn {
+  display: none;
 }
 .up-next-header {
   display: flex;
