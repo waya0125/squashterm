@@ -1761,7 +1761,7 @@ const closePlaylistEditModal = () => {
   _playlistEditTarget = null;
 };
 
-const openPlaylistModal = (mode, playlist = null) => {
+const openPlaylistEditModal = (mode, playlist = null) => {
   if (!playlistEditModal) return;
   _playlistEditTarget = mode === "edit" ? playlist : null;
   if (playlistEditModalTitle) {
@@ -1869,7 +1869,7 @@ const renderPlaylists = () => {
     editOpt.addEventListener("click", (e) => {
       e.stopPropagation();
       dropdown.hidden = true;
-      openPlaylistModal("edit", playlist);
+      openPlaylistEditModal("edit", playlist);
     });
 
     const delOpt = document.createElement("button");
@@ -2884,7 +2884,7 @@ if (settingsBaseUrlSave) {
 
 if (playlistCreateToggle) {
   playlistCreateToggle.addEventListener("click", () => {
-    openPlaylistModal("create");
+    openPlaylistEditModal("create");
   });
 }
 
