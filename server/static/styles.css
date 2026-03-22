@@ -609,9 +609,7 @@ body.has-mini-player .content {
 }
 
 .playlist-item-dropdown {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 4px);
+  position: fixed;
   z-index: 200;
   background: #1d1d1d;
   border: 1px solid rgba(148, 163, 184, 0.2);

@@ -1912,7 +1912,14 @@ const renderPlaylists = () => {
       document.querySelectorAll(".playlist-item-dropdown:not([hidden])").forEach((d) => {
         if (d !== dropdown) d.hidden = true;
       });
-      dropdown.hidden = !dropdown.hidden;
+      if (dropdown.hidden) {
+        const rect = menuBtn.getBoundingClientRect();
+        dropdown.style.top = `${rect.bottom + 4}px`;
+        dropdown.style.right = `${window.innerWidth - rect.right}px`;
+        dropdown.hidden = false;
+      } else {
+        dropdown.hidden = true;
+      }
     });
 
     dropdown.appendChild(editOpt);
