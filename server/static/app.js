@@ -36,7 +36,7 @@ const playlistModalInterval = document.getElementById("playlist-modal-interval")
 const playlistModalAutosync = document.getElementById("playlist-modal-autosync");
 const playlistModalSubmit = document.getElementById("playlist-modal-submit");
 const playlistModalCancel = document.getElementById("playlist-modal-cancel");
-const playlistModalClose = document.getElementById("playlist-edit-modal-close");
+const playlistEditModalClose = document.getElementById("playlist-edit-modal-close");
 const playlistModalSyncBtn = document.getElementById("playlist-modal-sync");
 const playlistModalSyncStatus = document.getElementById("playlist-modal-sync-status");
 const playlistSearchInput = document.getElementById("playlist-search");
@@ -2888,8 +2888,8 @@ if (playlistCreateToggle) {
   });
 }
 
-if (playlistModalClose) {
-  playlistModalClose.addEventListener("click", closePlaylistEditModal);
+if (playlistEditModalClose) {
+  playlistEditModalClose.addEventListener("click", closePlaylistEditModal);
 }
 
 if (playlistModalCancel) {
