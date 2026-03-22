@@ -598,6 +598,10 @@ body {
 .playlist-detail-header h4 {
   margin: 0;
   font-size: 18px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .playlist-detail-header {
