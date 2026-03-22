@@ -1179,6 +1179,7 @@ input[type="file"] {
 .player-controls-row {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 16px;
   position: relative;
   z-index: 3;
@@ -1187,12 +1188,18 @@ input[type="file"] {
 .player-controls {
   display: flex;
   gap: 12px;
-  justify-content: flex-start;
+  justify-content: center;
   flex-wrap: wrap;
   position: relative;
   z-index: 2;
   margin-top: 4px;
-  flex: 1;
+}
+
+.player-menu {
+  position: absolute;
+  right: 0;
+  display: flex;
+  align-items: center;
 }
 
 .player-progress {
@@ -1319,12 +1326,6 @@ input[type="file"] {
   height: 4px;
   background: rgba(148, 163, 184, 0.3);
   border-radius: 2px;
-}
-
-.player-menu {
-  position: relative;
-  display: flex;
-  align-items: center;
 }
 
 .player-menu-toggle {
@@ -1544,11 +1545,11 @@ input[type="file"] {
 
 .mini-player {
   position: fixed;
-  left: 24px;
-  right: 24px;
-  bottom: 24px;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: #111;
-  border-radius: 20px;
+  border-radius: 0;
   padding: 12px 16px;
   display: grid;
   grid-template-columns: 1fr auto;
@@ -1557,7 +1558,7 @@ input[type="file"] {
     "progress progress";
   align-items: center;
   gap: 16px;
-  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.55);
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.4);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s ease;
