@@ -637,7 +637,7 @@ body {
 .playlist-track-header,
 .playlist-track-row {
   display: grid;
-  grid-template-columns: 3ch minmax(0, 1fr) minmax(0, 30%) 7em 28px;
+  grid-template-columns: 3ch minmax(0, 1fr) minmax(0, 20%) 5em 28px;
   align-items: center;
   gap: 12px;
 }
@@ -645,7 +645,7 @@ body {
 /* 管理モード: ドラッグハンドル列＋削除ボタン列を追加 */
 .playlist-track-list--managing .playlist-track-header,
 .playlist-track-list--managing .playlist-track-row {
-  grid-template-columns: 20px 3ch minmax(0, 1fr) minmax(0, 30%) 7em 32px 28px;
+  grid-template-columns: 20px 3ch minmax(0, 1fr) minmax(0, 20%) 5em 32px 28px;
 }
 
 .playlist-track-header {
