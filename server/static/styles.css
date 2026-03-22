@@ -1184,6 +1184,7 @@ input[type="file"] {
   position: absolute;
   inset: 0;
   z-index: 0;
+  pointer-events: none;
 }
 
 .player-cover {
@@ -1191,6 +1192,7 @@ input[type="file"] {
   height: 100vh;
   max-height: 100vh;
   object-fit: cover;
+  pointer-events: none;
 }
 
 .player-cover.is-hidden {
@@ -1213,7 +1215,6 @@ input[type="file"] {
 .player-video.is-visible {
   opacity: 1;
   visibility: visible;
-  pointer-events: auto;
 }
 
 .player-bottom {
