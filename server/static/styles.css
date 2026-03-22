@@ -188,7 +188,19 @@ body.has-mini-player .content {
   display: flex;
   gap: 12px;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  margin-left: auto;
+}
+
+#media-search {
+  flex: 1;
+  min-width: 140px;
+}
+
+#media-select-toggle,
+#media-view-toggle {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 #settings-base-url {
@@ -1975,6 +1987,12 @@ input[type="file"] {
 
   .panel-actions {
     width: 100%;
+    flex-wrap: wrap;
+    margin-left: 0;
+  }
+
+  #media-search {
+    flex: 1 1 140px;
   }
   
   .media-grid {
@@ -2110,10 +2128,24 @@ input[type="file"] {
 
   .media-list-header,
   .media-list-row {
-    grid-template-columns: 2ch minmax(0, 1fr) minmax(0, 25%) 4em 28px;
+    grid-template-columns: 2ch minmax(0, 1fr) 4em;
     gap: 6px;
     padding: 8px;
     font-size: 12px;
+  }
+
+  .media-list--selecting .media-list-header,
+  .media-list--selecting .media-list-row {
+    grid-template-columns: 18px 2ch minmax(0, 1fr) 4em;
+  }
+
+  .col-artist,
+  .media-list-artist-col {
+    display: none;
+  }
+
+  .track-menu-btn {
+    display: none;
   }
 
   .media-list-header {

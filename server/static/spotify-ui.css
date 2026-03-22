@@ -1863,8 +1863,10 @@ input[type="file"] {
 
   .panel-actions {
     width: 100%;
+    flex-wrap: wrap;
+    margin-left: 0;
   }
-  
+
   .media-grid {
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   }
@@ -3455,7 +3457,18 @@ body.theme-spotify .panel-header h3 {
 
 body.theme-spotify .panel-actions {
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+}
+
+#media-search {
+  flex: 1;
+  min-width: 140px;
+}
+
+#media-select-toggle,
+#media-view-toggle {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 /* 検索入力 */
