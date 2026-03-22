@@ -1,8 +1,9 @@
 :root {
   color-scheme: dark;
   font-family: "Segoe UI", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
-  background: #1d1d1d;
+  background: #0c0c0c;
   color: #e2e8f0;
+  --theme-accent-color: #2563eb;
 }
 
 * {
@@ -11,7 +12,7 @@
 
 body {
   margin: 0;
-  background: #1d1d1d;
+  background: #0c0c0c;
   overflow-x: hidden;
 }
 
@@ -30,7 +31,7 @@ body {
 }
 
 .sidebar {
-  background: #111;
+  background: #181818;
   border-radius: 20px;
   padding: 20px;
   display: flex;
@@ -85,10 +86,10 @@ body {
 }
 
 .nav-button.is-active {
-  background: #2563eb;
+  background: var(--theme-accent-color);
   color: #ffffff;
   border-color: rgba(59, 130, 246, 0.5);
-  box-shadow: 0 12px 30px rgba(37, 99, 235, 0.3);
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--theme-accent-color) 30%, transparent);
 }
 
 .content {
@@ -159,10 +160,10 @@ body {
 
 .panel {
   display: none;
-  background: #111;
-  border-radius: 24px;
-  padding: 24px;
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.45);
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
 }
 
 .panel.is-active {
@@ -1883,6 +1884,15 @@ input[type="file"] {
     gap: 8px;
   }
 }
+
+
+/* ===================================================================
+   Spotify専用要素 — 標準テーマでは非表示
+   (spotify-ui.css 側で再表示)
+   =================================================================== */
+
+#sp-player-bar     { display: none; }
+#up-next-panel     { display: none; }
 
 
 
