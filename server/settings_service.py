@@ -190,9 +190,19 @@ def update_playback_option(option_id: str, enabled: bool) -> dict:
             option["enabled"] = enabled
             updated = True
             break
-    
+
     if not updated:
-        raise ValueError(f"Option not found: {option_id}")
+        fallback_option = next(
+            (option for option in DEFAULT_SETTINGS.get("playback_options", []) if option.get("id") == option_id),
+            None,
+        )
+        if fallback_option is None:
+            raise ValueError(f"Option not found: {option_id}")
+        playback_options.append({
+            "id": option_id,
+            "label": fallback_option.get("label", option_id),
+            "enabled": enabled,
+        })
     
     settings["playback_options"] = playback_options
     SETTINGS_PATH.write_text(

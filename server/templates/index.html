@@ -63,6 +63,14 @@
               </svg>
               <span class="label">Settings</span>
             </button>
+            <button class="nav-button" data-tab="about" role="tab" id="about-tab-button">
+              <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2" />
+                <circle cx="12" cy="8" r="1.4" />
+                <rect x="11" y="10.5" width="2" height="7" rx="1" />
+              </svg>
+              <span class="label">About</span>
+            </button>
                       <button class="nav-button" data-tab="admin" role="tab" id="admin-tab-button" style="display:none;">
               <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l3 6 6 .9-4.5 4.4 1 6.2L12 17l-5.5 2.5 1-6.2L3 8.9 9 8z"/></svg>
               <span class="label">Admin</span>
@@ -391,10 +399,6 @@
               </div>
               <div class="card"><h4>APIキー管理</h4><div id="admin-api-key-list"></div></div>
               <div class="card">
-                <h4>システム情報</h4>
-                <ul id="system-info-list"></ul>
-              </div>
-              <div class="card">
                 <h4>再生設定</h4>
                 <div id="settings-playback-options"></div>
               </div>
@@ -447,6 +451,28 @@
             </div>
             <div class="settings-grid">
               <div class="card">
+                <h4>動作設定</h4>
+                <label class="checkbox"><input type="checkbox" id="settings-show-video-on-player" /><span>全画面プレイヤーで動画を優先表示</span></label>
+              </div>
+              <div class="card">
+                <h4>プロフィール</h4>
+                <label><span>表示名</span><input type="text" id="settings-display-name" /></label>
+                <label><span>現在のアイコン</span><img id="settings-user-icon" src="/static/images/icon.png" alt="user icon" style="width:56px;height:56px;border-radius:999px;object-fit:cover;" /></label>
+                <label><span>アイコン画像アップロード</span><input type="file" id="settings-user-icon-file" accept="image/*" /></label>
+                <button class="secondary" type="button" id="settings-profile-save">プロフィールを保存</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel" id="panel-about" role="tabpanel">
+            <div class="panel-header">
+              <div>
+                <h3>About</h3>
+                <p>バージョン・ストレージ・システム情報を表示します。</p>
+              </div>
+            </div>
+            <div class="settings-grid">
+              <div class="card">
                 <h4>バージョン情報</h4>
                 <ul id="settings-version-list"></ul>
               </div>
@@ -457,12 +483,9 @@
                 </div>
                 <p id="settings-storage-text"></p>
               </div>
-              <div class="card">
-                <h4>プロフィール</h4>
-                <label><span>表示名</span><input type="text" id="settings-display-name" /></label>
-                <label><span>現在のアイコン</span><img id="settings-user-icon" src="/static/images/icon.png" alt="user icon" style="width:56px;height:56px;border-radius:999px;object-fit:cover;" /></label>
-                <label><span>アイコン画像アップロード</span><input type="file" id="settings-user-icon-file" accept="image/*" /></label>
-                <button class="secondary" type="button" id="settings-profile-save">プロフィールを保存</button>
+              <div class="card" id="about-system-card" style="display:none;">
+                <h4>システム情報</h4>
+                <ul id="system-info-list"></ul>
               </div>
             </div>
           </section>
@@ -475,6 +498,7 @@
         <h4>ログイン</h4>
         <label><span>ユーザー名</span><input type="text" id="auth-username" required /></label>
         <label><span>パスワード</span><input type="password" id="auth-password" required /></label>
+        <p id="auth-login-error" style="font-size:0.85rem;color:#fca5a5;min-height:1.2em;"></p>
         <div style="display:flex;gap:.5rem;justify-content:flex-end;"><button type="button" class="secondary" id="auth-login-cancel">キャンセル</button><button type="submit" class="primary">ログイン</button></div>
       </form>
     </dialog>
@@ -496,6 +520,7 @@
         </button>
         <div class="player-visual">
           <img class="player-cover" id="player-cover" src="" alt="" />
+          <video class="player-video" id="player-video" playsinline muted preload="auto"></video>
         </div>
         <div class="player-bottom">
           <div class="player-info">
