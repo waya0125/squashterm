@@ -1181,35 +1181,65 @@ const buildPlaylistTrackRow = (track, listType, idx) => {
   const row = document.createElement("div");
   row.className = "playlist-track-row";
   row.dataset.trackId = track.id;
-  row.innerHTML = `
-    <span class="playlist-drag-handle" draggable="true" aria-label="並び替え">
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <rect x="5" y="7" width="14" height="2" rx="1" />
-        <rect x="5" y="15" width="14" height="2" rx="1" />
-      </svg>
-    </span>
-    <span class="media-list-num" aria-hidden="true">
-      <span class="num-text">${idx + 1}</span>
-      <svg class="num-play" viewBox="0 0 24 24"><polygon points="8,5 19,12 8,19"/></svg>
-    </span>
-    <span class="media-list-title-cell">
-      <img class="media-list-cover" src="${track.cover}" alt="" loading="lazy" />
-      <span class="media-list-title-stack">
-        <span class="media-list-title">${track.title}</span>
-        <span class="media-list-artist">${track.artist}</span>
+  const isSpotify = window._sqTheme && window._sqTheme.spotify;
+  if (isSpotify) {
+    row.innerHTML = `
+      <span class="playlist-drag-handle" draggable="true" aria-label="並び替え">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="5" y="7" width="14" height="2" rx="1" />
+          <rect x="5" y="15" width="14" height="2" rx="1" />
+        </svg>
       </span>
-    </span>
-    <span class="media-list-album">${track.album || ""}</span>
-    <span class="media-list-duration">${track.duration}</span>
-    <button class="playlist-remove" type="button" aria-label="削除">
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M9 3h6l1 2h4v2H4V5h4l1-2zm1 6h2v9h-2V9zm4 0h2v9h-2V9zm-8 0h2v9H6V9z"/>
-      </svg>
-    </button>
-    <button class="track-menu-btn" type="button" data-track-id="${track.id}" aria-label="曲のメニュー" tabindex="-1">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>
-    </button>
-  `;
+      <span class="media-list-num" aria-hidden="true">
+        <span class="num-text">${idx + 1}</span>
+        <svg class="num-play" viewBox="0 0 24 24"><polygon points="8,5 19,12 8,19"/></svg>
+      </span>
+      <span class="media-list-title-cell">
+        <img class="media-list-cover" src="${track.cover}" alt="" loading="lazy" />
+        <span class="media-list-title-stack">
+          <span class="media-list-title">${track.title}</span>
+          <span class="media-list-artist">${track.artist}</span>
+        </span>
+      </span>
+      <span class="media-list-album">${track.album || ""}</span>
+      <span class="media-list-duration">${track.duration}</span>
+      <button class="playlist-remove" type="button" aria-label="削除">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M9 3h6l1 2h4v2H4V5h4l1-2zm1 6h2v9h-2V9zm4 0h2v9h-2V9zm-8 0h2v9H6V9z"/>
+        </svg>
+      </button>
+      <button class="track-menu-btn" type="button" data-track-id="${track.id}" aria-label="曲のメニュー" tabindex="-1">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>
+      </button>
+    `;
+  } else {
+    /* 標準UI: 並替ハンドル | [カバー]タイトル | アーティスト | 再生時間 | 削除 */
+    row.innerHTML = `
+      <span class="playlist-drag-handle" draggable="true" aria-label="並び替え">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="5" y="7" width="14" height="2" rx="1" />
+          <rect x="5" y="15" width="14" height="2" rx="1" />
+        </svg>
+      </span>
+      <span class="media-list-title-cell">
+        <img class="media-list-cover" src="${track.cover}" alt="" loading="lazy" />
+        <span class="media-list-title-stack">
+          <span class="media-list-title"></span>
+        </span>
+      </span>
+      <span class="media-list-artist-col"></span>
+      <span class="media-list-duration">${track.duration}</span>
+      <button class="playlist-remove" type="button" aria-label="削除">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M9 3h6l1 2h4v2H4V5h4l1-2zm1 6h2v9h-2V9zm4 0h2v9h-2V9zm-8 0h2v9H6V9z"/>
+        </svg>
+      </button>
+    `;
+    const titleEl = row.querySelector(".media-list-title");
+    const artistEl = row.querySelector(".media-list-artist-col");
+    if (titleEl) { titleEl.textContent = track.title; titleEl.dataset.marqueeText = track.title; }
+    if (artistEl) { artistEl.textContent = track.artist; artistEl.dataset.marqueeText = track.artist; }
+  }
   row.addEventListener("click", (event) => {
     if (
       event.target.closest(".playlist-remove") ||
@@ -1581,6 +1611,10 @@ const renderPlaylistDetail = () => {
   if (!playlistDetailBody || !playlistDetailTitle || !playlistDetailDesc) {
     return;
   }
+  if (playlistDetailBody._marqueeObserver) {
+    playlistDetailBody._marqueeObserver.disconnect();
+    playlistDetailBody._marqueeObserver = null;
+  }
   playlistDetailBody.innerHTML = "";
   const selected = getSelectedPlaylistData();
   if (!selected) {
@@ -1624,16 +1658,29 @@ const renderPlaylistDetail = () => {
   list.className = playlistManageState.active
     ? "playlist-track-list playlist-track-list--managing"
     : "playlist-track-list";
-  list.innerHTML = `
-    <div class="playlist-track-header">
-      <span class="col-manage-placeholder"></span>
-      <span>#</span>
-      <span class="col-title" data-sort="title">タイトル</span>
-      <span class="col-album" data-sort="album">アルバム</span>
-      <span data-sort="duration">再生時間</span>
-      <span class="col-manage-placeholder"></span>
-    </div>
-  `;
+  const isSpotify = window._sqTheme && window._sqTheme.spotify;
+  if (isSpotify) {
+    list.innerHTML = `
+      <div class="playlist-track-header">
+        <span class="col-manage-placeholder"></span>
+        <span>#</span>
+        <span class="col-title" data-sort="title">タイトル</span>
+        <span class="col-album" data-sort="album">アルバム</span>
+        <span data-sort="duration">再生時間</span>
+        <span class="col-manage-placeholder"></span>
+      </div>
+    `;
+  } else {
+    list.innerHTML = `
+      <div class="playlist-track-header">
+        <span></span>
+        <span class="col-title">タイトル</span>
+        <span>アーティスト</span>
+        <span>再生時間</span>
+        <span></span>
+      </div>
+    `;
+  }
   visibleTrackIds.forEach((trackId, idx) => {
     const track = state.tracks.find((item) => item.id === trackId);
     if (!track) return;
@@ -1642,13 +1689,34 @@ const renderPlaylistDetail = () => {
     );
   });
   playlistDetailBody.appendChild(list);
-  // タイトル/アーティストにマーキー適用
-  list.querySelectorAll(".media-list-title-stack").forEach((stack) => {
-    const titleEl = stack.querySelector(".media-list-title");
-    const artistEl = stack.querySelector(".media-list-artist");
-    if (titleEl) applyListMarquee(titleEl, titleEl.textContent);
-    if (artistEl) applyListMarquee(artistEl, artistEl.textContent);
-  });
+  if (isSpotify) {
+    // Spotify UI: タイトル/アーティスト（スタック内）にマーキー適用
+    list.querySelectorAll(".media-list-title-stack").forEach((stack) => {
+      const titleEl = stack.querySelector(".media-list-title");
+      const artistEl = stack.querySelector(".media-list-artist");
+      if (titleEl) applyListMarquee(titleEl, titleEl.textContent);
+      if (artistEl) applyListMarquee(artistEl, artistEl.textContent);
+    });
+  } else {
+    // 標準UI: タイトル列とアーティスト列にマーキー適用（幅不足時のみ自動スクロール）
+    const applyPlaylistMarquee = () => {
+      list.querySelectorAll(".playlist-track-row").forEach((row) => {
+        const titleEl = row.querySelector(".media-list-title");
+        const artistEl = row.querySelector(".media-list-artist-col");
+        if (titleEl) applyListMarquee(titleEl, titleEl.dataset.marqueeText || titleEl.textContent);
+        if (artistEl) applyListMarquee(artistEl, artistEl.dataset.marqueeText || artistEl.textContent);
+      });
+    };
+    applyPlaylistMarquee();
+    // ResizeObserver でビューポート変化時にマーキーを再評価
+    if (playlistDetailBody._marqueeObserver) playlistDetailBody._marqueeObserver.disconnect();
+    const marqueeObserver = new ResizeObserver(() => {
+      clearTimeout(playlistDetailBody._marqueeTimer);
+      playlistDetailBody._marqueeTimer = setTimeout(applyPlaylistMarquee, 150);
+    });
+    marqueeObserver.observe(playlistDetailBody);
+    playlistDetailBody._marqueeObserver = marqueeObserver;
+  }
   updateMediaPlayingIndicator();
 };
 

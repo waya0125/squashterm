@@ -345,10 +345,29 @@ body {
   height: 40px;
   border-radius: 10px;
   object-fit: cover;
+  flex-shrink: 0;
+}
+
+/* タイトルセル: サムネ + タイトルスタック */
+.media-list-title-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.media-list-title-stack {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  gap: 2px;
 }
 
 .media-list-title {
   font-weight: 600;
+  font-size: 14px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -360,6 +379,37 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* プレイリスト アーティスト列 (標準UI独自) */
+.media-list-artist-col {
+  color: #94a3b8;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* マーキー適用時 */
+.media-list-title.sp-scrolling,
+.media-list-artist-col.sp-scrolling {
+  text-overflow: clip;
+  overflow: hidden;
+}
+
+.sp-marquee-inner {
+  display: inline-flex;
+  white-space: nowrap;
+  will-change: transform;
+}
+
+.sp-scrolling .sp-marquee-inner {
+  animation: sp-marquee var(--sp-scroll-dur, 12s) linear infinite;
+}
+
+@keyframes sp-marquee {
+  0%,  15%  { transform: translateX(0); }
+  85%, 100% { transform: translateX(var(--sp-scroll-dist, -200px)); }
 }
 
 .media-list-duration {
@@ -600,13 +650,14 @@ body {
 
 .playlist-track-list {
   display: grid;
-  gap: 10px;
+  gap: 2px;
 }
 
+/* 列: 並替ハンドル | [カバー]タイトル | アーティスト | 再生時間 | 削除 */
 .playlist-track-header,
 .playlist-track-row {
   display: grid;
-  grid-template-columns: 20px 24px 48px 2fr 1.5fr 80px 32px;
+  grid-template-columns: 20px minmax(0, 1fr) minmax(0, 30%) 5em 32px;
   align-items: center;
   gap: 12px;
 }
@@ -616,20 +667,28 @@ body {
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  padding: 0 12px;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+  margin-bottom: 4px;
+}
+
+/* ヘッダーのタイトル列: カバー(40px)+ギャップ(12px)分オフセット */
+.playlist-track-header .col-title {
+  padding-left: 52px;
 }
 
 .playlist-track-row {
-  background: #1d1d1d;
-  border-radius: 14px;
-  padding: 10px 12px;
-  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 12px;
   text-align: left;
-  transition: border 0.2s ease, background 0.2s ease;
+  cursor: pointer;
+  transition: background 0.15s ease;
 }
 
 .playlist-track-row:hover {
-  border-color: rgba(96, 165, 250, 0.6);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .playlist-drag-handle {
@@ -1970,8 +2029,8 @@ input[type="file"] {
 
   .playlist-track-header,
   .playlist-track-row {
-    grid-template-columns: 18px 20px 36px 1.4fr 1fr 60px 28px;
-    gap: 8px;
+    grid-template-columns: 18px minmax(0, 1fr) minmax(0, 25%) 4em 28px;
+    gap: 6px;
   }
 }
 
