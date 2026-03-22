@@ -1044,9 +1044,9 @@ const renderMedia = () => {
         : `<span class="media-list-artist-col">${track.artist}</span>`;
       const durationHtml = `<span class="media-list-duration">${track.duration}</span>`;
 
-      const menuBtnHtml = `<button class="track-menu-btn" type="button" data-track-id="${track.id}" aria-label="曲のメニュー" tabindex="-1">
+      const menuBtnHtml = `<span class="track-menu-btn" role="button" data-track-id="${track.id}" aria-label="曲のメニュー" tabindex="-1">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>
-      </button>`;
+      </span>`;
 
       if (selectionState.active) {
         // 選択モード: checkbox | # | title-cell | second-col | duration

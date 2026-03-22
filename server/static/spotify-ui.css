@@ -278,6 +278,7 @@ body {
 }
 
 /* 選択モード時は先頭にチェックボックス列を追加（⋯列なし） */
+.media-list--selecting .media-list-header,
 .media-list--selecting .media-list-row {
   grid-template-columns: 18px 3ch minmax(0, 1fr) minmax(0, 30%) 7em;
 }
@@ -1181,93 +1182,94 @@ input[type="file"] {
 }
 
 /* モバイル(≤640px)ではFABを表示、bulk-action-barを非表示 */
-@media (max-width: 640px) {
-  .bulk-action-bar {
-    display: none !important;
-  }
+/* bulk-action-barは常時非表示（FABに統一） */
+body.theme-spotify .bulk-action-bar {
+  display: none !important;
+}
 
-  .selection-fab {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    position: fixed;
-    bottom: calc(var(--sp-player-h, 90px) + 16px);
-    right: 16px;
-    z-index: 110;
-    background: #2563eb;
-    border-radius: 999px;
-    padding: 10px 18px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-    transition: opacity 0.2s ease;
-  }
+/* 選択モードFAB — 全サイズで表示 */
+.selection-fab {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: fixed;
+  bottom: calc(var(--sp-player-h, 90px) + 16px);
+  right: 16px;
+  z-index: 110;
+  background: var(--sp-accent, #1db954);
+  color: #000;
+  border-radius: 999px;
+  padding: 10px 18px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  transition: opacity 0.2s ease;
+}
 
-  .selection-fab[aria-hidden="true"] {
-    display: none;
-  }
+.selection-fab[aria-hidden="true"] {
+  display: none;
+}
 
-  .fab-count {
-    font-size: 13px;
-    font-weight: 600;
-    color: #fff;
-    white-space: nowrap;
-  }
+.fab-count {
+  font-size: 13px;
+  font-weight: 600;
+  color: #000;
+  white-space: nowrap;
+}
 
-  .fab-menu-btn {
-    background: transparent;
-    border: none;
-    color: #fff;
-    font-size: 20px;
-    line-height: 1;
-    padding: 0 2px;
-    cursor: pointer;
-    letter-spacing: 0.05em;
-  }
+.fab-menu-btn {
+  background: transparent;
+  border: none;
+  color: #000;
+  font-size: 20px;
+  line-height: 1;
+  padding: 0 2px;
+  cursor: pointer;
+  letter-spacing: 0.05em;
+}
 
-  .selection-menu {
-    display: flex;
-    flex-direction: column;
-    position: fixed;
-    bottom: calc(var(--sp-player-h, 90px) + 70px);
-    right: 16px;
-    z-index: 120;
-    background: #1e293b;
-    border-radius: 14px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-    min-width: 190px;
-    overflow: hidden;
-    padding: 6px 0;
-  }
+.selection-menu {
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  bottom: calc(var(--sp-player-h, 90px) + 70px);
+  right: 16px;
+  z-index: 120;
+  background: #1e293b;
+  border-radius: 14px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  min-width: 190px;
+  overflow: hidden;
+  padding: 6px 0;
+}
 
-  .selection-menu[aria-hidden="true"] {
-    display: none;
-  }
+.selection-menu[aria-hidden="true"] {
+  display: none;
+}
 
-  .selection-menu-item {
-    display: block;
-    width: 100%;
-    text-align: left;
-    background: transparent;
-    border: none;
-    color: #e2e8f0;
-    padding: 12px 20px;
-    font-size: 14px;
-    cursor: pointer;
-    transition: background 0.15s ease;
-  }
+.selection-menu-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: #e2e8f0;
+  padding: 12px 20px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
 
-  .selection-menu-item:hover {
-    background: rgba(255, 255, 255, 0.07);
-  }
+.selection-menu-item:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
 
-  .selection-menu-item.danger {
-    color: #f87171;
-  }
+.selection-menu-item.danger {
+  color: #f87171;
+}
 
-  .selection-menu-divider {
-    border: none;
-    border-top: 1px solid rgba(148, 163, 184, 0.15);
-    margin: 4px 0;
-  }
+.selection-menu-divider {
+  border: none;
+  border-top: 1px solid rgba(148, 163, 184, 0.15);
+  margin: 4px 0;
 }
 
 .media-list-row.is-selected {
@@ -2127,6 +2129,12 @@ input[type="file"] {
     grid-template-columns: 2ch minmax(0, 1fr) 5em;
     font-size: 11px;
     padding: 12px 42px 12px 8px; /* 右: 28px(⋯幅) + 6px(gap) + 8px(元余白) */
+  }
+
+  /* 選択モード: ヘッダーもcheckbox列を追加 */
+  .media-list--selecting .media-list-header {
+    grid-template-columns: 18px 2ch minmax(0, 1fr) 5em;
+    padding: 12px 8px;
   }
 
   .media-list-cover {
@@ -3563,6 +3571,20 @@ body.theme-spotify .panel-actions {
 #media-view-toggle {
   flex-shrink: 0;
   white-space: nowrap;
+}
+
+/* メディアパネル: panel-actions内で検索バーを上段に、ボタンを横並び */
+body.theme-spotify #panel-media .panel-actions {
+  flex-wrap: wrap;
+}
+body.theme-spotify #panel-media #media-search {
+  flex-basis: 100%;
+}
+body.theme-spotify #panel-media #media-select-toggle,
+body.theme-spotify #panel-media #media-view-toggle {
+  flex: 1;
+  justify-content: center;
+  text-align: center;
 }
 
 /* 検索入力 */
