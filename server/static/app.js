@@ -973,8 +973,10 @@ const renderMedia = () => {
     const list = document.createElement("div");
     list.className = selectionState.active ? "media-list media-list--selecting" : "media-list";
     const isSpotify = window._sqTheme?.spotify;
+    const selectingPrefix = selectionState.active ? '<span></span>' : '';
     list.innerHTML = isSpotify ? `
       <div class="media-list-header">
+        ${selectingPrefix}
         <span>#</span>
         <span class="col-title" data-sort="title">タイトル</span>
         <span class="col-album" data-sort="album">アルバム</span>
@@ -982,6 +984,7 @@ const renderMedia = () => {
       </div>
     ` : `
       <div class="media-list-header">
+        ${selectingPrefix}
         <span>#</span>
         <span class="col-title" data-sort="title">タイトル</span>
         <span class="col-artist" data-sort="artist">アーティスト</span>
