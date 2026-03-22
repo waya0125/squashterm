@@ -517,14 +517,11 @@ def batch_download_playlist(url: str, playlist_id: str | None, concurrency: int)
     _callbacks_done = threading.Event()
     
     def download_single(entry_url: str, entry_id: str | None):
-        """単一エントリのダウンロード"""
+        """単一エントリのダウンロード。失敗は例外で通知しキューの failed カウンタを正しく更新する"""
         from ytdlp_service import download_with_ytdlp
-        try:
-            infos, _ = download_with_ytdlp(entry_url, no_playlist=True)
-            tracks = store_downloaded_tracks(infos, entry_url, playlist_id, playlist_title)
-            return {"success": True, "tracks": tracks}
-        except Exception as e:
-            return {"success": False, "error": str(e)}
+        infos, _ = download_with_ytdlp(entry_url, no_playlist=True)
+        tracks = store_downloaded_tracks(infos, entry_url, playlist_id, playlist_title)
+        return {"success": True, "tracks": tracks}
     
     def progress_callback(task, result):
         """進捗コールバック（通常関数 — generator にしてはいけない）
@@ -534,11 +531,11 @@ def batch_download_playlist(url: str, playlist_id: str | None, concurrency: int)
         """
         nonlocal completed_count, failed_count
         with _lock:
-            if result.get("success"):
+            if "error" in result:
+                failed_count += 1
+            else:
                 completed_count += 1
                 results.extend(result.get("tracks", []))
-            else:
-                failed_count += 1
             if completed_count + failed_count >= _expected:
                 _callbacks_done.set()
     

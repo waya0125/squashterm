@@ -1,8 +1,10 @@
-const cacheName = "squashterm-v2"; // v2: 古いキャッシュ (v1) を強制削除
+const cacheName = "squashterm-v11"; // v11: PRレビュー対応 (spotify-ui.js追加、アクセシビリティ修正)
 const staticAssets = [
   "/",
   "/static/styles.css",
+  "/static/spotify-ui.css",
   "/static/app.js",
+  "/static/spotify-ui.js",
   "/static/images/logo.png",
   "/static/images/icon.png",
   "/static/manifest.webmanifest",
