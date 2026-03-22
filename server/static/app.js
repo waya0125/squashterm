@@ -1794,6 +1794,11 @@ const openPlaylistEditModal = (mode, playlist = null) => {
 const renderPlaylists = () => {
   playlistList.innerHTML = "";
 
+  const heading = document.createElement("h4");
+  heading.className = "playlist-section-title";
+  heading.textContent = "プレイリスト一覧";
+  playlistList.appendChild(heading);
+
   // Favorites pinned item always at top
   const favButton = document.createElement("button");
   favButton.type = "button";

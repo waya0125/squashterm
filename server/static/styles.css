@@ -592,11 +592,20 @@ body.has-mini-player .content {
   font-size: 14px;
   background: rgba(15, 23, 42, 0.4);
   color: #94a3b8;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.playlist-item:hover .playlist-item-dots,
+.playlist-item-menu:has(.playlist-item-dropdown:not([hidden])) .playlist-item-dots,
+.playlist-item-menu:focus-within .playlist-item-dots {
+  opacity: 1;
 }
 
 .playlist-item-dots:hover {
   background: rgba(37, 99, 235, 0.2);
   color: #e2e8f0;
+  opacity: 1;
 }
 
 .playlist-item-dropdown {
@@ -612,6 +621,10 @@ body.has-mini-player .content {
   gap: 2px;
   min-width: 140px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.playlist-item-dropdown[hidden] {
+  display: none;
 }
 
 .playlist-item-dropdown-item {
