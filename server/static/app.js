@@ -1656,8 +1656,8 @@ const renderPlaylistDetail = () => {
     if (playlistManageToggle) playlistManageToggle.hidden = true;
     return;
   }
-  playlistDetailTitle.textContent = `${selected.name} (${selected.track_ids.length}曲)`;
-  playlistDetailDesc.textContent = "";
+  playlistDetailTitle.textContent = selected.name;
+  playlistDetailDesc.textContent = `収録曲数: ${selected.track_ids.length}`;
   // 管理ボタンを表示し、現在の管理モード状態を反映
   if (playlistManageToggle) {
     playlistManageToggle.hidden = false;
@@ -1848,7 +1848,7 @@ const renderPlaylists = () => {
     mainButton.className = "playlist-item-main";
     mainButton.innerHTML = `
       <span class="playlist-item-title">${playlist.name}${syncBadgeHtml}</span>
-      <span class="playlist-item-meta">${playlist.track_ids.length}曲</span>
+      <span class="playlist-item-meta">登録数: ${playlist.track_ids.length}</span>
     `;
     mainButton.addEventListener("click", () => {
       setSelectedPlaylist("playlist", playlist.id);
