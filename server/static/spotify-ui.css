@@ -596,16 +596,27 @@ body {
 }
 
 .playlist-detail-header h4 {
-  margin: 0 0 6px;
+  margin: 0;
   font-size: 18px;
 }
 
 .playlist-detail-header {
+  display: grid;
+  gap: 8px;
+}
+
+/* タイトル行: タイトル左 / 管理ボタン右 */
+.playlist-detail-title-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
+  gap: 8px;
+}
+
+#playlist-manage-toggle {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  font-size: 13px;
 }
 
 .playlist-detail-header p {
@@ -1952,6 +1963,33 @@ input[type="file"] {
     justify-content: center;
   }
 
+  /* 管理ボタン: タイトル行内なので幅固定 */
+  #playlist-manage-toggle {
+    width: auto;
+    flex-shrink: 0;
+  }
+
+  /* 同期ボタンは横並び維持 */
+  .playlist-sync-actions .primary,
+  .playlist-sync-actions .secondary {
+    width: auto;
+    flex: 1;
+  }
+
+  /* プレイリストヘッダーのタイトル: 折り返し防止 */
+  .playlist-detail-title-row h4 {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* トラックリストのヘッダーテキスト: 折り返し防止 */
+  .playlist-track-header span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 
   .player-overlay-content {
     border-radius: 0;
@@ -3839,7 +3877,7 @@ body.theme-spotify .playlist-detail-header h4 {
   font-size: 28px;
   font-weight: 700;
   color: var(--sp-text);
-  margin: 0 0 6px;
+  margin: 0;
 }
 
 body.theme-spotify .playlist-detail-header p {
@@ -3885,6 +3923,7 @@ body.theme-spotify .playlist-drag-handle svg {
 
 /* 管理ボタン: spotify テーマ */
 body.theme-spotify #playlist-manage-toggle {
+  flex-shrink: 0;
   background: transparent;
   border: 1px solid #727272;
   color: var(--sp-text);

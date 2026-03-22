@@ -630,30 +630,34 @@ body {
 }
 
 .playlist-detail-header h4 {
-  margin: 0 0 6px;
+  margin: 0;
   font-size: 18px;
 }
 
 .playlist-detail-header {
+  display: grid;
+  gap: 8px;
+}
+
+/* タイトル行: タイトル左 / 管理ボタン右 */
+.playlist-detail-title-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* 管理ボタンを小さくコンパクトに */
+#playlist-manage-toggle {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  font-size: 13px;
 }
 
 .playlist-detail-header p {
   margin: 0;
   color: #94a3b8;
   font-size: 13px;
-}
-
-/* 管理ボタン + 検索フィールドを横並び */
-.playlist-detail-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
 }
 
 /* 管理ボタン アクティブ時 */
@@ -2007,6 +2011,34 @@ input[type="file"] {
   .secondary {
     width: 100%;
     justify-content: center;
+  }
+
+  /* 管理ボタン: タイトル行内なので幅固定 */
+  #playlist-manage-toggle {
+    width: auto;
+    flex-shrink: 0;
+  }
+
+  /* 同期ボタンは横並び維持 */
+  .playlist-sync-actions .primary,
+  .playlist-sync-actions .secondary {
+    width: auto;
+    flex: 1;
+  }
+
+  /* プレイリストヘッダーのタイトル: 折り返し防止 */
+  .playlist-detail-title-row h4 {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* トラックリストのヘッダーテキスト: 折り返し防止 */
+  .playlist-track-header span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
 
