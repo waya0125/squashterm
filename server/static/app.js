@@ -1044,7 +1044,7 @@ const renderMedia = () => {
         : `<span class="media-list-artist-col">${track.artist}</span>`;
       const durationHtml = `<span class="media-list-duration">${track.duration}</span>`;
 
-      const menuBtnHtml = `<span class="track-menu-btn" role="button" data-track-id="${track.id}" aria-label="曲のメニュー" tabindex="-1">
+      const menuBtnHtml = `<span class="track-menu-btn" role="button" data-track-id="${track.id}" aria-label="曲のメニュー" tabindex="0">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>
       </span>`;
 
@@ -1093,6 +1093,15 @@ const renderMedia = () => {
             e.stopPropagation();
             showTrackContextMenu(track.id, menuBtn);
           });
+          menuBtn.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              e.stopPropagation();
+              showTrackContextMenu(track.id, menuBtn);
+            }
+          });
+          menuBtn.addEventListener("focus", () => menuBtn.classList.add("is-hovered"));
+          menuBtn.addEventListener("blur", () => menuBtn.classList.remove("is-hovered"));
         }
       }
       list.appendChild(row);
@@ -1241,7 +1250,7 @@ const buildPlaylistTrackRow = (track, listType, idx) => {
           <path d="M9 3h6l1 2h4v2H4V5h4l1-2zm1 6h2v9h-2V9zm4 0h2v9h-2V9zm-8 0h2v9H6V9z"/>
         </svg>
       </button>
-      <button class="track-menu-btn" type="button" data-track-id="${track.id}" aria-label="曲のメニュー" tabindex="-1">
+      <button class="track-menu-btn" type="button" data-track-id="${track.id}" aria-label="曲のメニュー">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>
       </button>
     `;
@@ -3983,7 +3992,7 @@ if (mobilePlayerMenuPanel) {
       } else if (action === "delete") {
         if (confirm("この曲を削除しますか？")) {
           fetch(`/api/tracks/${trackId}`, { method: "DELETE" })
-            .then(r => r.ok ? loadData() : Promise.reject())
+            .then(r => r.ok ? refreshLibrary() : Promise.reject())
             .catch(() => alert("削除に失敗しました。"));
         }
       }

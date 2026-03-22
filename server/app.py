@@ -102,9 +102,9 @@ app.add_middleware(GZipMiddleware, minimum_size=512)
 
 
 # Cache-Control ヘッダをパスパターンで付与
-# /static/*  → 1時間キャッシュ + ETag再検証 (ファイル名にハッシュなし)
+# /static/*  → no-cache, no-store: SWが常に最新ファイルを取得 (ファイル名にハッシュなし)
 # /media/*   → 24時間キャッシュ (カバー画像はほぼ不変)
-# /          → no-cache (ETag再検証、常に最新HTMLを確保)
+# /          → no-cache (常に最新HTMLを確保)
 @app.middleware("http")
 async def add_cache_headers(request: Request, call_next):
     response = await call_next(request)
@@ -697,12 +697,25 @@ def resolve_soundcloud_urls():
 
 def run(host: str = "0.0.0.0", port: int = 8000) -> None:
     print(f"SquashTerm server running on http://{host}:{port}")
+
+    try:
+        import uvloop  # noqa: F401
+        loop = "uvloop"
+    except ImportError:
+        loop = "asyncio"
+
+    try:
+        import httptools  # noqa: F401
+        http = "httptools"
+    except ImportError:
+        http = "auto"
+
     uvicorn.run(
         app,
         host=host,
         port=port,
-        loop="uvloop",          # uvloop: asyncio より ~2-4x 高速
-        http="httptools",       # httptools: 高速 HTTP パーサー
+        loop=loop,
+        http=http,
         timeout_keep_alive=65,  # Cloudflare Tunnel の keepalive と合わせる
         access_log=False,       # アクセスログ無効化でホットパス削減
     )
