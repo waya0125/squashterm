@@ -648,18 +648,39 @@ body {
   font-size: 13px;
 }
 
+/* 管理ボタン + 検索フィールドを横並び */
+.playlist-detail-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* 管理ボタン アクティブ時 */
+#playlist-manage-toggle.is-active {
+  background: rgba(248, 113, 113, 0.15);
+  color: #fca5a5;
+  border-color: rgba(248, 113, 113, 0.4);
+}
+
 .playlist-track-list {
   display: grid;
   gap: 2px;
 }
 
-/* 列: 並替ハンドル | [カバー]タイトル | アーティスト | 再生時間 | 削除 */
+/* 通常モード: 3列（並替・削除を非表示） */
 .playlist-track-header,
 .playlist-track-row {
   display: grid;
-  grid-template-columns: 20px minmax(0, 1fr) minmax(0, 30%) 5em 32px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 30%) 5em;
   align-items: center;
   gap: 12px;
+}
+
+/* 管理モード: 5列（並替・削除を表示） */
+.playlist-track-list--managing .playlist-track-header,
+.playlist-track-list--managing .playlist-track-row {
+  grid-template-columns: 20px minmax(0, 1fr) minmax(0, 30%) 5em 32px;
 }
 
 .playlist-track-header {
@@ -691,11 +712,16 @@ body {
   background: rgba(255, 255, 255, 0.05);
 }
 
+/* 並替ハンドル: 管理モード時のみ表示 */
 .playlist-drag-handle {
-  display: grid;
+  display: none;
   place-items: center;
   cursor: grab;
   color: #94a3b8;
+}
+
+.playlist-track-list--managing .playlist-drag-handle {
+  display: grid;
 }
 
 .playlist-drag-handle svg {
@@ -707,16 +733,30 @@ body {
   opacity: 0.5;
 }
 
+/* 削除ボタン: 管理モード時のみ表示 */
 .playlist-remove {
+  display: none;
   border: none;
   background: rgba(248, 113, 113, 0.15);
   color: #fca5a5;
   width: 32px;
   height: 32px;
   border-radius: 10px;
-  display: grid;
   place-items: center;
   cursor: pointer;
+}
+
+.playlist-track-list--managing .playlist-remove {
+  display: grid;
+}
+
+/* 管理モード用プレースホルダー（ヘッダー列合わせ） */
+.col-manage-placeholder {
+  display: none;
+}
+
+.playlist-track-list--managing .col-manage-placeholder {
+  display: block;
 }
 
 .playlist-remove svg {
@@ -2029,6 +2069,12 @@ input[type="file"] {
 
   .playlist-track-header,
   .playlist-track-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 25%) 4em;
+    gap: 6px;
+  }
+
+  .playlist-track-list--managing .playlist-track-header,
+  .playlist-track-list--managing .playlist-track-row {
     grid-template-columns: 18px minmax(0, 1fr) minmax(0, 25%) 4em 28px;
     gap: 6px;
   }

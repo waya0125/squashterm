@@ -1673,11 +1673,11 @@ const renderPlaylistDetail = () => {
   } else {
     list.innerHTML = `
       <div class="playlist-track-header">
-        <span></span>
+        <span class="col-manage-placeholder"></span>
         <span class="col-title">タイトル</span>
         <span>アーティスト</span>
         <span>再生時間</span>
-        <span></span>
+        <span class="col-manage-placeholder"></span>
       </div>
     `;
   }
