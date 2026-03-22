@@ -110,11 +110,13 @@ async def add_cache_headers(request: Request, call_next):
     response = await call_next(request)
     path = request.url.path
     if path.startswith("/static/"):
-        response.headers.setdefault("Cache-Control", "no-cache")
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
     elif path.startswith("/media/"):
         response.headers.setdefault("Cache-Control", "public, max-age=86400")
     elif path in ("/", "/index.html"):
-        response.headers["Cache-Control"] = "no-cache"
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
     return response
 
 init_library()
