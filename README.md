@@ -1,5 +1,7 @@
 # SquashTerm
 
+![SquashTerm](https://github.com/ibuto/squashterm/blob/main/server/static/images/logo.png)
+
 yt-dlpで楽曲を取得できる音楽アプリケーションです。
 
 ## 主な機能
@@ -43,3 +45,8 @@ python server/app.py
 ## 使用
 
 ブラウザで `http://localhost:8000` を開きます。
+
+## APIドキュメント
+
+- 楽曲登録API: `docs/api/library-register.md`
+- URLダウンロードAPI: `docs/api/library-download.md`

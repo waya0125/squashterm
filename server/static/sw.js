@@ -35,9 +35,10 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  const url = new URL(event.request.url);
+  const requestUrl = new URL(event.request.url);
   // /media/ と /api/ は常にネットワークから取得（キャッシュしない）
-  if (url.pathname.startsWith("/media/") || url.pathname.startsWith("/api/")) {
+  if (requestUrl.pathname.startsWith("/media/") || requestUrl.pathname.startsWith("/api/")) {
+    event.respondWith(fetch(event.request));
     return;
   }
 
