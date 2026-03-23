@@ -153,7 +153,7 @@ def scan_media_directory() -> int:
     
     added_count = 0
     for mp3_file in MEDIA_DIR.glob("*.mp3"):
-        file_id = f"yt_{mp3_file.stem}"
+        file_id = mp3_file.stem
         
         if file_id in track_map:
             continue

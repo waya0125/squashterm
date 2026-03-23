@@ -60,7 +60,7 @@ def parse_track_from_info(info: dict, source_url: str | None = None, playlist_na
     if isinstance(bitrate_value, (int, float)):
         bitrate_kbps = int(round(bitrate_value))
     return Track(
-        id=f"yt_{info.get('id', uuid.uuid4().hex)}",
+        id=str(info.get("id") or uuid.uuid4().hex),
         title=info.get("track") or info.get("title") or "Unknown Title",
         artist=info.get("artist") or info.get("uploader") or "Unknown Artist",
         album=info.get("album") or (playlist_name.strip() if playlist_name and playlist_name.strip() else None) or info.get("playlist_title") or info.get("playlist") or "Unknown Album",
@@ -72,6 +72,7 @@ def parse_track_from_info(info: dict, source_url: str | None = None, playlist_na
         source_url=resolved_source_url,
         file_format=info.get("ext") or info.get("audio_ext"),
         bitrate_kbps=bitrate_kbps,
+        video_url=None,  # populated with local /media/*.mp4 path after download
     )
 
 
@@ -162,6 +163,10 @@ def entry_to_source_url(entry: dict) -> str | None:
         ie_key = str(entry.get("ie_key") or "").lower()
         if ie_key in {"youtube", "youtubeweb"}:
             return f"https://www.youtube.com/watch?v={candidate}"
+        return candidate
+    # 全候補が API URL だった場合は permalink_url にフォールバック（あれば）
+    if isinstance(permalink, str) and permalink.startswith("http"):
+        return permalink
     return None
 
 
@@ -252,6 +257,9 @@ def fetch_tracks() -> list[Track]:
                     row["bitrate_kbps"] = bitrate_kbps
                     library_updated = True
         file_url = f"/media/{Path(file_path).name}" if file_path else None
+        video_url = row.get("video_url")
+        if not video_url and file_path and Path(file_path).suffix.lower() in {".mp4", ".webm", ".mkv"}:
+            video_url = file_url
         tracks.append(
             Track(
                 id=row["id"],
@@ -267,6 +275,7 @@ def fetch_tracks() -> list[Track]:
                 source_url=row.get("source_url"),
                 file_format=file_format,
                 bitrate_kbps=bitrate_kbps,
+                video_url=video_url,
             )
         )
     if library_updated:
@@ -276,7 +285,18 @@ def fetch_tracks() -> list[Track]:
 
 def fetch_playlists() -> list[dict]:
     data = load_library()
-    return data.get("playlists", [])
+    playlists = data.get("playlists", [])
+    updated = False
+    for playlist in playlists:
+        if "is_public" not in playlist:
+            playlist["is_public"] = True
+            updated = True
+        if "owner_id" not in playlist:
+            playlist["owner_id"] = None
+            updated = True
+    if updated:
+        save_library(data)
+    return playlists
 
 
 def fetch_favorites() -> list[str]:
@@ -313,16 +333,18 @@ def store_downloaded_tracks(
         if resolved_cover:
             track.cover = resolved_cover
         track_id = info.get("id", track.id)
-        # yt-dlp のメタ情報(ext)は変換前の形式を返すため、実ファイルを確認して正確なパスを取得
-        file_path = None
-        for ext in ("m4a", "mp3", "opus", "ogg", "webm", "flac"):
-            candidate = MEDIA_DIR / f"{track_id}.{ext}"
-            if candidate.exists():
-                file_path = candidate
-                break
+        # 動画本体と、より高音質な音声ファイルがあれば音声を優先して再生する
+        video_path = _resolve_downloaded_media_path(track_id, ("mp4", "webm", "mkv", "mov", "avi"))
+        preferred_audio_path = _resolve_downloaded_media_path(track_id, ("mp3", "flac", "m4a", "opus", "ogg", "aac"), preferred_suffixes=("_audio", ""))
+
+        file_path = preferred_audio_path or video_path
         if file_path is None:
-            file_path = MEDIA_DIR / f"{track_id}.m4a"  # フォールバック: m4a（--audio-format m4a 設定）
+            raise FileNotFoundError(
+                f"ダウンロード後のメディアファイルが見つかりません: track_id={track_id}"
+            )
         track.file_url = f"/media/{file_path.name}"
+        if video_path is not None:
+            track.video_url = f"/media/{video_path.name}"
         if track.id not in track_map:
             track_entry = {**asdict(track), "file_path": str(file_path)}
             tracks.append(track_entry)
@@ -333,10 +355,22 @@ def store_downloaded_tracks(
                 track_entry["cover"] = resolved_cover
             if track.source_url and not track_entry.get("source_url"):
                 track_entry["source_url"] = track.source_url
+            if track.video_url and not track_entry.get("video_url"):
+                track_entry["video_url"] = track.video_url
+            track_entry["file_path"] = str(file_path)
         stored_tracks.append(track)
     save_library(data)
     append_tracks_to_playlist(playlist_id, [track.id for track in stored_tracks])
     return stored_tracks
+
+
+def _resolve_downloaded_media_path(track_id: str, extensions: tuple[str, ...], preferred_suffixes: tuple[str, ...] = ("",)) -> Path | None:
+    for suffix in preferred_suffixes:
+        for extension in extensions:
+            candidate = MEDIA_DIR / f"{track_id}{suffix}.{extension}"
+            if candidate.exists():
+                return candidate
+    return None
 
 
 def build_upload_track(
@@ -514,9 +548,12 @@ def batch_download_playlist(url: str, playlist_id: str | None, concurrency: int)
     def download_single(entry_url: str, entry_id: str | None):
         """単一エントリのダウンロード。失敗は例外で通知しキューの failed カウンタを正しく更新する"""
         from ytdlp_service import download_with_ytdlp
-        infos, _ = download_with_ytdlp(entry_url, no_playlist=True)
-        tracks = store_downloaded_tracks(infos, entry_url, playlist_id, playlist_title)
-        return {"success": True, "tracks": tracks}
+        try:
+            infos, _ = download_with_ytdlp(entry_url, no_playlist=True)
+            tracks = store_downloaded_tracks(infos, entry_url, playlist_id, playlist_title)
+            return {"success": True, "tracks": tracks}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
     
     def progress_callback(task, result):
         """進捗コールバック（通常関数 — generator にしてはいけない）
@@ -526,11 +563,11 @@ def batch_download_playlist(url: str, playlist_id: str | None, concurrency: int)
         """
         nonlocal completed_count, failed_count
         with _lock:
-            if "error" in result:
-                failed_count += 1
-            else:
+            if result.get("success"):
                 completed_count += 1
                 results.extend(result.get("tracks", []))
+            else:
+                failed_count += 1
             if completed_count + failed_count >= _expected:
                 _callbacks_done.set()
     
@@ -581,6 +618,48 @@ def batch_download_playlist(url: str, playlist_id: str | None, concurrency: int)
     }
 
 
+
+
+def apply_playlist_album_names() -> dict:
+    """既存楽曲のうち album が未設定のものに、所属プレイリスト名を遡及適用する。
+
+    album が "Unknown Album"（またはそれと等価の空値）の楽曲のみを対象とし、
+    ユーザーが手動で設定した album 値は変更しない。
+
+    Returns:
+        {"updated": int, "skipped": int}
+    """
+    data = load_library()
+    tracks = data.get("tracks", [])
+    playlists = data.get("playlists", [])
+
+    # track_id → track_entry の参照マップ
+    track_map = {t["id"]: t for t in tracks}
+
+    updated = 0
+    skipped = 0
+
+    for playlist in playlists:
+        playlist_name = playlist.get("name", "").strip()
+        if not playlist_name:
+            continue
+        for track_id in playlist.get("track_ids", []):
+            track = track_map.get(track_id)
+            if not track:
+                continue
+            current_album = (track.get("album") or "").strip()
+            if current_album and current_album != "Unknown Album":
+                skipped += 1
+                continue
+            track["album"] = playlist_name
+            updated += 1
+
+    if updated:
+        save_library(data)
+
+    return {"updated": updated, "skipped": skipped}
+
+
 def apply_album_from_source_playlists(
     playlist_defs: list[dict],
 ) -> dict:
@@ -597,7 +676,14 @@ def apply_album_from_source_playlists(
 
     data = load_library()
     tracks = data.get("tracks", [])
-    track_map: dict[str, dict] = {t["id"][3:]: t for t in tracks if t.get("id", "").startswith("yt_")}
+    track_map: dict[str, dict] = {}
+    for track in tracks:
+        track_id = str(track.get("id", ""))
+        if not track_id:
+            continue
+        track_map[track_id] = track
+        if track_id.startswith("yt_"):
+            track_map[track_id[3:]] = track
 
     updated = 0
     skipped = 0
@@ -659,5 +745,3 @@ def apply_album_from_source_playlists(
     if updated > 0:
         save_library(data)
     return {"updated": updated, "skipped": skipped, "details": details}
-
-

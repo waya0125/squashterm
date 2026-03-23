@@ -40,11 +40,13 @@ const playlistEditModalClose = document.getElementById("playlist-edit-modal-clos
 const playlistModalSyncBtn = document.getElementById("playlist-modal-sync");
 const playlistModalSyncStatus = document.getElementById("playlist-modal-sync-status");
 const playlistSearchInput = document.getElementById("playlist-search");
+const playlistSelectDropdown = document.getElementById("playlist-select-dropdown");
 const playlistDetailTitle = document.getElementById("playlist-detail-title");
 const playlistDetailDesc = document.getElementById("playlist-detail-desc");
 const playlistDetailBody = document.getElementById("playlist-detail-body");
 const playlistTrackSearchInput = document.getElementById("playlist-track-search");
 const playlistManageToggle = document.getElementById("playlist-manage-toggle");
+const playlistVisibility = document.getElementById("playlist-visibility");
 const tagSelect = document.getElementById("tag-track-select");
 const tagTitleInput = document.getElementById("tag-title");
 const tagArtistInput = document.getElementById("tag-artist");
@@ -86,15 +88,63 @@ const statusTime = document.getElementById("status-time");
 const settingsVersionList = document.getElementById("settings-version-list");
 const settingsStorageBar = document.getElementById("settings-storage-bar");
 const settingsStorageText = document.getElementById("settings-storage-text");
+const settingsDisplayNameInput = document.getElementById("settings-display-name");
+const settingsUserIcon = document.getElementById("settings-user-icon");
+const settingsUserIconFile = document.getElementById("settings-user-icon-file");
+const settingsProfileSave = document.getElementById("settings-profile-save");
+const settingsShowVideoOnPlayer = document.getElementById("settings-show-video-on-player");
 const settingsPlaybackOptions = document.getElementById("settings-playback-options");
 const systemInfoList = document.getElementById("system-info-list");
 const settingsBaseUrlInput = document.getElementById("settings-base-url");
 const settingsBaseUrlSave = document.getElementById("settings-base-url-save");
+const designAccentColorInput = document.getElementById("design-accent-color");
+const designColorsSave = document.getElementById("design-colors-save");
+const designLogoFile = document.getElementById("design-logo-file");
+const designLogoSave = document.getElementById("design-logo-save");
+const designLogoReset = document.getElementById("design-logo-reset");
+const designFaviconFile = document.getElementById("design-favicon-file");
+const designFaviconSave = document.getElementById("design-favicon-save");
+const designFaviconReset = document.getElementById("design-favicon-reset");
+const authLoginButton = document.getElementById("auth-login-button");
+const authLoginDialog = document.getElementById("auth-login-dialog");
+const authLoginForm = document.getElementById("auth-login-form");
+const authUsername = document.getElementById("auth-username");
+const authPassword = document.getElementById("auth-password");
+const authLoginError = document.getElementById("auth-login-error");
+const authLoginCancel = document.getElementById("auth-login-cancel");
+const authMenu = document.getElementById("auth-menu");
+const authMenuPanel = document.getElementById("auth-menu-panel");
+const authUserIcon = document.getElementById("auth-user-icon");
+const authUserMeta = document.getElementById("auth-user-meta");
+const authUserDisplay = document.getElementById("auth-user-display");
+const authUserId = document.getElementById("auth-user-id");
+const authLoginLabel = document.getElementById("auth-login-label");
+const authSettingsButton = document.getElementById("auth-settings-button");
+const authLogoutButton = document.getElementById("auth-logout-button");
+const adminTabButton = document.getElementById("admin-tab-button");
+const aboutSystemCard = document.getElementById("about-system-card");
+const adminUserName = document.getElementById("admin-user-name");
+const adminUserPassword = document.getElementById("admin-user-password");
+const adminUserRole = document.getElementById("admin-user-role");
+const adminUserDisplayName = document.getElementById("admin-user-display-name");
+const adminUserIconFile = document.getElementById("admin-user-icon-file");
+const adminUserCreate = document.getElementById("admin-user-create");
+const adminUserList = document.getElementById("admin-user-list");
+const adminApiKeyName = document.getElementById("admin-api-key-name");
+const adminApiKeyOrigin = document.getElementById("admin-api-key-origin");
+const adminApiKeyCreate = document.getElementById("admin-api-key-create");
+const adminApiKeyPlain = document.getElementById("admin-api-key-plain");
+const adminApiKeyList = document.getElementById("admin-api-key-list");
+const adminPlaylistDialog = document.getElementById("admin-playlist-dialog");
+const adminPlaylistDialogTitle = document.getElementById("admin-playlist-dialog-title");
+const adminPlaylistDialogBody = document.getElementById("admin-playlist-dialog-body");
+const adminPlaylistDialogClose = document.getElementById("admin-playlist-dialog-close");
 
 const audioPlayer = document.getElementById("audio-player");
 const playerOverlay = document.getElementById("player-overlay");
 const playerClose = document.getElementById("player-close");
 const playerCover = document.getElementById("player-cover");
+const playerVideo = document.getElementById("player-video");
 const playerTitle = document.getElementById("player-title");
 const playerArtist = document.getElementById("player-artist");
 const playerAlbum = document.getElementById("player-album");
@@ -114,6 +164,7 @@ const playerQueueView = document.getElementById("player-queue-view");
 const playerDownload = document.getElementById("player-download");
 const playerAddPlaylist = document.getElementById("player-add-playlist");
 const playerOpenSource = document.getElementById("player-open-source");
+const playerOpenVideo = document.getElementById("player-open-video");
 const playerShareTrack = document.getElementById("player-share-track");
 const playerEditInfo = document.getElementById("player-edit-info");
 const playerDeleteTrack = document.getElementById("player-delete-track");
@@ -124,6 +175,9 @@ const playerVolumeToggle = document.getElementById("player-volume-toggle");
 const playerVolumeSlider = document.getElementById("player-volume-slider");
 const spVolumeToggle = document.getElementById("sp-volume-toggle");
 const spVolumeSlider = document.getElementById("sp-volume-slider");
+const videoModal = document.getElementById("video-modal");
+const videoModalPlayer = document.getElementById("video-modal-player");
+const videoModalClose = document.getElementById("video-modal-close");
 
 const miniPlayer = document.getElementById("mini-player");
 const miniCover = document.getElementById("mini-cover");
@@ -166,6 +220,8 @@ const state = {
   selectedPlaylist: null,
   // ソート状態（将来の並び替え機能用スタブ）
   mediaListSort: { key: null, dir: "asc" },
+  authUser: null,
+  role: "guest",
 };
 
 const selectionState = {
@@ -198,6 +254,49 @@ const searchState = {
   playlistTrackQuery: "",
 };
 
+let playerVideoSyncPending = false;
+let playerVideoSeekInProgress = false;
+let lastPlayerVideoSyncMs = 0;
+let overlayVideoSyncTimerId = null;
+
+const hasLogin = () => Boolean(state.authUser);
+
+const canManagePlaylist = (playlist) => {
+  if (!playlist) {
+    return false;
+  }
+  if (state.role === "admin") {
+    return true;
+  }
+  if (!hasLogin()) {
+    return false;
+  }
+  if (playlist.is_public) {
+    return false;
+  }
+  return playlist.owner_id === state.authUser?.id;
+};
+
+const canUsePlaylistActions = () => hasLogin();
+
+const canUseFavoritesActions = () => hasLogin();
+
+const parseErrorMessage = async (response, fallbackMessage) => {
+  try {
+    const data = await response.json();
+    if (typeof data?.detail === "string" && data.detail) {
+      return data.detail;
+    }
+    if (typeof data?.message === "string" && data.message) {
+      return data.message;
+    }
+    return fallbackMessage;
+  } catch (_error) {
+    const text = await response.text();
+    return text || fallbackMessage;
+  }
+};
+
 const supportsMediaSession = "mediaSession" in navigator;
 
 const closeMobileSidebar = () => {
@@ -205,6 +304,7 @@ const closeMobileSidebar = () => {
     return;
   }
   sidebar.classList.remove("is-open");
+  document.body?.classList.remove("mobile-menu-open");
   mobileNavToggle?.setAttribute("aria-expanded", "false");
 };
 
@@ -231,6 +331,7 @@ if (mobileNavToggle && sidebar) {
   mobileNavToggle.addEventListener("click", () => {
     const willOpen = !sidebar.classList.contains("is-open");
     sidebar.classList.toggle("is-open", willOpen);
+    document.body?.classList.toggle("mobile-menu-open", willOpen);
     mobileNavToggle.setAttribute("aria-expanded", String(willOpen));
   });
 
@@ -244,6 +345,15 @@ if (mobileNavToggle && sidebar) {
     closeMobileSidebar();
   });
 }
+
+const escapeHtml = (str) => {
+  return String(str ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+};
 
 const formatTime = (seconds) => {
   if (!Number.isFinite(seconds)) {
@@ -403,6 +513,8 @@ const updateFavoriteButtons = () => {
     if (!button) {
       return;
     }
+    button.style.display = canUseFavoritesActions() ? "" : "none";
+    button.disabled = !canUseFavoritesActions();
     button.classList.toggle("is-active", isFavorite);
     button.setAttribute("aria-pressed", isFavorite ? "true" : "false");
     button.setAttribute("aria-label", label);
@@ -490,6 +602,184 @@ const updateMediaViewToggle = () => {
 
 const normalizeQuery = (value) => value.trim().toLowerCase();
 
+const resolveTrackVideoUrl = (track) => {
+  if (!track) {
+    return null;
+  }
+  if (track.video_url) {
+    return track.video_url;
+  }
+  const fileUrl = String(track.file_url || "");
+  if (/\.(mp4|webm|mkv)(?:\?|$)/i.test(fileUrl)) {
+    return fileUrl;
+  }
+  return null;
+};
+
+const shouldShowVideoOnPlayer = () => Boolean(state.authUser?.show_video_on_player ?? true);
+
+const syncPlayerVideoWithAudio = (options = {}) => {
+  if (!audioPlayer || !playerVideo || !playerVideo.classList.contains("is-visible")) {
+    return;
+  }
+  const { force = false } = options;
+  const now = Date.now();
+  if (!force && now - lastPlayerVideoSyncMs < 500) {
+    return;
+  }
+  const audioTime = Number(audioPlayer.currentTime || 0);
+  const videoTime = Number(playerVideo.currentTime || 0);
+  if (Math.abs(videoTime - audioTime) > (force ? 0.2 : 0.8)) {
+    try {
+      playerVideo.currentTime = audioTime;
+      lastPlayerVideoSyncMs = now;
+    } catch (_error) {
+      // メタデータ未読み込み時は無視し、次回同期で再調整する
+    }
+  }
+};
+
+const applyPlayerVideoSync = () => {
+  if (!audioPlayer || !playerVideo || !playerVideo.classList.contains("is-visible")) {
+    playerVideoSyncPending = false;
+    return;
+  }
+  if (document.visibilityState !== "visible") {
+    playerVideoSyncPending = true;
+    return;
+  }
+  if (playerVideoSeekInProgress) {
+    playerVideoSyncPending = true;
+    return;
+  }
+  if (playerVideo.readyState < 1) {
+    playerVideoSyncPending = true;
+    return;
+  }
+  syncPlayerVideoWithAudio({ force: true });
+  if (audioPlayer.paused) {
+    playerVideo.pause();
+    playerVideoSyncPending = false;
+    return;
+  }
+  playerVideo.play().then(() => {
+    playerVideoSyncPending = false;
+  }).catch(() => {
+    playerVideoSyncPending = true;
+  });
+};
+
+const syncVideoStateWithAudioPlayback = () => {
+  applyPlayerVideoSync();
+};
+
+const warmupPlayerVideo = () => {
+  if (!playerVideo || !playerVideo.classList.contains("is-visible")) {
+    return;
+  }
+  if (playerVideo.readyState === 0) {
+    playerVideo.load();
+    return;
+  }
+  if (playerVideo.readyState >= 2) {
+    return;
+  }
+  playerVideo.play().then(() => {
+    playerVideo.pause();
+    syncPlayerVideoWithAudio({ force: true });
+  }).catch(() => {
+    playerVideoSyncPending = true;
+  });
+};
+
+const clearOverlayVideoSyncTimer = () => {
+  if (overlayVideoSyncTimerId !== null) {
+    window.clearTimeout(overlayVideoSyncTimerId);
+    overlayVideoSyncTimerId = null;
+  }
+};
+
+const scheduleOverlayVideoSync = () => {
+  clearOverlayVideoSyncTimer();
+  let attempts = 0;
+  const run = () => {
+    if (!isPlayerOverlayActive()) {
+      clearOverlayVideoSyncTimer();
+      return;
+    }
+    syncVideoStateWithAudioPlayback();
+    attempts += 1;
+    if (attempts >= 20) {
+      clearOverlayVideoSyncTimer();
+      return;
+    }
+    overlayVideoSyncTimerId = window.setTimeout(run, 80);
+  };
+  run();
+};
+
+const updatePlayerVisual = (track) => {
+  const videoUrl = shouldShowVideoOnPlayer() ? resolveTrackVideoUrl(track) : null;
+  if (playerVideo) {
+    if (videoUrl) {
+      if (playerVideo.src !== videoUrl) {
+        playerVideo.src = videoUrl;
+        playerVideo.load();
+      }
+      playerVideo.classList.add("is-visible");
+      playerVideo.onloadedmetadata = () => {
+        applyPlayerVideoSync();
+      };
+      applyPlayerVideoSync();
+      if (!isPlayerOverlayActive()) {
+        warmupPlayerVideo();
+      }
+    } else {
+      playerVideo.pause();
+      playerVideoSyncPending = false;
+      playerVideo.onloadedmetadata = null;
+      playerVideo.removeAttribute("src");
+      playerVideo.load();
+      playerVideo.classList.remove("is-visible");
+    }
+  }
+  if (playerCover) {
+    playerCover.classList.toggle("is-hidden", Boolean(videoUrl));
+  }
+};
+
+const closeVideoModal = () => {
+  if (!videoModal || !videoModalPlayer) {
+    return;
+  }
+  if (document.fullscreenElement === videoModalPlayer) {
+    document.exitFullscreen().catch(() => {});
+  }
+  videoModal.classList.remove("is-open");
+  videoModal.setAttribute("aria-hidden", "true");
+  videoModalPlayer.pause();
+  videoModalPlayer.removeAttribute("src");
+  videoModalPlayer.load();
+};
+
+const openVideoModal = (videoUrl) => {
+  if (!videoModal || !videoModalPlayer || !videoUrl) {
+    return;
+  }
+  stopPlayback();
+  videoModalPlayer.src = videoUrl;
+  videoModal.classList.add("is-open");
+  videoModal.setAttribute("aria-hidden", "false");
+  videoModalPlayer.play().then(() => {
+    videoModalPlayer.requestFullscreen?.().catch(() => {});
+  }).catch(() => {});
+};
+
+const applyDesignTheme = (design) => {
+  const accentColor = design?.accent_color || "#38bdf8";
+  document.documentElement.style.setProperty("--theme-accent-color", accentColor);
+};
+
 const filterTracks = (tracks, query) => {
   const normalized = normalizeQuery(query);
   if (!normalized) {
@@ -566,6 +856,7 @@ const updatePlayerUI = () => {
       playerCover.src = "";
       playerCover.alt = "";
     }
+    updatePlayerVisual(null);
     if (playerTitle) {
       playerTitle.textContent = "--";
     }
@@ -615,8 +906,9 @@ const updatePlayerUI = () => {
       miniDuration.textContent = "0:00";
     }
     if (supportsMediaSession) {
-      // Keep the last metadata so system controls (lock screen, CarPlay, etc.) stay visible.
-      // Only switch to "paused" so the OS doesn't remove the media notification.
+      // Keep metadata visible (e.g. on lock screen / CarPlay) so the user can
+      // resume playback from the OS media controls after a playlist ends.
+      // Only mark it "paused" – setting "none" would remove the controls entirely.
       navigator.mediaSession.playbackState = "paused";
       if (typeof navigator.mediaSession.setPositionState === "function") {
         try { navigator.mediaSession.setPositionState(null); } catch (_) { /* not supported */ }
@@ -637,6 +929,7 @@ const updatePlayerUI = () => {
       playerOverlay.style.setProperty("--player-art", artUrl);
     }
   }
+  updatePlayerVisual(track);
   if (playerTitle) {
     playerTitle.textContent = track.title;
   }
@@ -686,6 +979,10 @@ const closePlayerOverlay = () => {
     playerOverlay.classList.remove("is-active");
     playerOverlay.setAttribute("aria-hidden", "true");
   }
+  clearOverlayVideoSyncTimer();
+  if (playerVideo) {
+    playerVideo.pause();
+  }
   document.body?.classList.remove("player-overlay-open");
   closePlayerMenu();
   // 直前のタブに戻す
@@ -713,6 +1010,7 @@ const openPlayerOverlay = () => {
   document.body?.classList.add("player-overlay-open");
   closeUpNextPanel();
   updatePlayerUI();
+  scheduleOverlayVideoSync();
   updatePlayerButtons();
   updateFavoriteButtons();
 };
@@ -772,6 +1070,38 @@ const togglePlayback = async () => {
   }
 };
 
+const playCurrentTrack = async () => {
+  if (!audioPlayer) {
+    return;
+  }
+  if (playerState.currentIndex === -1) {
+    if (state.tracks.length > 0) {
+      // Resume from the last played track if available, otherwise start from first
+      const resumeIndex =
+        playerState.lastIndex >= 0 && playerState.lastIndex < state.tracks.length
+          ? playerState.lastIndex
+          : 0;
+      setTrackByIndex(resumeIndex);
+    } else {
+      return;
+    }
+  }
+  if (!audioPlayer.paused) {
+    return;
+  }
+  await audioPlayer.play().catch((err) => {
+    console.warn("[squashterm] playCurrentTrack: play() failed:", err);
+    updateMediaSessionPlaybackState();
+  });
+};
+
+const pauseCurrentTrack = () => {
+  if (!audioPlayer || audioPlayer.paused) {
+    return;
+  }
+  audioPlayer.pause();
+};
+
 const seekBySeconds = (deltaSeconds) => {
   if (!audioPlayer) {
     return;
@@ -782,6 +1112,7 @@ const seekBySeconds = (deltaSeconds) => {
     ? Math.min(Math.max(current + deltaSeconds, 0), duration)
     : Math.max(current + deltaSeconds, 0);
   audioPlayer.currentTime = next;
+  syncPlayerVideoWithAudio({ force: true });
   updateMediaSessionPosition();
 };
 
@@ -789,7 +1120,7 @@ const stopPlayback = () => {
   if (!audioPlayer) {
     return;
   }
-  // Remember last track so the MediaSession play handler can resume it
+  // Remember the last track so the MediaSession play handler can resume it
   if (playerState.currentIndex >= 0) {
     playerState.lastIndex = playerState.currentIndex;
   }
@@ -1225,65 +1556,33 @@ const buildPlaylistTrackRow = (track, listType, idx) => {
   const row = document.createElement("div");
   row.className = "playlist-track-row";
   row.dataset.trackId = track.id;
-  const isSpotify = window._sqTheme && window._sqTheme.spotify;
-  if (isSpotify) {
-    row.innerHTML = `
-      <span class="playlist-drag-handle" draggable="true" aria-label="並び替え">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <rect x="5" y="7" width="14" height="2" rx="1" />
-          <rect x="5" y="15" width="14" height="2" rx="1" />
-        </svg>
-      </span>
-      <span class="media-list-num" aria-hidden="true">
-        <span class="num-text">${idx + 1}</span>
-        <svg class="num-play" viewBox="0 0 24 24"><polygon points="8,5 19,12 8,19"/></svg>
-      </span>
-      <span class="media-list-title-cell">
-        <img class="media-list-cover" src="${track.cover}" alt="" loading="lazy" />
-        <span class="media-list-title-stack">
-          <span class="media-list-title">${track.title}</span>
-          <span class="media-list-artist">${track.artist}</span>
-        </span>
-      </span>
-      <span class="media-list-album">${track.album || ""}</span>
-      <span class="media-list-duration">${track.duration}</span>
-      <button class="playlist-remove" type="button" aria-label="削除">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M9 3h6l1 2h4v2H4V5h4l1-2zm1 6h2v9h-2V9zm4 0h2v9h-2V9zm-8 0h2v9H6V9z"/>
-        </svg>
-      </button>
-      <button class="track-menu-btn" type="button" data-track-id="${track.id}" aria-label="曲のメニュー">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>
-      </button>
-    `;
-  } else {
-    /* 標準UI: 並替ハンドル | [カバー]タイトル | アーティスト | 再生時間 | 削除 */
-    row.innerHTML = `
-      <span class="playlist-drag-handle" draggable="true" aria-label="並び替え">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <rect x="5" y="7" width="14" height="2" rx="1" />
-          <rect x="5" y="15" width="14" height="2" rx="1" />
-        </svg>
-      </span>
-      <span class="media-list-title-cell">
-        <img class="media-list-cover" src="${track.cover}" alt="" loading="lazy" />
-        <span class="media-list-title-stack">
-          <span class="media-list-title"></span>
-        </span>
-      </span>
-      <span class="media-list-artist-col"></span>
-      <span class="media-list-duration">${track.duration}</span>
-      <button class="playlist-remove" type="button" aria-label="削除">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M9 3h6l1 2h4v2H4V5h4l1-2zm1 6h2v9h-2V9zm4 0h2v9h-2V9zm-8 0h2v9H6V9z"/>
-        </svg>
-      </button>
-    `;
-    const titleEl = row.querySelector(".media-list-title");
-    const artistEl = row.querySelector(".media-list-artist-col");
-    if (titleEl) { titleEl.textContent = track.title; titleEl.dataset.marqueeText = track.title; }
-    if (artistEl) { artistEl.textContent = track.artist; artistEl.dataset.marqueeText = track.artist; }
-  }
+  const selectedPlaylist = getSelectedPlaylistData();
+  const canEditTrackList =
+    listType === "favorites" ? canUseFavoritesActions() : canManagePlaylist(selectedPlaylist);
+  row.innerHTML = `
+    <span class="playlist-drag-handle" draggable="${canEditTrackList ? "true" : "false"}" aria-label="並び替え" ${canEditTrackList ? "" : "hidden"}>
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="5" y="7" width="14" height="2" rx="1" />
+        <rect x="5" y="15" width="14" height="2" rx="1" />
+      </svg>
+    </span>
+    <span class="media-list-status" aria-hidden="true">
+      <svg class="media-playing-icon" viewBox="0 0 24 24">
+        <polygon points="8,5 19,12 8,19" />
+      </svg>
+    </span>
+    <img class="media-list-cover" src="${escapeHtml(track.cover)}" alt="${escapeHtml(track.album)}" />
+    <span class="media-list-title">${escapeHtml(track.title)}</span>
+    <span class="media-list-artist">${escapeHtml(track.artist)}</span>
+    <span class="media-list-duration">${escapeHtml(track.duration)}</span>
+    <button class="playlist-remove" type="button" aria-label="削除">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path
+          d="M9 3h6l1 2h4v2H4V5h4l1-2zm1 6h2v9h-2V9zm4 0h2v9h-2V9zm-8 0h2v9H6V9z"
+        />
+      </svg>
+    </button>
+  `;
   row.addEventListener("click", (event) => {
     if (
       event.target.closest(".playlist-remove") ||
@@ -1298,28 +1597,39 @@ const buildPlaylistTrackRow = (track, listType, idx) => {
       togglePlayback();
     }
   });
-  const handle = row.querySelector(".playlist-drag-handle");
-  handle.addEventListener("dragstart", (event) => {
-    row.classList.add("is-dragging");
-    event.dataTransfer.effectAllowed = "move";
-    event.dataTransfer.setData("text/plain", track.id);
-  });
-  handle.addEventListener("dragend", () => {
-    row.classList.remove("is-dragging");
-  });
-  row.addEventListener("dragover", (event) => {
-    event.preventDefault();
-    event.dataTransfer.dropEffect = "move";
-  });
-  row.addEventListener("drop", (event) => {
-    event.preventDefault();
-    const draggedId = event.dataTransfer.getData("text/plain");
-    if (!draggedId || draggedId === track.id) return;
-    reorderPlaylistTracks(listType, draggedId, track.id);
-  });
-  row.querySelector(".playlist-remove").addEventListener("click", () => {
-    removePlaylistTrack(listType, track.id);
-  });
+  const dragHandle = row.querySelector(".playlist-drag-handle");
+  if (canEditTrackList && dragHandle) {
+    dragHandle.addEventListener("dragstart", (event) => {
+      row.classList.add("is-dragging");
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("text/plain", track.id);
+    });
+    dragHandle.addEventListener("dragend", () => {
+      row.classList.remove("is-dragging");
+    });
+    row.addEventListener("dragover", (event) => {
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "move";
+    });
+    row.addEventListener("drop", (event) => {
+      event.preventDefault();
+      const draggedId = event.dataTransfer.getData("text/plain");
+      if (!draggedId || draggedId === track.id) {
+        return;
+      }
+      reorderPlaylistTracks(listType, draggedId, track.id);
+    });
+  }
+  const removeButton = row.querySelector(".playlist-remove");
+  if (removeButton) {
+    if (!canEditTrackList) {
+      removeButton.hidden = true;
+    } else {
+      removeButton.addEventListener("click", () => {
+        removePlaylistTrack(listType, track.id);
+      });
+    }
+  }
   const menuBtn = row.querySelector(".track-menu-btn");
   if (menuBtn) {
     row.addEventListener("pointerenter", () => menuBtn.classList.add("is-hovered"));
@@ -1808,6 +2118,26 @@ const openPlaylistEditModal = (mode, playlist = null) => {
 const renderPlaylists = () => {
   playlistList.innerHTML = "";
 
+  // Populate playlist select dropdown (for auth/visibility UI compatibility)
+  if (playlistSelectDropdown) {
+    playlistSelectDropdown.innerHTML = "";
+    const favoritesOption = document.createElement("option");
+    favoritesOption.value = "favorites";
+    favoritesOption.textContent = `お気に入り (${state.favorites.length})`;
+    playlistSelectDropdown.appendChild(favoritesOption);
+    visiblePlaylists.forEach((playlist) => {
+      const option = document.createElement("option");
+      option.value = playlist.id;
+      const visibilityLabel = playlist.is_public ? "公開" : "非公開";
+      option.textContent = `${playlist.name} (${visibilityLabel})`;
+      playlistSelectDropdown.appendChild(option);
+    });
+    const selectedValue = state.selectedPlaylist?.type === "playlist"
+      ? state.selectedPlaylist.id
+      : "favorites";
+    playlistSelectDropdown.value = selectedValue;
+  }
+
   const heading = document.createElement("h4");
   heading.className = "playlist-section-title";
   heading.textContent = "プレイリスト一覧";
@@ -1955,16 +2285,17 @@ const renderPlaylistModalList = () => {
     return;
   }
   playlistModalList.innerHTML = "";
-  if (!state.playlists.length) {
+  const manageablePlaylists = state.playlists.filter((playlist) => canManagePlaylist(playlist));
+  if (!manageablePlaylists.length) {
     const empty = document.createElement("p");
     empty.className = "player-menu-title";
-    empty.textContent = "プレイリストがありません";
+    empty.textContent = "追加可能なプレイリストがありません";
     playlistModalList.appendChild(empty);
     return;
   }
   const isBulkMode = selectionState.active && selectionState.selectedIds.size > 0;
   const track = state.tracks[playerState.currentIndex];
-  state.playlists.forEach((playlist) => {
+  manageablePlaylists.forEach((playlist) => {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "modal-item";
@@ -2010,7 +2341,7 @@ const renderPlaylistSelectOptions = () => {
   ].filter(Boolean);
   selects.forEach((select) => {
     select.innerHTML = '<option value="">指定なし</option>';
-    state.playlists.forEach((playlist) => {
+    state.playlists.filter((playlist) => canManagePlaylist(playlist)).forEach((playlist) => {
       const option = document.createElement("option");
       option.value = playlist.id;
       option.textContent = playlist.name;
@@ -2070,14 +2401,19 @@ const updatePlayerMenuButtons = () => {
     const hasSource = Boolean(track?.source_url);
     playerOpenSource.disabled = !hasSource;
   }
+  if (playerOpenVideo) {
+    playerOpenVideo.disabled = !resolveTrackVideoUrl(track);
+  }
   if (playerAddPlaylist) {
-    playerAddPlaylist.disabled = !track;
+    playerAddPlaylist.style.display = canUsePlaylistActions() ? "" : "none";
+    playerAddPlaylist.disabled = !track || !canUsePlaylistActions();
   }
   if (playerShareTrack) {
     playerShareTrack.disabled = !track;
   }
   if (playerDeleteTrack) {
-    playerDeleteTrack.disabled = !track;
+    playerDeleteTrack.style.display = state.role === "admin" ? "" : "none";
+    playerDeleteTrack.disabled = !track || state.role !== "admin";
   }
 };
 
@@ -2142,7 +2478,7 @@ const addTrackToPlaylist = async (playlistId) => {
     renderPlaylists();
     renderPlaylistModalList();
   } catch (error) {
-    console.error(error);
+    appendImportLog(`プレイリストへの追加に失敗しました: ${error.message}`, { append: true });
   }
 };
 
@@ -2258,7 +2594,7 @@ const renderSettings = (settings) => {
     const version = settings?.version || {};
     settingsVersionList.innerHTML = `
       <li class="settings-version-item">
-        <img class="settings-version-logo" src="/static/images/logo.png" alt="SquashTerm logo" />
+        <a href="https://github.com/ibuto/squashterm" target="_blank" rel="noopener noreferrer"><img class="settings-version-logo" src="/branding/logo" alt="SquashTerm logo" /></a>
         <div class="settings-version-values">
           <div class="settings-version-row">
             <span class="settings-version-label">バージョン</span>
@@ -2279,6 +2615,13 @@ const renderSettings = (settings) => {
   if (settingsBaseUrlInput) {
     settingsBaseUrlInput.value = settings?.app?.base_url || "";
   }
+  if (designAccentColorInput) {
+    designAccentColorInput.value = settings?.design?.accent_color || "#38bdf8";
+  }
+  if (settingsShowVideoOnPlayer) {
+    settingsShowVideoOnPlayer.checked = Boolean(state.authUser?.show_video_on_player ?? true);
+  }
+  applyDesignTheme(settings?.design);
   if (settingsPlaybackOptions) {
     const options = settings?.playback_options || [];
     settingsPlaybackOptions.innerHTML = "";
@@ -2294,14 +2637,14 @@ const renderSettings = (settings) => {
         input.dataset.optionId = option.id;
         input.addEventListener("change", async (e) => {
           try {
-            await fetch("/api/settings/playback-options", {
-              method: "PUT",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
+            await requestJson(
+              "/api/settings/playback-options",
+              {
                 option_id: option.id,
                 enabled: e.target.checked,
-              }),
-            });
+              },
+              "PUT"
+            );
           } catch (err) {
             console.error("設定保存エラー:", err);
             e.target.checked = !e.target.checked;
@@ -2318,7 +2661,13 @@ const renderSettings = (settings) => {
 };
 
 const renderSystem = (system) => {
+  if (aboutSystemCard) {
+    aboutSystemCard.style.display = state.role === "admin" ? "" : "none";
+  }
   if (!system) {
+    if (systemInfoList) {
+      systemInfoList.innerHTML = "";
+    }
     return;
   }
   if (settingsStorageBar && settingsStorageText) {
@@ -2399,7 +2748,7 @@ const ensureSelectedPlaylist = () => {
 const fetchJson = async (path) => {
   const response = await fetch(path);
   if (!response.ok) {
-    throw new Error(`Failed to load ${path}`);
+    throw new Error(await parseErrorMessage(response, `Failed to load ${path}`));
   }
   return response.json();
 };
@@ -2411,8 +2760,7 @@ const requestJson = async (path, payload, method) => {
     body: payload ? JSON.stringify(payload) : undefined,
   });
   if (!response.ok) {
-    const message = await response.text();
-    throw new Error(message || `Failed to ${method} ${path}`);
+    throw new Error(await parseErrorMessage(response, `Failed to ${method} ${path}`));
   }
   if (response.status === 204) {
     return null;
@@ -2739,7 +3087,8 @@ const handleLocalFolderSubmit = async () => {
 };
 
 const handlePlaylistCreate = async () => {
-  if (!playlistNameInput) {
+  if (!playlistNameInput || !hasLogin()) {
+    appendImportLog("プレイリストを作成するにはログインが必要です。", { append: true });
     return;
   }
   const name = playlistNameInput.value.trim();
@@ -2749,7 +3098,7 @@ const handlePlaylistCreate = async () => {
   try {
     const playlist = await requestJson(
       "/api/playlists",
-      { name, track_ids: [] },
+      { name, track_ids: [], is_public: playlistVisibility?.value === "public" },
       "POST"
     );
     state.playlists.push(playlist);
@@ -2762,25 +3111,367 @@ const handlePlaylistCreate = async () => {
     renderPlaylistSelectOptions();
     renderPlaylistModalList();
   } catch (error) {
-    console.error(error);
+    appendImportLog(`プレイリスト作成に失敗しました: ${error.message}`, { append: true });
   }
+};
+
+
+const closeAuthMenu = () => {
+  if (!authMenuPanel || !authLoginButton) {
+    return;
+  }
+  authMenuPanel.classList.remove("is-open");
+  authMenuPanel.setAttribute("aria-hidden", "true");
+  authLoginButton.setAttribute("aria-expanded", "false");
+};
+
+const openAuthMenu = () => {
+  if (!authMenuPanel || !authLoginButton || !state.authUser) {
+    return;
+  }
+  authMenuPanel.classList.add("is-open");
+  authMenuPanel.setAttribute("aria-hidden", "false");
+  authLoginButton.setAttribute("aria-expanded", "true");
+};
+
+const applyAuthUi = () => {
+  const settingsTabButton = document.querySelector('.nav-button[data-tab="settings"]');
+  if (authLoginButton) {
+    authLoginButton.style.display = "";
+    authLoginButton.setAttribute("aria-expanded", "false");
+    authLoginButton.classList.toggle("is-authenticated", Boolean(state.authUser));
+  }
+  if (authUserIcon) {
+    authUserIcon.src = state.authUser?.icon_url || "/static/images/icon.png";
+    authUserIcon.style.display = state.authUser ? "" : "none";
+  }
+  if (state.authUser) {
+    if (authUserMeta) {
+      authUserMeta.hidden = false;
+    }
+    if (authLoginLabel) {
+      authLoginLabel.hidden = true;
+      authLoginLabel.textContent = "";
+    }
+    if (authUserDisplay) {
+      authUserDisplay.textContent = state.authUser.display_name || state.authUser.username || "-";
+    }
+    if (authUserId) {
+      authUserId.textContent = `@${state.authUser.username || state.authUser.id || "-"}`;
+    }
+  } else {
+    closeAuthMenu();
+    if (authUserMeta) {
+      authUserMeta.hidden = true;
+    }
+    if (authLoginLabel) {
+      authLoginLabel.hidden = false;
+      authLoginLabel.textContent = "ログイン";
+    }
+  }
+  if (adminTabButton) {
+    adminTabButton.style.display = state.role === "admin" ? "" : "none";
+  }
+  if (settingsTabButton) {
+    settingsTabButton.style.display = hasLogin() ? "" : "none";
+  }
+  if (!hasLogin() && document.getElementById("panel-settings")?.classList.contains("is-active")) {
+    activateTab("media");
+  }
+  if (playlistCreateToggle) {
+    playlistCreateToggle.style.display = hasLogin() ? "" : "none";
+  }
+  if (playlistCreateForm) {
+    const canEditPlaylist = hasLogin();
+    playlistCreateForm.style.display = canEditPlaylist ? "" : "none";
+    playlistCreateForm.classList.remove("is-open");
+    playlistCreateForm.setAttribute("aria-hidden", "true");
+  }
+  if (settingsDisplayNameInput) {
+    settingsDisplayNameInput.value = state.authUser?.display_name || state.authUser?.username || "";
+  }
+  if (settingsUserIcon) {
+    settingsUserIcon.src = state.authUser?.icon_url || "/static/images/icon.png";
+  }
+  if (settingsShowVideoOnPlayer) {
+    settingsShowVideoOnPlayer.checked = Boolean(state.authUser?.show_video_on_player ?? true);
+  }
+  updateBulkBar();
+  renderPlaylists();
+  renderPlaylistDetail();
+  renderPlaylistModalList();
+  renderPlaylistSelectOptions();
+};
+
+const fetchAuthMe = async () => {
+  const auth = await fetchJson("/api/auth/me");
+  state.authUser = auth.user;
+  state.role = auth.role;
+  applyAuthUi();
+  try {
+    const system = await fetchJson("/api/system");
+    renderSystem(system);
+  } catch (_error) {
+    renderSystem(null);
+  }
+};
+
+const showAdminPlaylistDialog = (userItem) => {
+  if (!adminPlaylistDialog || !adminPlaylistDialogBody || !adminPlaylistDialogTitle) {
+    return;
+  }
+  adminPlaylistDialogTitle.textContent = `${userItem.username} のプレイリスト`;
+  const playlists = userItem.playlists || [];
+  if (playlists.length === 0) {
+    adminPlaylistDialogBody.innerHTML = "<p>プレイリストはありません。</p>";
+    adminPlaylistDialog.showModal();
+    return;
+  }
+  const blocks = playlists.map((playlistItem) => {
+    const tracks = playlistItem.tracks || [];
+    const trackValue = tracks.map((trackItem) => trackItem.id).join("\n");
+    return `
+      <div style="padding:0.75rem;border:1px solid var(--border-color);border-radius:12px;margin-bottom:0.75rem;">
+        <p><strong>所有者:</strong> ${escapeHtml(playlistItem.owner_name || "(不明)")}</p>
+        <label><span>タイトル</span><input type="text" data-edit="name" data-playlist-id="${escapeHtml(playlistItem.id)}" value="${escapeHtml(playlistItem.name || "")}" /></label>
+        <label><span>公開設定</span><select data-edit="isPublic" data-playlist-id="${escapeHtml(playlistItem.id)}"><option value="public" ${playlistItem.is_public ? "selected" : ""}>公開</option><option value="private" ${playlistItem.is_public ? "" : "selected"}>非公開</option></select></label>
+        <label><span>内容(トラックID改行区切り)</span><textarea data-edit="trackIds" data-playlist-id="${escapeHtml(playlistItem.id)}" rows="4">${escapeHtml(trackValue)}</textarea></label>
+        <button type="button" class="secondary" data-action="savePlaylist" data-playlist-id="${escapeHtml(playlistItem.id)}">保存</button>
+      </div>
+    `;
+  });
+  adminPlaylistDialogBody.innerHTML = blocks.join("");
+  adminPlaylistDialog.showModal();
+};
+
+const renderAdminUsers = (users) => {
+  if (!adminUserList) return;
+  adminUserList.innerHTML = "";
+  users.forEach((userItem) => {
+    const row = document.createElement("div");
+    row.className = "card";
+    row.style.marginBottom = "0.75rem";
+    const playlistCount = (userItem.playlists || []).length;
+    row.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;"><div style="display:flex;align-items:center;gap:0.5rem;"><img src="${escapeHtml(userItem.icon_url || "/static/images/icon.png")}" alt="" style="width:36px;height:36px;border-radius:999px;object-fit:cover;border:1px solid var(--border-color);" /><div><strong>${escapeHtml(userItem.display_name || userItem.username)}</strong><div style="font-size:0.8rem;color:var(--text-secondary);">@${escapeHtml(userItem.username)} / ${escapeHtml(userItem.role)} / playlists: ${playlistCount}</div></div></div></div>`;
+    const actionWrap = document.createElement("div");
+    actionWrap.style.display = "flex";
+    actionWrap.style.gap = "0.5rem";
+    actionWrap.style.flexWrap = "wrap";
+    const playlistBtn = document.createElement("button");
+    playlistBtn.className = "secondary";
+    playlistBtn.textContent = "プレイリスト管理";
+    playlistBtn.addEventListener("click", () => showAdminPlaylistDialog(userItem));
+    const editBtn = document.createElement("button");
+    editBtn.className = "secondary";
+    editBtn.textContent = "表示名編集";
+    editBtn.addEventListener("click", async () => {
+      const nextDisplayName = window.prompt("表示名", userItem.display_name || "") ?? userItem.display_name;
+      await requestJson(`/api/admin/users/${userItem.id}`, { display_name: nextDisplayName }, "PUT");
+      await refreshAdminData();
+    });
+    const iconInput = document.createElement("input");
+    iconInput.type = "file";
+    iconInput.accept = "image/*";
+    const iconUploadBtn = document.createElement("button");
+    iconUploadBtn.className = "secondary";
+    iconUploadBtn.textContent = "アイコン再アップロード";
+    iconUploadBtn.addEventListener("click", async () => {
+      const file = iconInput.files?.[0];
+      if (!file) {
+        window.alert("先に画像ファイルを選択してください。");
+        return;
+      }
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await fetch(`/api/admin/users/${userItem.id}/icon`, { method: "POST", body: formData });
+      if (!response.ok) {
+        throw new Error("アイコン更新に失敗しました。");
+      }
+      await refreshAdminData();
+      await fetchAuthMe();
+    });
+    const disableBtn = document.createElement("button");
+    disableBtn.className = "secondary";
+    disableBtn.textContent = userItem.is_active ? "無効化" : "有効化";
+    disableBtn.addEventListener("click", async () => {
+      await requestJson(`/api/admin/users/${userItem.id}`, { is_active: !Boolean(userItem.is_active) }, "PUT");
+      await refreshAdminData();
+    });
+    const delBtn = document.createElement("button");
+    delBtn.className = "danger";
+    delBtn.textContent = "削除";
+    delBtn.addEventListener("click", async () => {
+      await requestJson(`/api/admin/users/${userItem.id}`, null, "DELETE");
+      await refreshAdminData();
+    });
+    actionWrap.appendChild(playlistBtn);
+    actionWrap.appendChild(editBtn);
+    actionWrap.appendChild(iconInput);
+    actionWrap.appendChild(iconUploadBtn);
+    actionWrap.appendChild(disableBtn);
+    actionWrap.appendChild(delBtn);
+    row.appendChild(actionWrap);
+    adminUserList.appendChild(row);
+  });
+};
+
+const renderAdminApiKeys = (keys) => {
+  if (!adminApiKeyList) return;
+  adminApiKeyList.innerHTML = "";
+  keys.forEach((keyItem) => {
+    const row = document.createElement("div");
+    row.style.marginBottom = "0.75rem";
+    row.innerHTML = `<div><strong>${keyItem.name}</strong> (${keyItem.origin || "*"})</div>`;
+    const toggle = document.createElement("button");
+    toggle.className = "secondary";
+    toggle.textContent = keyItem.is_active ? "無効化" : "有効化";
+    toggle.addEventListener("click", async () => {
+      await requestJson(`/api/admin/api-keys/${keyItem.id}`, { is_active: !Boolean(keyItem.is_active) }, "PUT");
+      await refreshAdminData();
+    });
+    row.appendChild(toggle);
+    adminApiKeyList.appendChild(row);
+  });
+};
+
+const refreshAdminData = async () => {
+  if (state.role !== "admin") return;
+  const [users, keys] = await Promise.all([fetchJson("/api/admin/users"), fetchJson("/api/admin/api-keys")]);
+  renderAdminUsers(users);
+  renderAdminApiKeys(keys);
+};
+
+const bindAuthAdminEvents = () => {
+  authLoginButton?.addEventListener("click", () => {
+    if (!state.authUser) {
+      if (authLoginError) {
+        authLoginError.textContent = "";
+      }
+      authLoginDialog?.showModal();
+      return;
+    }
+    if (authMenuPanel?.classList.contains("is-open")) {
+      closeAuthMenu();
+      return;
+    }
+    openAuthMenu();
+  });
+  authSettingsButton?.addEventListener("click", () => {
+    closeAuthMenu();
+    activateTab("settings");
+    closeMobileSidebar();
+  });
+  authLogoutButton?.addEventListener("click", async () => {
+    closeAuthMenu();
+    await fetch("/api/auth/logout", { method: "POST" });
+    window.location.href = "/";
+  });
+  document.addEventListener("click", (event) => {
+    if (!authMenuPanel?.classList.contains("is-open")) {
+      return;
+    }
+    if (!(event.target instanceof Node)) {
+      return;
+    }
+    if (authMenu?.contains(event.target)) {
+      return;
+    }
+    closeAuthMenu();
+  });
+  authLoginCancel?.addEventListener("click", () => {
+    if (authLoginError) {
+      authLoginError.textContent = "";
+    }
+    authLoginDialog?.close();
+  });
+  adminPlaylistDialogClose?.addEventListener("click", () => adminPlaylistDialog?.close());
+  playlistSelectDropdown?.addEventListener("change", () => {
+    const selectedId = playlistSelectDropdown.value;
+    if (selectedId === "favorites") {
+      setSelectedPlaylist("favorites", "favorites");
+      return;
+    }
+    setSelectedPlaylist("playlist", selectedId);
+  });
+  adminPlaylistDialogBody?.addEventListener("click", async (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement) || target.dataset.action !== "savePlaylist") {
+      return;
+    }
+    const playlistId = target.dataset.playlistId;
+    if (!playlistId) {
+      return;
+    }
+    const nameInput = adminPlaylistDialogBody.querySelector(`[data-edit="name"][data-playlist-id="${playlistId}"]`);
+    const visibilityInput = adminPlaylistDialogBody.querySelector(`[data-edit="isPublic"][data-playlist-id="${playlistId}"]`);
+    const trackIdsInput = adminPlaylistDialogBody.querySelector(`[data-edit="trackIds"][data-playlist-id="${playlistId}"]`);
+    if (!nameInput || !visibilityInput || !trackIdsInput) {
+      return;
+    }
+    const trackIds = trackIdsInput.value.split("\n").map((item) => item.trim()).filter(Boolean);
+    await requestJson(`/api/playlists/${playlistId}`, {
+      name: nameInput.value.trim(),
+      is_public: visibilityInput.value === "public",
+      track_ids: trackIds,
+    }, "PUT");
+    await refreshAdminData();
+    await refreshLibrary();
+  });
+  authLoginForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (authLoginError) {
+      authLoginError.textContent = "";
+    }
+    try {
+      await requestJson("/api/auth/login", { username: authUsername.value.trim(), password: authPassword.value }, "POST");
+      authLoginDialog?.close();
+      authPassword.value = "";
+      await fetchAuthMe();
+      await refreshAdminData();
+    } catch (error) {
+      if (authLoginError) {
+        authLoginError.textContent = error.message || "ログインに失敗しました。";
+      }
+    }
+  });
+  adminUserCreate?.addEventListener("click", async () => {
+    const createdUser = await requestJson("/api/admin/users", { username: adminUserName.value.trim(), password: adminUserPassword.value, role: adminUserRole.value, display_name: adminUserDisplayName?.value?.trim() || null }, "POST");
+    const iconFile = adminUserIconFile?.files?.[0];
+    if (iconFile) {
+      const formData = new FormData();
+      formData.append("file", iconFile);
+      await fetch(`/api/admin/users/${createdUser.id}/icon`, { method: "POST", body: formData });
+    }
+    adminUserPassword.value = "";
+    if (adminUserDisplayName) adminUserDisplayName.value = "";
+    if (adminUserIconFile) adminUserIconFile.value = "";
+    await refreshAdminData();
+  });
+  adminApiKeyCreate?.addEventListener("click", async () => {
+    const created = await requestJson("/api/admin/api-keys", { name: adminApiKeyName.value.trim(), origin: adminApiKeyOrigin.value.trim() || null }, "POST");
+    if (adminApiKeyPlain) adminApiKeyPlain.textContent = `発行キー: ${created.key}`;
+    await refreshAdminData();
+  });
 };
 
 const init = async () => {
   try {
-    const [tracks, playlists, favoritesData, status, settings, system] =
+    const auth = await fetchJson("/api/auth/me");
+    state.authUser = auth.user;
+    state.role = auth.role;
+    const [tracks, playlists, favoritesData, status, settings] =
       await Promise.all([
         fetchJson("/api/library"),
         fetchJson("/api/playlists"),
         fetchJson("/api/favorites"),
         fetchJson("/api/status"),
         fetchJson("/api/settings"),
-        fetchJson("/api/system"),
       ]);
 
     state.tracks = tracks;
     state.playlists = playlists;
     state.favorites = favoritesData;
+    applyAuthUi();
     ensureSelectedPlaylist();
 
     renderMedia();
@@ -2807,7 +3498,13 @@ const init = async () => {
       statusTime.textContent = status.time;
     }
     renderSettings(settings);
-    renderSystem(system);
+    try {
+      const system = await fetchJson("/api/system");
+      renderSystem(system);
+    } catch (_error) {
+      renderSystem(null);
+    }
+    await refreshAdminData();
 
     const query = new URLSearchParams(window.location.search);
     const sharedTrackId = query.get("id");
@@ -2911,6 +3608,45 @@ if (settingsBaseUrlSave) {
 if (playlistCreateToggle) {
   playlistCreateToggle.addEventListener("click", () => {
     openPlaylistEditModal("create");
+  });
+}
+
+const applyPlaylistAlbumBtn = document.getElementById("apply-playlist-album-names");
+const applyPlaylistAlbumResult = document.getElementById("apply-playlist-album-result");
+if (applyPlaylistAlbumBtn) {
+  applyPlaylistAlbumBtn.addEventListener("click", async () => {
+    applyPlaylistAlbumBtn.disabled = true;
+    applyPlaylistAlbumBtn.textContent = "適用中…";
+    if (applyPlaylistAlbumResult) applyPlaylistAlbumResult.textContent = "";
+    try {
+      const res = await fetch("/api/library/apply-playlist-album-names", { method: "POST" });
+      if (!res.ok) throw new Error(await res.text());
+      const { updated, skipped } = await res.json();
+      if (applyPlaylistAlbumResult) {
+        applyPlaylistAlbumResult.textContent = `完了: ${updated}件を更新、${skipped}件はスキップ`;
+      }
+      if (updated > 0) {
+        const data = await fetchJson("/api/library");
+        state.tracks = data;
+        renderMedia();
+      }
+    } catch (e) {
+      if (applyPlaylistAlbumResult) applyPlaylistAlbumResult.textContent = `エラー: ${e.message}`;
+    } finally {
+      applyPlaylistAlbumBtn.disabled = false;
+      applyPlaylistAlbumBtn.textContent = "プレイリスト名をAlbumに適用";
+    }
+  });
+}
+
+if (playlistCreateToggle && playlistCreateForm) {
+  playlistCreateToggle.addEventListener("click", () => {
+    if (!hasLogin()) {
+      appendImportLog("プレイリストを作成するにはログインが必要です。", { append: true });
+      return;
+    }
+    const isOpen = playlistCreateForm.classList.toggle("is-open");
+    playlistCreateForm.setAttribute("aria-hidden", isOpen ? "false" : "true");
   });
 }
 
@@ -3087,8 +3823,21 @@ const updateBulkBar = () => {
   if (bulkSelectedCount) {
     bulkSelectedCount.textContent = countText;
   }
+  if (bulkAddFavorite) {
+    bulkAddFavorite.style.display = canUseFavoritesActions() ? "" : "none";
+  }
+  if (bulkAddPlaylist) {
+    bulkAddPlaylist.style.display = canUsePlaylistActions() ? "" : "none";
+  }
+  if (bulkDeleteBtn) {
+    bulkDeleteBtn.style.display = state.role === "admin" ? "" : "none";
+  }
   if (bulkActionBar) {
-    bulkActionBar.setAttribute("aria-hidden", selectionState.active ? "false" : "true");
+    const hasAnyAction = canUseFavoritesActions() || canUsePlaylistActions() || state.role === "admin";
+    bulkActionBar.setAttribute(
+      "aria-hidden",
+      selectionState.active && hasAnyAction ? "false" : "true"
+    );
   }
   // FAB（モバイル）の表示/非表示と件数更新
   if (selectionFab) {
@@ -3205,13 +3954,60 @@ if (bulkSelectCancel) {
   bulkSelectCancel.addEventListener("click", () => exitSelectionMode());
 }
 if (bulkAddFavorite) {
-  bulkAddFavorite.addEventListener("click", bulkActionAddFavorite);
+  bulkAddFavorite.addEventListener("click", async () => {
+    if (!selectionState.selectedIds.size || !canUseFavoritesActions()) return;
+    const newFavorites = [...state.favorites];
+    selectionState.selectedIds.forEach((id) => {
+      if (!newFavorites.includes(id)) newFavorites.push(id);
+    });
+    try {
+      await updateFavoritesTracks(newFavorites);
+      state.favorites = newFavorites;
+      renderFavorites();
+      updateFavoriteButtons();
+      exitSelectionMode();
+    } catch (error) {
+      console.error(error);
+    }
+  });
 }
 if (bulkAddPlaylist) {
-  bulkAddPlaylist.addEventListener("click", bulkActionAddPlaylist);
+  bulkAddPlaylist.addEventListener("click", () => {
+    if (!selectionState.selectedIds.size || !canUsePlaylistActions()) return;
+    if (playlistModal) {
+      playlistModal.classList.add("is-open");
+      playlistModal.setAttribute("aria-hidden", "false");
+      renderPlaylistModalList();
+    }
+  });
 }
+
 if (bulkDeleteBtn) {
-  bulkDeleteBtn.addEventListener("click", bulkActionDelete);
+  bulkDeleteBtn.addEventListener("click", async () => {
+    if (state.role !== "admin") return;
+    const ids = [...selectionState.selectedIds];
+    if (!ids.length) return;
+    const result = await showConfirmDialog({
+      title: "楽曲を削除",
+      message: `選択した${ids.length}件の楽曲を削除しますか？`,
+      showFileOption: true,
+      buttons: [
+        { label: "キャンセル", className: "secondary", value: "cancel" },
+        { label: "削除する", className: "danger", value: "confirm" },
+      ],
+    });
+    if (result.action !== "confirm") return;
+    try {
+      for (const id of ids) {
+        await deleteTrack(id, result.deleteFile);
+      }
+      exitSelectionMode();
+      await refreshLibrary();
+    } catch (error) {
+      console.error(error);
+      appendImportLog("削除中にエラーが発生しました。", { append: true });
+    }
+  });
 }
 
 // FABメニュートグル
@@ -3262,6 +4058,7 @@ if (audioPlayer) {
     updatePlayerButtons();
     updateMediaSessionPlaybackState();
     syncMobilePlayerButtons();
+    syncVideoStateWithAudioPlayback();
   });
 
   audioPlayer.addEventListener("pause", () => {
@@ -3269,6 +4066,7 @@ if (audioPlayer) {
     updatePlayerButtons();
     updateMediaSessionPlaybackState();
     syncMobilePlayerButtons();
+    syncVideoStateWithAudioPlayback();
   });
 
   audioPlayer.addEventListener("timeupdate", () => {
@@ -3294,6 +4092,9 @@ if (audioPlayer) {
     }
     if (miniDuration) {
       miniDuration.textContent = formatTime(duration);
+    }
+    if (playerVideo?.classList.contains("is-visible") && playerVideoSyncPending) {
+      syncVideoStateWithAudioPlayback();
     }
     updateMediaSessionPosition();
     
@@ -3332,8 +4133,14 @@ if (playerSeek && audioPlayer) {
     const value = Number(event.target.value);
     if (Number.isFinite(value) && audioPlayer.duration) {
       audioPlayer.currentTime = (value / 100) * audioPlayer.duration;
+      playerVideoSyncPending = true;
       updateMediaSessionPosition();
     }
+  });
+  playerSeek.addEventListener("change", () => {
+    playerVideoSeekInProgress = false;
+    syncPlayerVideoWithAudio({ force: true });
+    syncVideoStateWithAudioPlayback();
   });
 }
 
@@ -3342,8 +4149,14 @@ if (miniSeek && audioPlayer) {
     const value = Number(event.target.value);
     if (Number.isFinite(value) && audioPlayer.duration) {
       audioPlayer.currentTime = Math.round((value / 100) * audioPlayer.duration);
+      playerVideoSyncPending = true;
       updateMediaSessionPosition();
     }
+  });
+  miniSeek.addEventListener("change", () => {
+    playerVideoSeekInProgress = false;
+    syncPlayerVideoWithAudio({ force: true });
+    syncVideoStateWithAudioPlayback();
   });
 }
 
@@ -3403,12 +4216,18 @@ if (playerShuffle) {
 
 if (playerFavorite) {
   playerFavorite.addEventListener("click", () => {
+    if (!canUseFavoritesActions()) {
+      return;
+    }
     toggleFavorite();
   });
 }
 
 if (miniFavorite) {
   miniFavorite.addEventListener("click", () => {
+    if (!canUseFavoritesActions()) {
+      return;
+    }
     toggleFavorite();
   });
 }
@@ -4078,6 +4897,9 @@ if (playerMenuPanel) {
 
 if (playerAddPlaylist) {
   playerAddPlaylist.addEventListener("click", () => {
+    if (!canUsePlaylistActions()) {
+      return;
+    }
     closePlayerMenu();
     openPlaylistModal();
   });
@@ -4091,6 +4913,32 @@ if (playerOpenSource) {
       return;
     }
     window.open(track.source_url, "_blank", "noopener");
+  });
+}
+
+if (playerOpenVideo) {
+  playerOpenVideo.addEventListener("click", () => {
+    const track = state.tracks[playerState.currentIndex];
+    const videoUrl = resolveTrackVideoUrl(track);
+    if (!videoUrl) {
+      appendImportLog("再生可能な保存済み動画が見つかりません。", { append: true });
+      return;
+    }
+    openVideoModal(videoUrl);
+  });
+}
+
+if (videoModalClose) {
+  videoModalClose.addEventListener("click", () => {
+    closeVideoModal();
+  });
+}
+
+if (videoModal) {
+  videoModal.addEventListener("click", (event) => {
+    if (event.target === videoModal) {
+      closeVideoModal();
+    }
   });
 }
 
@@ -4142,6 +4990,9 @@ if (playerEditInfo) {
 
 if (playerDeleteTrack) {
   playerDeleteTrack.addEventListener("click", async () => {
+    if (state.role !== "admin") {
+      return;
+    }
     const track = state.tracks[playerState.currentIndex];
     if (!track) {
       return;
@@ -4180,8 +5031,9 @@ if (playerDownload) {
     }
     const anchor = document.createElement("a");
     const safeTitle = track.title.replace(/[\\/:*?"<>|]/g, "_");
+    const ext = String(track.file_url || "").split(".").pop() || "mp3";
     anchor.href = track.file_url;
-    anchor.download = `${safeTitle}.mp3`;
+    anchor.download = `${safeTitle}.${ext}`;
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();
@@ -4268,6 +5120,10 @@ document.addEventListener("click", (event) => {
 });
 
 document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && videoModal?.classList.contains("is-open")) {
+    closeVideoModal();
+    return;
+  }
   if (!isPlayerOverlayActive()) {
     return;
   }
@@ -4285,8 +5141,47 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
+window.addEventListener("pageshow", () => {
+  if (isPlayerOverlayActive()) {
+    scheduleOverlayVideoSync();
+    return;
+  }
+  if (playerVideoSyncPending) {
+    syncVideoStateWithAudioPlayback();
+  }
+});
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "visible") {
+    return;
+  }
+  if (isPlayerOverlayActive()) {
+    scheduleOverlayVideoSync();
+    return;
+  }
+  if (playerVideoSyncPending || playerVideo?.classList.contains("is-visible")) {
+    syncVideoStateWithAudioPlayback();
+  }
+});
+
+if (playerVideo) {
+  playerVideo.addEventListener("canplay", () => {
+    if (playerVideoSyncPending) {
+      syncVideoStateWithAudioPlayback();
+    }
+  });
+}
+
 if (supportsMediaSession) {
-  navigator.mediaSession.setActionHandler("play", () => {
+  const registerMediaSessionHandler = (action, handler) => {
+    try {
+      navigator.mediaSession.setActionHandler(action, handler);
+    } catch (error) {
+      console.warn(`Unsupported media session action: ${action}`, error);
+    }
+  };
+
+  registerMediaSessionHandler("play", () => {
     if (playerState.currentIndex === -1 && state.tracks.length > 0) {
       // Resume from the last played track if available, otherwise start from the first
       const resumeIndex =
@@ -4300,20 +5195,20 @@ if (supportsMediaSession) {
       updateMediaSessionPlaybackState();
     });
   });
-  navigator.mediaSession.setActionHandler("pause", () => {
-    audioPlayer && audioPlayer.pause();
+  registerMediaSessionHandler("pause", () => {
+    pauseCurrentTrack();
   });
-  navigator.mediaSession.setActionHandler("previoustrack", () => {
+  registerMediaSessionHandler("previoustrack", () => {
     playPrev();
   });
-  navigator.mediaSession.setActionHandler("nexttrack", () => {
+  registerMediaSessionHandler("nexttrack", () => {
     playNext();
   });
-  navigator.mediaSession.setActionHandler("seekbackward", (event) => {
-    if (!audioPlayer) {
-      playPrev();
-      return;
-    }
+  // seekbackward/seekforward: sent by car audio, Android Auto, headsets.
+  // When the event carries a seekOffset, seek by that many seconds.
+  // When no offset is provided, treat as previous/next track.
+  registerMediaSessionHandler("seekbackward", (event) => {
+    if (!audioPlayer) { playPrev(); return; }
     const offset = typeof event?.seekOffset === "number" ? event.seekOffset : 0;
     if (offset > 0) {
       audioPlayer.currentTime = Math.max(0, audioPlayer.currentTime - offset);
@@ -4322,11 +5217,8 @@ if (supportsMediaSession) {
       playPrev();
     }
   });
-  navigator.mediaSession.setActionHandler("seekforward", (event) => {
-    if (!audioPlayer) {
-      playNext();
-      return;
-    }
+  registerMediaSessionHandler("seekforward", (event) => {
+    if (!audioPlayer) { playNext(); return; }
     const offset = typeof event?.seekOffset === "number" ? event.seekOffset : 0;
     if (offset > 0) {
       const dur = Number.isFinite(audioPlayer.duration) ? audioPlayer.duration : undefined;
@@ -4337,10 +5229,10 @@ if (supportsMediaSession) {
       playNext();
     }
   });
-  navigator.mediaSession.setActionHandler("stop", () => {
+  registerMediaSessionHandler("stop", () => {
     stopPlayback();
   });
-  navigator.mediaSession.setActionHandler("seekto", (event) => {
+  registerMediaSessionHandler("seekto", (event) => {
     if (!audioPlayer || typeof event.seekTime !== "number") {
       return;
     }
@@ -4374,4 +5266,137 @@ if (supportsMediaSession) {
   });
 }
 
+bindAuthAdminEvents();
 init();
+
+if (settingsShowVideoOnPlayer) {
+  settingsShowVideoOnPlayer.addEventListener("change", async () => {
+    const nextValue = Boolean(settingsShowVideoOnPlayer.checked);
+    try {
+      const updated = await requestJson(
+        "/api/auth/profile",
+        { show_video_on_player: nextValue },
+        "PUT"
+      );
+      state.authUser = updated;
+      updatePlayerUI();
+    } catch (error) {
+      settingsShowVideoOnPlayer.checked = !nextValue;
+      appendImportLog(`設定の保存に失敗しました: ${error.message}`, { append: true });
+    }
+  });
+}
+
+if (settingsProfileSave) {
+  settingsProfileSave.addEventListener("click", async () => {
+    try {
+      await requestJson("/api/auth/profile", { display_name: settingsDisplayNameInput?.value?.trim() || null }, "PUT");
+      const iconFile = settingsUserIconFile?.files?.[0];
+      if (iconFile) {
+        const formData = new FormData();
+        formData.append("file", iconFile);
+        const response = await fetch("/api/auth/profile/icon", { method: "POST", body: formData });
+        if (!response.ok) {
+          throw new Error("アイコンアップロードに失敗しました。");
+        }
+      }
+      await fetchAuthMe();
+      await refreshAdminData();
+      appendImportLog("プロフィールを保存しました。", { append: true });
+    } catch (error) {
+      appendImportLog(`プロフィール保存に失敗しました: ${error.message}`, { append: true });
+    }
+  });
+}
+
+if (designColorsSave) {
+  designColorsSave.addEventListener("click", async () => {
+    const payload = {
+      accent_color: designAccentColorInput?.value || "#38bdf8",
+    };
+    try {
+      const response = await requestJson("/api/settings/design", payload, "PUT");
+      applyDesignTheme(response.design);
+      appendImportLog("デザインカラーを保存しました。", { append: true });
+    } catch (error) {
+      console.error(error);
+    }
+  });
+}
+
+const uploadDesignAsset = async (path, fileInput) => {
+  const file = fileInput?.files?.[0];
+  if (!file) {
+    appendImportLog("ファイルを選択してください。", { append: true });
+    return;
+  }
+  const formData = new FormData();
+  formData.append("file", file);
+  const response = await fetch(path, { method: "POST", body: formData });
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+  const logos = document.querySelectorAll(".app-logo, .mobile-sticky-logo, .settings-version-logo");
+  logos.forEach((img) => {
+    img.src = `/branding/logo?t=${Date.now()}`;
+  });
+};
+
+if (designLogoSave) {
+  designLogoSave.addEventListener("click", async () => {
+    try {
+      await uploadDesignAsset("/api/settings/design/logo", designLogoFile);
+      appendImportLog("ロゴを保存しました。", { append: true });
+    } catch (error) {
+      console.error(error);
+    }
+  });
+}
+
+
+if (designLogoReset) {
+  designLogoReset.addEventListener("click", async () => {
+    try {
+      await fetch("/api/settings/design/logo", { method: "DELETE" });
+      const logos = document.querySelectorAll(".app-logo, .mobile-sticky-logo, .settings-version-logo");
+      logos.forEach((img) => {
+        img.src = `/branding/logo?t=${Date.now()}`;
+      });
+      appendImportLog("ロゴをリセットしました。", { append: true });
+    } catch (error) {
+      console.error(error);
+    }
+  });
+}
+
+if (designFaviconSave) {
+  designFaviconSave.addEventListener("click", async () => {
+    try {
+      await uploadDesignAsset("/api/settings/design/favicon", designFaviconFile);
+      const icon = document.querySelector('link[rel="icon"]');
+      if (icon) {
+        icon.href = `/favicon.ico?t=${Date.now()}`;
+      }
+      appendImportLog("faviconを保存しました。", { append: true });
+    } catch (error) {
+      console.error(error);
+    }
+  });
+}
+
+
+if (designFaviconReset) {
+  designFaviconReset.addEventListener("click", async () => {
+    try {
+      await fetch("/api/settings/design/favicon", { method: "DELETE" });
+      const icon = document.querySelector('link[rel="icon"]');
+      if (icon) {
+        icon.href = `/favicon.ico?t=${Date.now()}`;
+      }
+      appendImportLog("faviconをリセットしました。", { append: true });
+    } catch (error) {
+      console.error(error);
+    }
+  });
+}
+

@@ -20,12 +20,55 @@ class Track:
     source_url: str | None = None
     file_format: str | None = None
     bitrate_kbps: int | None = None
+    video_url: str | None = None
+
+
+
+
+class AuthLoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+class UserCreateRequest(BaseModel):
+    username: str
+    password: str
+    role: str = "user"
+    display_name: str | None = None
+    icon_url: str | None = None
+
+
+class UserUpdateRequest(BaseModel):
+    username: str | None = None
+    password: str | None = None
+    role: str | None = None
+    is_active: bool | None = None
+    display_name: str | None = None
+    icon_url: str | None = None
+
+
+class ApiKeyCreateRequest(BaseModel):
+    name: str
+    origin: str | None = None
+
+
+class ApiKeyUpdateRequest(BaseModel):
+    name: str | None = None
+    origin: str | None = None
+    is_active: bool | None = None
 
 
 class ImportRequest(BaseModel):
     url: str
     playlist_id: str | None = None
     auto_tag: bool | None = None
+
+
+
+
+class DownloadRequest(BaseModel):
+    url: str
+    playlist_id: str | None = None
 
 
 class PlaylistBatchImportRequest(BaseModel):
@@ -48,6 +91,7 @@ class PlaylistCreate(BaseModel):
     auto_sync_url: str | None = None
     auto_sync_interval_minutes: int | None = None
     auto_sync_enabled: bool | None = None
+    is_public: bool = False
 
 
 class PlaylistUpdate(BaseModel):
@@ -56,6 +100,7 @@ class PlaylistUpdate(BaseModel):
     auto_sync_url: str | None = None
     auto_sync_interval_minutes: int | None = None
     auto_sync_enabled: bool | None = None
+    is_public: bool | None = None
 
 
 class FavoritesUpdate(BaseModel):
@@ -67,6 +112,24 @@ class TrackUpdate(BaseModel):
     artist: str | None = None
     album: str | None = None
     source_url: str | None = None
+
+
+class ManualTrackMetadata(BaseModel):
+    title: str
+    artist: str
+    album: str
+    genre: str = "Unknown"
+    year: int = 0
+    duration: str = "--"
+    bpm: int = 0
+    source_url: str | None = None
+
+
+class TrackRegisterRequest(BaseModel):
+    file_path: str
+    scan_meta: bool = True
+    playlist_id: str | None = None
+    metadata: ManualTrackMetadata | None = None
 
 
 class PlaybackOptionUpdate(BaseModel):
