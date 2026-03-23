@@ -72,7 +72,7 @@ def parse_track_from_info(info: dict, source_url: str | None = None, playlist_na
         source_url=resolved_source_url,
         file_format=info.get("ext") or info.get("audio_ext"),
         bitrate_kbps=bitrate_kbps,
-        video_url=info.get("webpage_url") or info.get("original_url"),
+        video_url=None,  # populated with local /media/*.mp4 path after download
     )
 
 
@@ -339,7 +339,9 @@ def store_downloaded_tracks(
 
         file_path = preferred_audio_path or video_path
         if file_path is None:
-            file_path = MEDIA_DIR / f"{track_id}.mp3"
+            raise FileNotFoundError(
+                f"ダウンロード後のメディアファイルが見つかりません: track_id={track_id}"
+            )
         track.file_url = f"/media/{file_path.name}"
         if video_path is not None:
             track.video_url = f"/media/{video_path.name}"

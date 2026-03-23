@@ -1572,8 +1572,7 @@ body.has-mini-player .selection-menu {
 
 .progress-bar {
   background: #22c55e;
-  height: 100vh;
-  max-height: 100vh;
+  height: 100%;
 }
 
 

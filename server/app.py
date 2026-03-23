@@ -589,7 +589,15 @@ def _build_share_html(
 
 
 @app.put("/api/settings/base-url")
-def update_base_url(payload: dict):
+def update_base_url(
+    payload: dict,
+    session_token: str | None = Cookie(default=None),
+    authorization: str | None = Header(default=None),
+    x_api_key: str | None = Header(default=None),
+    origin: str | None = Header(default=None),
+):
+    user = resolve_current_user(session_token, authorization, x_api_key, origin)
+    require_admin(user)
     base_url = payload.get("base_url", "")
     if base_url is None:
         base_url = ""
@@ -600,7 +608,15 @@ def update_base_url(payload: dict):
 
 
 @app.put("/api/settings/design")
-def update_design_settings(payload: dict):
+def update_design_settings(
+    payload: dict,
+    session_token: str | None = Cookie(default=None),
+    authorization: str | None = Header(default=None),
+    x_api_key: str | None = Header(default=None),
+    origin: str | None = Header(default=None),
+):
+    user = resolve_current_user(session_token, authorization, x_api_key, origin)
+    require_admin(user)
     accent_color = str(payload.get("accent_color", "")).strip()
     if not accent_color:
         raise HTTPException(status_code=400, detail="accent_color is required")
@@ -616,7 +632,7 @@ async def upload_logo(
     origin: str | None = Header(default=None),
 ):
     user = resolve_current_user(session_token, authorization, x_api_key, origin)
-    require_login(user)
+    require_admin(user)
     if not file.filename:
         raise HTTPException(status_code=400, detail="logo file is required")
     branding_dir = MEDIA_DIR / "branding"
@@ -636,7 +652,7 @@ async def upload_favicon(
     origin: str | None = Header(default=None),
 ):
     user = resolve_current_user(session_token, authorization, x_api_key, origin)
-    require_login(user)
+    require_admin(user)
     if not file.filename:
         raise HTTPException(status_code=400, detail="favicon file is required")
     branding_dir = MEDIA_DIR / "branding"
@@ -1150,8 +1166,15 @@ def get_settings():
 
 
 @app.post("/api/library/apply-playlist-album-names")
-def api_apply_playlist_album_names():
+def api_apply_playlist_album_names(
+    session_token: str | None = Cookie(default=None),
+    authorization: str | None = Header(default=None),
+    x_api_key: str | None = Header(default=None),
+    origin: str | None = Header(default=None),
+):
     """既存楽曲のうち album 未設定のものに所属プレイリスト名を遡及適用する。"""
+    user = resolve_current_user(session_token, authorization, x_api_key, origin)
+    require_admin(user)
     try:
         result = apply_playlist_album_names()
         return result

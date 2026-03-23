@@ -346,6 +346,15 @@ if (mobileNavToggle && sidebar) {
   });
 }
 
+const escapeHtml = (str) => {
+  return String(str ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+};
+
 const formatTime = (seconds) => {
   if (!Number.isFinite(seconds)) {
     return "0:00";
@@ -1562,10 +1571,10 @@ const buildPlaylistTrackRow = (track, listType, idx) => {
         <polygon points="8,5 19,12 8,19" />
       </svg>
     </span>
-    <img class="media-list-cover" src="${track.cover}" alt="${track.album}" />
-    <span class="media-list-title">${track.title}</span>
-    <span class="media-list-artist">${track.artist}</span>
-    <span class="media-list-duration">${track.duration}</span>
+    <img class="media-list-cover" src="${escapeHtml(track.cover)}" alt="${escapeHtml(track.album)}" />
+    <span class="media-list-title">${escapeHtml(track.title)}</span>
+    <span class="media-list-artist">${escapeHtml(track.artist)}</span>
+    <span class="media-list-duration">${escapeHtml(track.duration)}</span>
     <button class="playlist-remove" type="button" aria-label="削除">
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path
@@ -3223,11 +3232,11 @@ const showAdminPlaylistDialog = (userItem) => {
     const trackValue = tracks.map((trackItem) => trackItem.id).join("\n");
     return `
       <div style="padding:0.75rem;border:1px solid var(--border-color);border-radius:12px;margin-bottom:0.75rem;">
-        <p><strong>所有者:</strong> ${playlistItem.owner_name || "(不明)"}</p>
-        <label><span>タイトル</span><input type="text" data-edit="name" data-playlist-id="${playlistItem.id}" value="${playlistItem.name || ""}" /></label>
-        <label><span>公開設定</span><select data-edit="isPublic" data-playlist-id="${playlistItem.id}"><option value="public" ${playlistItem.is_public ? "selected" : ""}>公開</option><option value="private" ${playlistItem.is_public ? "" : "selected"}>非公開</option></select></label>
-        <label><span>内容(トラックID改行区切り)</span><textarea data-edit="trackIds" data-playlist-id="${playlistItem.id}" rows="4">${trackValue}</textarea></label>
-        <button type="button" class="secondary" data-action="savePlaylist" data-playlist-id="${playlistItem.id}">保存</button>
+        <p><strong>所有者:</strong> ${escapeHtml(playlistItem.owner_name || "(不明)")}</p>
+        <label><span>タイトル</span><input type="text" data-edit="name" data-playlist-id="${escapeHtml(playlistItem.id)}" value="${escapeHtml(playlistItem.name || "")}" /></label>
+        <label><span>公開設定</span><select data-edit="isPublic" data-playlist-id="${escapeHtml(playlistItem.id)}"><option value="public" ${playlistItem.is_public ? "selected" : ""}>公開</option><option value="private" ${playlistItem.is_public ? "" : "selected"}>非公開</option></select></label>
+        <label><span>内容(トラックID改行区切り)</span><textarea data-edit="trackIds" data-playlist-id="${escapeHtml(playlistItem.id)}" rows="4">${escapeHtml(trackValue)}</textarea></label>
+        <button type="button" class="secondary" data-action="savePlaylist" data-playlist-id="${escapeHtml(playlistItem.id)}">保存</button>
       </div>
     `;
   });
@@ -3243,7 +3252,7 @@ const renderAdminUsers = (users) => {
     row.className = "card";
     row.style.marginBottom = "0.75rem";
     const playlistCount = (userItem.playlists || []).length;
-    row.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;"><div style="display:flex;align-items:center;gap:0.5rem;"><img src="${userItem.icon_url || "/static/images/icon.png"}" alt="" style="width:36px;height:36px;border-radius:999px;object-fit:cover;border:1px solid var(--border-color);" /><div><strong>${userItem.display_name || userItem.username}</strong><div style="font-size:0.8rem;color:var(--text-secondary);">@${userItem.username} / ${userItem.role} / playlists: ${playlistCount}</div></div></div></div>`;
+    row.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;"><div style="display:flex;align-items:center;gap:0.5rem;"><img src="${escapeHtml(userItem.icon_url || "/static/images/icon.png")}" alt="" style="width:36px;height:36px;border-radius:999px;object-fit:cover;border:1px solid var(--border-color);" /><div><strong>${escapeHtml(userItem.display_name || userItem.username)}</strong><div style="font-size:0.8rem;color:var(--text-secondary);">@${escapeHtml(userItem.username)} / ${escapeHtml(userItem.role)} / playlists: ${playlistCount}</div></div></div></div>`;
     const actionWrap = document.createElement("div");
     actionWrap.style.display = "flex";
     actionWrap.style.gap = "0.5rem";
