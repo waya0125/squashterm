@@ -1,5 +1,6 @@
 fastapi
 mutagen
+Pillow
 python-multipart
 uvicorn[standard]
 yt-dlp
