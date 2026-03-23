@@ -13,13 +13,13 @@ const staticAssets = [
 
 self.addEventListener("install", (event) => {
   // 1 ファイルでも失敗しても SW インストール自体はブロックしない
+  // skipWaiting を waitUntil チェーンに含めて有効化タイミングを確実に制御する
   event.waitUntil(
-    caches.open(cacheName).then((cache) =>
-      Promise.allSettled(staticAssets.map((url) => cache.add(url)))
-    )
+    caches
+      .open(cacheName)
+      .then((cache) => Promise.allSettled(staticAssets.map((url) => cache.add(url))))
+      .then(() => self.skipWaiting())
   );
-  // 旧 SW を待たずにすぐ有効化
-  self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {

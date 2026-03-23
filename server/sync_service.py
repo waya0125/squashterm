@@ -128,6 +128,9 @@ def should_auto_sync_playlist(playlist: dict, now: datetime) -> bool:
         return True
     try:
         last_run_time = datetime.fromisoformat(last_run)
+        # 旧バージョンで保存されたnaiveなタイムスタンプはJSTとして扱う
+        if last_run_time.tzinfo is None:
+            last_run_time = last_run_time.replace(tzinfo=JST)
     except ValueError:
         return True
     elapsed_minutes = (now - last_run_time).total_seconds() / 60

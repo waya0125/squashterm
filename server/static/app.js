@@ -1005,13 +1005,15 @@ const renderMedia = () => {
       </div>
     `;
     visibleTracks.forEach((track, idx) => {
-      const row = document.createElement(selectionState.active ? "div" : "button");
-      row.type = selectionState.active ? undefined : "button";
+      // <button> 内に interactive 要素（⋯ボタン等）をネストするのは HTML 的に無効なため、
+      // 常に div を使い role="button" で再生ボタンとしての意味を付与する
+      const row = document.createElement("div");
+      row.role = "button";
+      row.tabIndex = 0;
       row.className = "media-list-row";
       row.dataset.trackId = track.id;
       const hasAudio = Boolean(track.file_url);
       if (!selectionState.active) {
-        row.disabled = !hasAudio;
         if (!hasAudio) {
           row.classList.add("is-disabled");
         }
@@ -1044,9 +1046,9 @@ const renderMedia = () => {
         : `<span class="media-list-artist-col">${track.artist}</span>`;
       const durationHtml = `<span class="media-list-duration">${track.duration}</span>`;
 
-      const menuBtnHtml = `<span class="track-menu-btn" role="button" data-track-id="${track.id}" aria-label="曲のメニュー" tabindex="0">
+      const menuBtnHtml = `<button type="button" class="track-menu-btn" data-track-id="${track.id}" aria-label="曲のメニュー">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>
-      </span>`;
+      </button>`;
 
       if (selectionState.active) {
         // 選択モード: checkbox | # | title-cell | second-col | duration
@@ -1076,12 +1078,19 @@ const renderMedia = () => {
         // 通常モード: # | title-cell | second-col | duration | ⋯
         row.innerHTML = numHtml + titleCellHtml + secondColHtml + durationHtml + menuBtnHtml;
         if (hasAudio) {
-          row.addEventListener("click", (e) => {
+          const playRow = (e) => {
             if (e.target.closest(".track-menu-btn")) return;
             const index = state.tracks.findIndex((item) => item.id === track.id);
             if (index >= 0) {
               setTrackByIndex(index);
               togglePlayback();
+            }
+          };
+          row.addEventListener("click", playRow);
+          row.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              playRow(e);
             }
           });
         }
@@ -1092,13 +1101,6 @@ const renderMedia = () => {
           menuBtn.addEventListener("click", (e) => {
             e.stopPropagation();
             showTrackContextMenu(track.id, menuBtn);
-          });
-          menuBtn.addEventListener("keydown", (e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              e.stopPropagation();
-              showTrackContextMenu(track.id, menuBtn);
-            }
           });
           menuBtn.addEventListener("focus", () => menuBtn.classList.add("is-hovered"));
           menuBtn.addEventListener("blur", () => menuBtn.classList.remove("is-hovered"));
@@ -3991,8 +3993,8 @@ if (mobilePlayerMenuPanel) {
         document.getElementById("player-add-playlist")?.click();
       } else if (action === "delete") {
         if (confirm("この曲を削除しますか？")) {
-          fetch(`/api/tracks/${trackId}`, { method: "DELETE" })
-            .then(r => r.ok ? refreshLibrary() : Promise.reject())
+          deleteTrack(trackId)
+            .then(() => refreshLibrary())
             .catch(() => alert("削除に失敗しました。"));
         }
       }

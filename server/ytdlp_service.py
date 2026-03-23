@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
 import subprocess
 from dataclasses import asdict
 from urllib.parse import urlparse, parse_qs
@@ -11,8 +12,12 @@ from models import Track
 from paths import MEDIA_DIR
 
 # yt-dlp 2026以降はJS runtimeが必要（YouTube signature解決のため）
-# node.jsが利用可能な場合に使用する
-_YTDLP_JS_FLAGS = ["--js-runtimes", "node", "--remote-components", "ejs:github"]
+# node.jsが利用可能な環境でのみ有効化し、未インストール時は空リストにフォールバック
+_YTDLP_JS_FLAGS = (
+    ["--js-runtimes", "node", "--remote-components", "ejs:github"]
+    if shutil.which("node")
+    else []
+)
 
 
 def is_single_video_url(url: str) -> bool:
