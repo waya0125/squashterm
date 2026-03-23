@@ -369,13 +369,21 @@ def build_upload_track(
     resolved_format = parsed.get("file_format") or file_path.suffix.lstrip(".").lower() or None
     cover_url = DEFAULT_COVER
     if cover and cover.filename:
-        cover_extension = Path(cover.filename).suffix
-        if not cover_extension:
-            cover_extension = extension_from_mime(cover.content_type) or ".jpg"
-        cover_path = MEDIA_DIR / f"{track_id}_cover{cover_extension}"
-        with cover_path.open("wb") as buffer:
-            shutil.copyfileobj(cover.file, buffer)
-        cover_url = f"/media/{cover_path.name}"
+        from media_utils import convert_image_to_webp
+        
+        cover_data = cover.file.read()
+        cover.file.seek(0)
+        webp_path = MEDIA_DIR / f"{track_id}_cover.webp"
+        if convert_image_to_webp(cover_data, webp_path):
+            cover_url = f"/media/{webp_path.name}"
+        else:
+            cover_extension = Path(cover.filename).suffix
+            if not cover_extension:
+                cover_extension = extension_from_mime(cover.content_type) or ".jpg"
+            cover_path = MEDIA_DIR / f"{track_id}_cover{cover_extension}"
+            with cover_path.open("wb") as buffer:
+                shutil.copyfileobj(cover.file, buffer)
+            cover_url = f"/media/{cover_path.name}"
     else:
         id3_cover = save_cover_from_id3(file_path, track_id)
         if id3_cover:
@@ -463,6 +471,7 @@ def update_playlist_sync_status(
 def batch_download_playlist(url: str, playlist_id: str | None, concurrency: int):
     """プレイリストを並列ダウンロード（download_queue使用）"""
     import threading
+
     from download_queue import ThreadPoolDownloadQueue
     import subprocess
     import time
@@ -503,14 +512,11 @@ def batch_download_playlist(url: str, playlist_id: str | None, concurrency: int)
     _callbacks_done = threading.Event()
     
     def download_single(entry_url: str, entry_id: str | None):
-        """単一エントリのダウンロード"""
+        """単一エントリのダウンロード。失敗は例外で通知しキューの failed カウンタを正しく更新する"""
         from ytdlp_service import download_with_ytdlp
-        try:
-            infos, _ = download_with_ytdlp(entry_url, no_playlist=True)
-            tracks = store_downloaded_tracks(infos, entry_url, playlist_id, playlist_title)
-            return {"success": True, "tracks": tracks}
-        except Exception as e:
-            return {"success": False, "error": str(e)}
+        infos, _ = download_with_ytdlp(entry_url, no_playlist=True)
+        tracks = store_downloaded_tracks(infos, entry_url, playlist_id, playlist_title)
+        return {"success": True, "tracks": tracks}
     
     def progress_callback(task, result):
         """進捗コールバック（通常関数 — generator にしてはいけない）
@@ -520,11 +526,11 @@ def batch_download_playlist(url: str, playlist_id: str | None, concurrency: int)
         """
         nonlocal completed_count, failed_count
         with _lock:
-            if result.get("success"):
+            if "error" in result:
+                failed_count += 1
+            else:
                 completed_count += 1
                 results.extend(result.get("tracks", []))
-            else:
-                failed_count += 1
             if completed_count + failed_count >= _expected:
                 _callbacks_done.set()
     
